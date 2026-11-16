@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  Local Intel, version 2.12
+  Local Intel, version 2.13
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -535,7 +535,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">Local Intel</h2>
-    <span class="ver" id="aboutVer">Version 2.12</span>
+    <span class="ver" id="aboutVer">Version 2.13</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -598,6 +598,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
       <li>On the phone, scan the QR code or open the link shown. That pairs the phone and turns receiving on; the intel then shows in the phone's intel panel, with the map rings, counts, hostile tracker and alerts.</li>
     </ol>
     <p>Messages are encrypted on the PC with a key from the pairing code and pass through <b>ntfy.sh</b>, a free public relay that can't read them. ntfy.sh allows 250 messages a day per internet connection, so intel is sent in bundles (every minute by default) and only for systems on the map or watched, unless you include the rest. The settings show how much of the day's allowance is used. <b>New code</b> makes a new pairing code; pair the phone again afterwards.</p>
+    <p>The phone checks for new intel every 15 seconds while the page is open, and straight away when you switch back to it. Anything sent while the phone was locked is caught up then (it doesn't alert for intel that's more than 3 minutes old). The line under the intel panel says when it last checked and when intel last arrived.</p>
     <p>Phones pause web pages in the background. For alerts with the screen off, install the ntfy app, subscribe to the topic shown in the settings, and tick "push readable alerts". Those alerts are not encrypted, so keep the topic name private.</p>
 
     <h3>Using your EVE login</h3>
@@ -689,6 +690,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.13</b> Phone relay is reliable on phones: it checks for new intel every 15 seconds and as soon as you switch back to the page, and catches up on anything sent while the phone was asleep. The status line says when it last checked.</li>
       <li><b>2.12</b> Timers board, hostile tracker, quiet hours for each system, map presets, and a phone relay that sends intel from your PC to your phone.</li>
       <li><b>2.11</b> Sov fights also come from your characters' notifications: entosis started, structure reinforced (with the node timer), command nodes up and structure lost, including systems off the map.</li>
       <li><b>2.10</b> Watched-system cards are a little wider and their buttons sit on one tidy row below the distance, instead of squeezing beside it.</li>
@@ -1917,7 +1919,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.12";
+const APP_VERSION = "2.13";
 let watchGen = 0;
 function watchNames() { return (cfg.watch || "").split(",").map(x => x.trim()).filter(Boolean); }
 async function loadWatch() {
@@ -2804,33 +2806,58 @@ async function relayPush(title, body) {
   if (!cfg.relaySend || !cfg.relayPush || !relay?.topic) return;
   try { await publish({ topic: relay.topic + "-alerts", title, message: body || title, priority: 4, tags: ["warning"] }); } catch {}
 }
-// phone side: listen for intel from the PC
+// phone side: check the relay every 15 seconds, and straight away when you come back to the page.
+// (A held-open connection gets cut whenever a phone locks or backgrounds the browser.)
+// Each check asks for everything since the last message received, so nothing is missed while the phone sleeps.
 function relayListen() {
-  relay.es?.close(); relay.es = null; relay.on = false;
+  clearInterval(relay.pollTimer); relay.pollTimer = null; relay.on = false;
   if (!cfg.relayRecv || !relay.topic) { renderIntel(); renderHostiles(); return; }
   relay.on = true;
-  intelStatus("Waiting for intel from your PC…");
-  const es = new EventSource(`${RELAY}/${relay.topic}/sse?since=1h`);
-  relay.es = es;
-  es.onmessage = async ev => {
-    let d; try { d = JSON.parse(ev.data); } catch { return; }
-    if (d.event !== "message" || !d.message) return;
-    let p; try { p = await unseal(d.message); } catch { return; } // not ours, or a different code
-    const now = Date.now();
-    for (const x of p.reports || []) {
-      const k = x.t + "|" + x.who + "|" + x.msg; if (relay.seen.has(k)) continue; relay.seen.add(k);
-      if (now - x.t > 36e5) continue;
-      const r = { t: x.t, who: x.who, msg: x.msg, ch: x.ch || "PC", live: now - d.time * 1000 < 3 * 60e3 };
-      intel.reports.push(r);
-      if (r.live) maybeAlert(r);
-    }
-    intel.reports = intel.reports.filter(r => now - r.t < 36e5);
-    relay.lastRecv = now;
-    intelStatus(`Receiving intel from your PC · last update ${new Date().toLocaleTimeString()}`);
-    computeIntel(); renderIntel(); renderMap(); renderTable(); renderWatch(); renderHostiles(); resolvePilots();
-  };
-  es.onerror = () => intelStatus("Reconnecting to the relay…", true);
+  if (relay.sinceFor !== relay.topic) { relay.since = "1h"; relay.sinceFor = relay.topic; }
+  intelStatus("Connecting to the relay…");
+  relayPoll();
+  relay.pollTimer = setInterval(relayPoll, 15e3);
 }
+async function relayHandle(d) {
+  let p; try { p = await unseal(d.message); } catch { return 0; } // not ours, or from an older pairing code
+  const now = Date.now(); let n = 0;
+  for (const x of p.reports || []) {
+    const k = x.t + "|" + x.who + "|" + x.msg; if (relay.seen.has(k)) continue; relay.seen.add(k);
+    if (now - x.t > 36e5) continue;
+    const r = { t: x.t, who: x.who, msg: x.msg, ch: x.ch || "PC", live: now - d.time * 1000 < 3 * 60e3 }; // catch-up after sleeping doesn't alert
+    intel.reports.push(r); n++;
+    if (r.live) maybeAlert(r);
+  }
+  relay.lastRecv = Math.max(relay.lastRecv || 0, d.time * 1000);
+  return n;
+}
+async function relayPoll() {
+  if (!relay.on || relay.polling || document.hidden) return;
+  relay.polling = true;
+  try {
+    const r = await fetch(`${RELAY}/${relay.topic}/json?poll=1&since=${encodeURIComponent(relay.since)}`, { cache: "no-store" });
+    if (!r.ok) throw new Error(r.status === 429 ? "it asked the page to slow down" : "HTTP " + r.status);
+    let got = 0;
+    for (const line of (await r.text()).split("\n")) {
+      if (!line.trim()) continue;
+      let d; try { d = JSON.parse(line); } catch { continue; }
+      if (d.event !== "message" || !d.message) continue;
+      relay.since = d.id;
+      got += await relayHandle(d);
+    }
+    const now = Date.now();
+    intel.reports = intel.reports.filter(x => now - x.t < 36e5);
+    intelStatus(relay.lastRecv
+      ? `Connected to your PC's intel · last intel ${ago(relay.lastRecv)} · checked ${new Date().toLocaleTimeString()}`
+      : `Connected · no intel from your PC yet (it only sends when your intel channel has something) · checked ${new Date().toLocaleTimeString()}`);
+    if (got) { computeIntel(); renderIntel(); renderMap(); renderTable(); renderWatch(); renderHostiles(); resolvePilots(); }
+  } catch (e) {
+    intelStatus(`Can't reach the relay right now (${e.message}). Trying again every 15 seconds.`, true);
+  }
+  relay.polling = false;
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden && relay?.on) relayPoll(); });
+window.addEventListener("online", () => { if (relay?.on) relayPoll(); });
 async function relaySetup() {
   if (!cfg.relayCode) { cfg.relayCode = newCode(); saveCfg(); }
   $("#relayCodeShow").textContent = cfg.relayCode;
