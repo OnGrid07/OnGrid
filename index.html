@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  Local Intel, version 2.15
+  Local Intel, version 2.16
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -553,7 +553,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">Local Intel</h2>
-    <span class="ver" id="aboutVer">Version 2.15</span>
+    <span class="ver" id="aboutVer">Version 2.16</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -662,7 +662,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
       <li>Type your intel channel's name exactly as it appears on its tab (several, separated by commas), then click <b>Connect chat logs folder</b> and pick <code>Documents\EVE\logs\Chatlogs</code>. Next time, press <b>Reconnect folder</b>.</li>
       <li>The page reads new messages every 1.5 seconds. It recognises system names, and shortened names (the first few characters) when only one system matches.</li>
       <li>Pilot counts: "+5", "5x", "5 nv", "5 reds", "local 12" and "x5". "clr" or "clear" sets the count to 0. A count only applies when a message names one system.</li>
-      <li>Pilot names in intel are looked up: corp, alliance, zKillboard danger and solo %, kills, usual ships. "CLOAKY HUNTER?" and "CYNO ALT?" are guesses from their history.</li>
+      <li>Pilot names in intel are looked up: corp, alliance, zKillboard danger and solo %, kills, usual ships. "CLOAKY HUNTER?" and "CYNO ALT?" are guesses from their history. EVE has characters named after almost every common word, so a name only counts as a pilot when it has zKillboard history or is two or more words; a brand-new single-word character with no kills or losses won't be picked up.</li>
       <li>Big-ship words (titan, super, dread, carrier, fax, lancer, rorq, dictor, hic, blops, caps, cyno) and ship names like "Sabre" get tagged.</li>
       <li>ESS words (ess, linking, main bank, reserve bank, bank) get an ESS tag.</li>
       <li><b>Show</b> lists all intel, or only messages about systems on the map or watched.</li>
@@ -708,6 +708,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.16</b> Fixes intel rings all disappearing. Ordinary intel words that are also EVE character names ("Heading", "Moving", "Red"…) were being treated as pilots. A name now counts as a pilot only with zKillboard history or when it has two or more words, and many more common words are ignored. This also cleans up the hostile tracker and the pilot lines under intel.</li>
       <li><b>2.15</b> A purple intel ring goes away once the pilots reported there are sighted in another system; the systems table shows "moved".</li>
       <li><b>2.14</b> Changing Jumps redraws the map and is remembered. Hostile paths animate: blue dashes flow in the direction the pilot moved, with an arrowhead at their latest system. Typed settings save as you type, the page asks the browser to keep its saved data, and settings can be copied to another browser or your phone.</li>
       <li><b>2.13</b> Phone relay is reliable on phones: it checks for new intel every 15 seconds and as soon as you switch back to the page, and catches up on anything sent while the phone was asleep. The status line says when it last checked.</li>
@@ -1254,7 +1255,7 @@ function computeIntel() {
   for (const s of state.systems.values()) { s.intelAge = null; s.intelClear = false; s.intelCount = null; s.countAge = null; s.here = []; s.bigI = new Set(); s.essI = false; s.intelRep = null; s.intelMoved = false; }
   const now = Date.now(), lastSeen = new Map(); // pilot id -> { sys, t } of their latest sighting
   for (const r of [...intel.reports].sort((a, b) => a.t - b.t)) {
-    if (!isClear(r.msg) && r.seg?.pilots?.length) { const sys = [...matchSystems(r.msg), ...matchWatch(r.msg)][0]; if (sys) for (const id of r.seg.pilots) lastSeen.set(id, { sys, t: r.t }); }
+    if (!isClear(r.msg) && pilotsOf(r).length) { const sys = [...matchSystems(r.msg), ...matchWatch(r.msg)][0]; if (sys) for (const id of pilotsOf(r)) lastSeen.set(id, { sys, t: r.t }); }
     const clr = isClear(r.msg), ids = matchSystems(r.msg);
     // a count is only trusted when the message names exactly one system
     const n = ids.length === 1 ? parseCount(r.msg) : null;
@@ -1268,8 +1269,8 @@ function computeIntel() {
   // a system's ring goes once every pilot named in its latest report has been sighted somewhere else since
   for (const s of state.systems.values()) {
     const r = s.intelRep;
-    if (r && !s.intelClear && r.seg?.pilots?.length)
-      s.intelMoved = r.seg.pilots.every(id => { const l = lastSeen.get(id); return l && l.t > r.t && l.sys !== s.id; });
+    if (r && !s.intelClear && pilotsOf(r).length)
+      s.intelMoved = pilotsOf(r).every(id => { const l = lastSeen.get(id); return l && l.t > r.t && l.sys !== s.id; });
   }
   const byName = new Map([...state.systems.values()].map(s => [s.name.toUpperCase(), s]));
   for (const p of presences()) {
@@ -1325,7 +1326,7 @@ function renderIntel() {
       return `<mark class="${clr ? "clr" : ""}">${esc(s.name)} ${s.dist}j${yd != null && yd !== s.dist ? " · " + yd + "j from you" : ""}${n ? " · " + n + " pilots" : ""}</mark>`;
     }).join(" ") + matchWatch(r.msg).filter(id => !state.systems.has(id)).map(id => `<mark class="${clr ? "clr" : ""}">${esc(state.watch.get(id).name)} · watched</mark>`).join(" ") + reportBig(r).map(b => `<span class="chip big">${esc(b)}</span>`).join("") + (cfg.showSov && isEss(r.msg) ? `<span class="chip ess">ESS</span>` : "");
     const near = !clr && hits.some(s => (fromYou ? distFromYou(s.id) ?? s.dist : s.dist) <= Math.max(lim, 1));
-    const pilotsHtml = (r.seg?.pilots || []).map(pilotLine).join("");
+    const pilotsHtml = pilotsOf(r).map(pilotLine).join("");
     const fresh = Date.now() - r.t < 5 * 60e3;
     return `<div class="rep${near ? " near" : ""}"><span class="t${fresh ? " fresh" : ""}">${ago(r.t)}</span>
       <span class="msg">${tags} ${html} <span class="by">· ${esc(r.who)}${intel.files.size > 1 ? " in " + esc(r.ch) : ""}</span>${pilotsHtml ? `<div class="pilots">${pilotsHtml}</div>` : ""}</span></div>`;
@@ -1741,7 +1742,23 @@ const pil = { names: new Map(), info: new Map(), busy: false, again: false };
 const STOP = new Set(("nv clr clear red reds neut neuts hostile hostiles gate gates gang fleet camp camping local in on at to the and or x is are " +
   "cloaky cloaked cyno dock docked status jump jumps jumped bubble bubbled ess rat ratting tower citadel pos from going inbound outbound towards " +
   "with no visual spike incoming ping off stargate station fc you me guys lol ty thanks np gone left still now just up down here there " +
-  "probes probe scanning scan dscan d-scan bombers bomber gang ships ship sabre dictor hic").split(" "));
+  "probes probe scanning scan dscan d-scan bombers bomber gang ships ship sabre dictor hic " +
+  // everyday intel words that also happen to be real EVE character names (checked against EVE's character list)
+  "nado heading toward jumping undocked undock tackled tackle hole wh cloak spike roam roaming blops dread dreads carrier carriers titan titans " +
+  "loki nyx dic dics hics more few many small big hunter hunters link linked links drop dropped log logged safe structure keepstar fort astrahus " +
+  "ihub tcu null low high back out near close far vis visual sighted spotted seen watch watching warp warped align aligned scout scouts eyes " +
+  "boys inc please run home stay hold careful heads plus moving went coming entered yes gtfo few some lots big bigger fast slow again also " +
+  "same other another next last first one two three four five six seven eight nine ten into onto over under through via sec lowsec nullsec " +
+  "highsec wormhole whs gates undocking docking landed land landing jumpin jumping entering leaving left right camped camper campers " +
+  "smartbomb smartbombs bubbles anchored anchor ihub skyhook beacon cynos covert covops recon recons hunting hunt hunted").split(" "));
+// A name only counts as a pilot when it has kill history on zKillboard, or it's a name of two or more words.
+// (Single words with no history are almost always ordinary words: EVE has characters called "Heading", "Moving", "Red"…)
+function isPilot(id) {
+  const i = pil.info.get(id); if (!i) return false; // still being looked up
+  if (i.zkb && (i.kills || 0) + (i.losses || 0) > 0) return true;
+  return /\S\s+\S/.test(nm(id) || "");
+}
+const pilotsOf = r => (r.seg?.pilots || []).filter(isPilot);
 function tokens(msg) { return msg.split(/\s+/).map(t => t.replace(/^[*.,!?:;()"\[\]]+|[*.,!?:;()"\[\]]+$/g, "")).filter(Boolean); }
 function runs(msg) {
   const out = []; let cur = [];
@@ -1957,7 +1974,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.15";
+const APP_VERSION = "2.16";
 let watchGen = 0;
 function watchNames() { return (cfg.watch || "").split(",").map(x => x.trim()).filter(Boolean); }
 async function loadWatch() {
@@ -2647,7 +2664,7 @@ function hostileTracks() {
   for (const r of [...intel.reports].sort((a, b) => a.t - b.t)) {
     if (now - r.t > 36e5 || isClear(r.msg) || !r.seg?.pilots?.length) continue;
     const sys = [...matchSystems(r.msg), ...matchWatch(r.msg)]; if (!sys.length) continue;
-    for (const id of r.seg.pilots) {
+    for (const id of pilotsOf(r)) {
       const i = pil.info.get(id) || {};
       if (state.friends.has(id) || state.friends.has(i.corp) || state.friends.has(i.alliance)) continue;
       const tr = tracks.get(id) || tracks.set(id, { id, seen: [] }).get(id);
