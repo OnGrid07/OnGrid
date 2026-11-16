@@ -1,0 +1,52 @@
+# Builds "Local Intel for Windows" from desktop/ on a Windows machine and publishes it as a GitHub Release.
+# Start it from the repository's Actions tab: "Build Windows app" → "Run workflow".
+name: Build Windows app
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "App version, e.g. 1.0.1"
+        required: true
+        default: "1.0.0"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install
+        run: npm ci
+      - name: Set version
+        run: npm version "${{ inputs.version }}" --no-git-tag-version --allow-same-version
+      - name: Build
+        run: npx electron-builder --win portable zip --x64 --publish never
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          cd dist
+          sha256sum LocalIntel-*.exe LocalIntel-*.zip > SHA256SUMS.txt
+          cat > notes.md <<'NOTES'
+          **Local Intel for Windows.** It's the same page as https://quietstatic01.github.io/Eve-Intel/, in its own app window.
+
+          - Keeps running in the system tray. Alerts and Windows notifications keep working while it's minimized or behind the game.
+          - Always on top, Start with Windows and Keep running when closed: right-click the tray icon.
+          - Remembers your chat logs folder, so there's no permission prompt every time.
+          - Loads the live page, so page updates arrive without reinstalling.
+
+          **Download:** `LocalIntel-…-portable.exe` is a single file you can run from anywhere, with no install. The `.zip` is the same app as a folder.
+
+          Windows may say "Windows protected your PC", because the app isn't signed with a paid certificate. Click **More info → Run anyway**. Checksums are in SHA256SUMS.txt.
+          NOTES
+          gh release create "desktop-v${{ inputs.version }}" LocalIntel-*.exe LocalIntel-*.zip SHA256SUMS.txt --title "Local Intel for Windows ${{ inputs.version }}" --notes-file notes.md --target "${{ github.sha }}"
