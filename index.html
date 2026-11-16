@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  Local Intel, version 2.13
+  Local Intel, version 2.14
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -182,9 +182,14 @@ tr:hover td { background: #141d27; }
 .hrow .hlast { font: 12px var(--mono); }
 .closing { color: var(--hot); font-weight: 600; }
 @media (max-width: 700px) { .hrow { grid-template-columns: 1fr; } }
-#map .hpath { fill: none; stroke: var(--hot); stroke-width: 2; stroke-dasharray: 5 4; opacity: .75; }
-#map .hpath.on { stroke-width: 3.5; opacity: 1; }
+/* hostile paths: a faint red track with blue dashes flowing from where they were first reported toward where they are now */
+#map .hpath polyline { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+#map .hpath .hbase { stroke: var(--hot); stroke-width: 3; opacity: .35; }
+#map .hpath .hflow { stroke: var(--accent); stroke-width: 2.5; stroke-dasharray: 7 11; }
+#map .hpath.on .hbase { stroke-width: 5; opacity: .5; } #map .hpath.on .hflow { stroke-width: 3.5; }
 #map .hpath.dim { opacity: .15; }
+@media (prefers-reduced-motion: no-preference) { #map .hpath .hflow { animation: hflow 1s linear infinite; } }
+@keyframes hflow { from { stroke-dashoffset: 18; } to { stroke-dashoffset: 0; } }
 .timerform { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; font: 12px var(--mono); color: var(--muted); margin-bottom: 6px; }
 .timerform #timerWhat { width: 15em; } .timerform #timerSys { width: 8em; } .timerform #timerWhen { width: 15em; }
 .trow { display: grid; grid-template-columns: 8.5em minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
@@ -194,6 +199,11 @@ tr:hover td { background: #141d27; }
 .relayqr:empty { display: none; }
 .relayqr { background: #fff; padding: 8px; border-radius: 6px; width: max-content; }
 .relaypair { display: flex; gap: 6px; }
+#savedNote { margin-left: auto; margin-right: 8px; transition: color .3s; }
+#savedNote.flash { color: var(--ok); }
+.bkbtns button { font: 12px var(--mono); background: var(--bg); color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 4px 9px; cursor: pointer; }
+.bkbtns button:hover { background: var(--accent); color: var(--bg); }
+#bkText { font: 11px var(--mono); background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: 5px 7px; width: 100%; resize: vertical; }
 .selbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: -2px 0 8px; font: 12px var(--mono); }
 .selbar b { font: 600 14px var(--display); }
 .selbar button, .routeform button, .routeacts button, .mini { font: 12px var(--mono); background: var(--bg); color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 3px 9px; cursor: pointer; }
@@ -444,7 +454,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
   </section>
 
   <section class="panel collapsible" id="settings" data-title="Alerts and settings" data-start="closed">
-    <div class="phead"><h2>Alerts and settings</h2></div>
+    <div class="phead"><h2>Alerts and settings</h2><span class="note" id="savedNote">Saved in this browser</span></div>
     <div class="setgrid">
       <fieldset>
         <legend>Alerts</legend>
@@ -503,6 +513,14 @@ footer { font: 11px var(--mono); color: var(--muted); }
         <div class="note" id="relayNote"></div>
       </fieldset>
       <fieldset>
+        <legend>Backup and other devices</legend>
+        <div class="note">Settings save automatically in this browser. Copy them to keep a backup or to set up another browser or your phone the same way: settings, presets, your own timers, intel channels and section layout. Your EVE login isn't included; log in again on the other device.</div>
+        <div class="bkbtns"><button type="button" id="bkCopy">Copy my settings</button></div>
+        <textarea id="bkText" rows="3" placeholder="Paste copied settings here" spellcheck="false"></textarea>
+        <div class="bkbtns"><button type="button" id="bkLoad">Load pasted settings</button></div>
+        <div class="note" id="bkNote"></div>
+      </fieldset>
+      <fieldset>
         <legend>Standings</legend>
         <label>Friendly <input type="text" id="friends" placeholder="Alliance or corp names, comma separated" autocomplete="off" spellcheck="false"></label>
         <label>Hostile <input type="text" id="enemies" placeholder="Alliance or corp names, comma separated" autocomplete="off" spellcheck="false"></label>
@@ -535,7 +553,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">Local Intel</h2>
-    <span class="ver" id="aboutVer">Version 2.13</span>
+    <span class="ver" id="aboutVer">Version 2.14</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -583,7 +601,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <p>The <b>Presets</b> row under the header saves the current map (center system, jumps and watched systems) under a name. Click a preset to switch back to it; × deletes it. Loading a preset turns <b>Follow me</b> off so the map stays where you put it.</p>
 
     <h3>Hostile tracker</h3>
-    <p>Lists every non-friendly pilot named in intel in the last hour: corp and alliance, the systems they were reported in (oldest first), where they were last seen and how long ago, and whether they're <b>closing in</b> on you or moving away. Their paths are drawn on the map as red dashed lines for 30 minutes. Click a pilot to highlight their path; click again to show all.</p>
+    <p>Lists every non-friendly pilot named in intel in the last hour: corp and alliance, the systems they were reported in (oldest first), where they were last seen and how long ago, and whether they're <b>closing in</b> on you or moving away. Their paths are drawn on the map for 30 minutes: a faint red track with blue dashes flowing from where they were first reported toward where they were last seen, and a blue arrowhead on their latest system. Click a pilot to highlight their path; click again to show all.</p>
 
     <h3>Timers</h3>
     <p>Every upcoming timer from your characters' notifications in one list, soonest first: structures leaving reinforcement, sov command nodes, moon chunks ready and breaking, and other timed events. You can add your own with <b>Add timer</b>: write the time as "in 2h 30m", "1d 4h" or an EVE date like 2026.11.20 18:00. Timers under an hour show red, under 6 hours orange. With "Alert 60 and 15 minutes before each timer" on, you get an alert at both points.</p>
@@ -667,7 +685,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
       <li>Switches for ratting glow, sov and ESS, and Thera and Turnur wormholes.</li>
       <li><b>Standings</b>: full alliance or corp names (not tickers) for friendly and hostile. You can hide friendly losses from the kill feed.</li>
     </ul>
-    <p>Settings are saved in your browser.</p>
+    <p>Everything you set is saved in this browser straight away, including text as you type it (the note at the top of Alerts and settings flashes "Saved"). The page asks the browser to keep this data rather than clearing it to free space. Settings are per browser and per device: use <b>Backup and other devices → Copy my settings</b>, then paste them into the same box on the other device and press <b>Load pasted settings</b>. This copies settings, presets, your own timers, intel channels and the section layout, but never your EVE login. On iPhone, a page added to the Home Screen keeps its own settings separate from Safari.</p>
 
     <h3>How often it updates</h3>
     <table>
@@ -690,6 +708,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.14</b> Changing Jumps redraws the map and is remembered. Hostile paths animate: blue dashes flow in the direction the pilot moved, with an arrowhead at their latest system. Typed settings save as you type, the page asks the browser to keep its saved data, and settings can be copied to another browser or your phone.</li>
       <li><b>2.13</b> Phone relay is reliable on phones: it checks for new intel every 15 seconds and as soon as you switch back to the page, and catches up on anything sent while the phone was asleep. The status line says when it last checked.</li>
       <li><b>2.12</b> Timers board, hostile tracker, quiet hours for each system, map presets, and a phone relay that sends intel from your PC to your phone.</li>
       <li><b>2.11</b> Sov fights also come from your characters' notifications: entosis started, structure reinforced (with the node timer), command nodes up and structure lost, including systems off the map.</li>
@@ -979,7 +998,7 @@ function renderMap() {
   const attacked = attackedSystems(), fleetBy = fleetBySys(), notifSov = cfg.showSov ? notifSovEvents() : new Map();
   const svg = $("#map"), pos = layout(), whBySys = whMap(), sovBySys = sovMap(), fightBySys = fightMap();
   const maxJ = Math.max(1, ...[...state.systems.values()].map(s => s.jumps || 0));
-  let h = `<defs><radialGradient id="ratGlow"><stop offset="0%" stop-color="#57c47a" stop-opacity=".55"/><stop offset="100%" stop-color="#57c47a" stop-opacity="0"/></radialGradient></defs>`;
+  let h = `<defs><marker id="harrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker><radialGradient id="ratGlow"><stop offset="0%" stop-color="#57c47a" stop-opacity=".55"/><stop offset="100%" stop-color="#57c47a" stop-opacity="0"/></radialGradient></defs>`;
   // ratting: green glow behind each system, sized by NPC kills in the last hour
   const maxR = Math.max(1, ...[...state.systems.values()].map(s => s.npc_kills || 0));
   if (cfg.showRats) for (const s of state.systems.values()) if (s.npc_kills) {
@@ -1359,6 +1378,7 @@ $("#intelReconnect").addEventListener("click", async () => {
   const h = intel.pending; if (!h) return;
   if (await h.requestPermission({ mode: "read" }) === "granted") { intel.dir = h; startIntel(); followLocation(); }
 });
+$("#intelChannels").addEventListener("input", () => ls.set("intelChannels", $("#intelChannels").value));
 $("#intelChannels").addEventListener("change", () => { ls.set("intelChannels", $("#intelChannels").value); if (intel.dir) startIntel(); });
 
 /* ---------- settings ---------- */
@@ -1366,11 +1386,19 @@ const SETTINGS_DEFAULT = { alRange: "1", alFrom: "you", alSound: true, alDesktop
 let cfg;
 try { cfg = { ...SETTINGS_DEFAULT, ...JSON.parse(ls.get("settings", "{}")) }; } catch { cfg = { ...SETTINGS_DEFAULT }; }
 if (ls.get("settings", null) == null && ls.get("intelAlert", null) != null) cfg.alRange = ls.get("intelAlert"); // older version's setting
-const saveCfg = () => ls.set("settings", JSON.stringify(cfg));
+function saveCfg() {
+  ls.set("settings", JSON.stringify(cfg));
+  const n = document.getElementById("savedNote");
+  if (n) { n.textContent = "Saved"; n.classList.add("flash"); clearTimeout(saveCfg.t); saveCfg.t = setTimeout(() => { n.textContent = "Saved in this browser"; n.classList.remove("flash"); }, 1500); }
+}
+// ask the browser not to clear this page's saved data when space runs low (Safari clears unvisited sites after 7 days unless allowed)
+try { navigator.storage?.persist?.(); } catch {}
 for (const k of Object.keys(SETTINGS_DEFAULT)) {
   const el = document.getElementById(k); if (!el) continue;
   if (el.type === "checkbox") el.checked = !!cfg[k]; else el.value = cfg[k];
   el.addEventListener("change", () => { cfg[k] = el.type === "checkbox" ? el.checked : el.value.trim(); saveCfg(); onSetting(k); });
+  // typed boxes save as you type, so closing the tab before clicking away loses nothing
+  if (el.tagName === "INPUT" && el.type !== "checkbox") { let t; el.addEventListener("input", () => { clearTimeout(t); t = setTimeout(() => { cfg[k] = el.value.trim(); saveCfg(); }, 400); }); }
 }
 function onSetting(k) {
   unlockAudio();
@@ -1919,7 +1947,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.13";
+const APP_VERSION = "2.14";
 let watchGen = 0;
 function watchNames() { return (cfg.watch || "").split(",").map(x => x.trim()).filter(Boolean); }
 async function loadWatch() {
@@ -2649,7 +2677,10 @@ function hostilePathsSvg(pos) {
     const pts = tr.seen.map(x => pos.get(x.sys)).filter(Boolean);
     if (pts.length < 2) continue;
     const cls = state.selPilot == null ? "hpath" : state.selPilot === tr.id ? "hpath on" : "hpath dim";
-    h += `<polyline class="${cls}" points="${pts.map(p => p.x.toFixed(1) + "," + p.y.toFixed(1)).join(" ")}"><title>${esc(nm(tr.id))}: ${esc(tr.seen.map(x => nm(x.sys)).join(" → "))}</title></polyline>`;
+    // points run oldest → newest, so the moving blue dash and the arrowhead show the direction travelled
+    const pp = pts.map(p => p.x.toFixed(1) + "," + p.y.toFixed(1)).join(" ");
+    h += `<g class="${cls}"><title>${esc(nm(tr.id))}: ${esc(tr.seen.map(x => nm(x.sys)).join(" → "))}</title>
+      <polyline class="hbase" points="${pp}"/><polyline class="hflow" points="${pp}" marker-end="url(#harrow)"/></g>`;
   }
   return h;
 }
@@ -2897,6 +2928,28 @@ $("#relayPair").addEventListener("submit", e => {
 
 setTimeout(() => { renderPresets(); renderTimers(); relaySetup(); }); // after the collapsing code below has loaded
 
+/* ---------- backup: copy settings to another browser or device (never the EVE login) ---------- */
+const BK_KEYS = ["settings", "presets", "timers", "intelChannels", "panels", "origin", "radius"];
+$("#bkCopy").addEventListener("click", () => {
+  const data = { app: "local-intel", v: APP_VERSION, saved: new Date().toISOString(), items: {} };
+  for (const k of BK_KEYS) { const v = ls.get(k, null); if (v != null) data.items[k] = v; }
+  const txt = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+  $("#bkText").value = txt;
+  const done = m => { $("#bkNote").textContent = m; $("#bkNote").className = "note"; };
+  navigator.clipboard?.writeText(txt).then(() => done("Copied. Paste it into the same box on the other device and press Load."), () => { $("#bkText").select(); done("Selected below: press Ctrl+C to copy it."); })
+    ?? ($("#bkText").select(), done("Selected below: press Ctrl+C to copy it."));
+});
+$("#bkLoad").addEventListener("click", () => {
+  const note = $("#bkNote");
+  try {
+    const data = JSON.parse(decodeURIComponent(escape(atob($("#bkText").value.trim()))));
+    if (data.app !== "local-intel" || !data.items) throw new Error();
+    for (const [k, v] of Object.entries(data.items)) if (BK_KEYS.includes(k)) ls.set(k, v);
+    note.textContent = "Loaded. Reloading the page…"; note.className = "note";
+    setTimeout(() => location.reload(), 600);
+  } catch { note.textContent = "That isn't a settings backup from this page. Copy it again with Copy my settings."; note.className = "note err"; }
+});
+
 /* ---------- sections that collapse into small buttons ---------- */
 const panelState = (() => { try { return JSON.parse(ls.get("panels", "{}")) || {}; } catch { return {}; } })();
 const collapsibles = () => [...document.querySelectorAll(".collapsible")];
@@ -2975,6 +3028,11 @@ async function start(origin, radius) {
 }
 
 $("#cfg").addEventListener("submit", e => { e.preventDefault(); if (!state.pinned) { ls.set("origin", $("#origin").value.trim().toUpperCase()); ls.set("radius", $("#radius").value); } start($("#origin").value.trim().toUpperCase(), +$("#radius").value); });
+// changing Jumps saves it and redraws the map straight away
+$("#radius").addEventListener("change", () => {
+  if (!state.pinned) ls.set("radius", $("#radius").value);
+  const o = state.systems.get(state.origin); if (o) start(o.name.toUpperCase(), +$("#radius").value);
+});
 $("#refresh").addEventListener("click", () => { refreshHourly(); refreshKills(); loadNotifs(); });
 setInterval(() => { if (state.systems.size) renderAll(); }, 30e3); // keep "x m ago", camps and rings fresh
 
