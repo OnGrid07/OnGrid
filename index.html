@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  Local Intel, version 2.16
+  Local Intel, version 2.17
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -553,7 +553,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">Local Intel</h2>
-    <span class="ver" id="aboutVer">Version 2.16</span>
+    <span class="ver" id="aboutVer">Version 2.17</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -596,6 +596,16 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Layout</h3>
     <p>From the top: the summary numbers, with Thera/Turnur connections and sov fights side by side below them (each box lights up when there's something in range, and a sov fight under way pulses red); the gate map with the systems table and intel beside it; watched systems; then <b>Alerts and settings</b>, <b>Character notifications</b> and <b>Kills</b>. Each of the last three has a <b>–</b> button that collapses it into a small button in a row above them. Press the small button to open it again. The page remembers which are open. A collapsed Character notifications button shows how many attacks arrived in the last hour.</p>
+
+    <h3>Windows app</h3>
+    <p><b>Local Intel for Windows</b> is this page in its own app window. Download it from <a href="https://github.com/OnGrid07/OnGrid/releases/latest" target="_blank" rel="noopener">the releases page</a>: <code>LocalIntel-…-portable.exe</code> is a single file to run from anywhere, with no install.</p>
+    <ul>
+      <li>It keeps running in the system tray, and alerts and Windows notifications keep working while it's minimized or behind the game. Closing the window hides it to the tray; quit from the tray icon.</li>
+      <li>Right-click the tray icon for <b>Always on top</b>, <b>Keep running when closed</b> and <b>Start with Windows</b>.</li>
+      <li>It remembers your chat logs folder, so there's no permission prompt each time.</li>
+      <li>It loads this live page, so every update shows up in the app without reinstalling. Your settings in the app are separate from your browser's; use Backup and other devices to copy them across.</li>
+      <li>Windows may say "Windows protected your PC" because the app isn't signed with a paid certificate: click <b>More info → Run anyway</b>.</li>
+    </ul>
 
     <h3>Presets</h3>
     <p>The <b>Presets</b> row under the header saves the current map (center system, jumps and watched systems) under a name. Click a preset to switch back to it; × deletes it. Loading a preset turns <b>Follow me</b> off so the map stays where you put it.</p>
@@ -708,6 +718,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.17</b> Local Intel for Windows: the page as a desktop app with a tray icon, background alerts, always on top and start with Windows.</li>
       <li><b>2.16</b> Fixes intel rings all disappearing. Ordinary intel words that are also EVE character names ("Heading", "Moving", "Red"…) were being treated as pilots. A name now counts as a pilot only with zKillboard history or when it has two or more words, and many more common words are ignored. This also cleans up the hostile tracker and the pilot lines under intel.</li>
       <li><b>2.15</b> A purple intel ring goes away once the pilots reported there are sighted in another system; the systems table shows "moved".</li>
       <li><b>2.14</b> Changing Jumps redraws the map and is remembered. Hostile paths animate: blue dashes flow in the direction the pilot moved, with an arrowhead at their latest system. Typed settings save as you type, the page asks the browser to keep its saved data, and settings can be copied to another browser or your phone.</li>
@@ -1974,7 +1985,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.16";
+const APP_VERSION = "2.17";
 let watchGen = 0;
 function watchNames() { return (cfg.watch || "").split(",").map(x => x.trim()).filter(Boolean); }
 async function loadWatch() {
