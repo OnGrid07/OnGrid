@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  Local Intel, version 2.11
+  Local Intel, version 2.12
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -155,6 +155,45 @@ tr:hover td { background: #141d27; }
 .dock button:hover { border-color: var(--accent); }
 .dock button .cnt { font: 500 11px var(--mono); color: var(--hot); margin-left: 6px; letter-spacing: 0; }
 .pinned-note { font: 12px var(--mono); color: var(--sov); }
+.presetbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; font: 12px var(--mono); color: var(--muted); }
+.presetbar .lbl { font: 600 12px var(--display); letter-spacing: .12em; text-transform: uppercase; }
+#presetChips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.pchip { display: inline-flex; border: 1px solid var(--accent); border-radius: 16px; overflow: hidden; }
+.pchip button { font: 12px var(--mono); background: var(--panel); color: var(--accent); border: 0; padding: 4px 10px; cursor: pointer; }
+.pchip button:hover { background: var(--accent); color: var(--bg); }
+.pchip .px { padding: 4px 8px; border-left: 1px solid var(--line); color: var(--muted); }
+.presetform { display: flex; gap: 6px; margin-left: auto; }
+.presetform input, .timerform input, .relaypair input { font: 12px var(--mono); background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: 4px 7px; min-width: 0; }
+.presetform input { width: 9em; }
+.presetform button, .timerform button, .relaypair button { font: 12px var(--mono); background: var(--bg); color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 4px 9px; cursor: pointer; }
+.presetform button:hover, .timerform button:hover, .relaypair button:hover { background: var(--accent); color: var(--bg); }
+.selquiet:empty { display: none; }
+.selquiet { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: -2px 0 10px; }
+.heatmap { display: block; }
+.heatmap .hmlbl { font: 8px var(--mono); fill: var(--muted); }
+.heatmap .hmnow { stroke: var(--fg); stroke-width: 1.2; }
+.qtext { display: grid; gap: 3px; font: 12px var(--mono); }
+.q-quiet { color: var(--ok); } .q-some { color: var(--warm); } .q-busy { color: var(--hot); }
+.hlist, .tlist { display: grid; margin-top: 8px; }
+.hrow { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.5fr) minmax(0, 1.2fr); gap: 4px 12px; align-items: baseline; padding: 7px 4px; border-bottom: 1px solid var(--line); font-size: 13px; cursor: pointer; }
+.hrow:hover { background: #141d27; } .hrow.sel { background: #16212d; }
+.hrow .hname { display: flex; flex-wrap: wrap; gap: 2px 6px; align-items: baseline; }
+.hrow .hpath { font: 12px var(--mono); color: var(--muted); overflow-wrap: anywhere; }
+.hrow .hlast { font: 12px var(--mono); }
+.closing { color: var(--hot); font-weight: 600; }
+@media (max-width: 700px) { .hrow { grid-template-columns: 1fr; } }
+#map .hpath { fill: none; stroke: var(--hot); stroke-width: 2; stroke-dasharray: 5 4; opacity: .75; }
+#map .hpath.on { stroke-width: 3.5; opacity: 1; }
+#map .hpath.dim { opacity: .15; }
+.timerform { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; font: 12px var(--mono); color: var(--muted); margin-bottom: 6px; }
+.timerform #timerWhat { width: 15em; } .timerform #timerSys { width: 8em; } .timerform #timerWhen { width: 15em; }
+.trow { display: grid; grid-template-columns: 8.5em minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.trow .tleft { font: 600 13px var(--mono); font-variant-numeric: tabular-nums; }
+.trow.soon .tleft { color: var(--hot); } .trow.near .tleft { color: var(--warm); } .trow.past { opacity: .55; }
+.trow .twhat { min-width: 0; overflow-wrap: anywhere; }
+.relayqr:empty { display: none; }
+.relayqr { background: #fff; padding: 8px; border-radius: 6px; width: max-content; }
+.relaypair { display: flex; gap: 6px; }
 .selbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: -2px 0 8px; font: 12px var(--mono); }
 .selbar b { font: 600 14px var(--display); }
 .selbar button, .routeform button, .routeacts button, .mini { font: 12px var(--mono); background: var(--bg); color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 3px 9px; cursor: pointer; }
@@ -284,6 +323,12 @@ footer { font: 11px var(--mono); color: var(--muted); }
     </form>
   </header>
 
+  <div class="presetbar">
+    <span class="lbl">Presets</span>
+    <span id="presetChips"></span>
+    <form id="presetForm" class="presetform"><input id="presetName" aria-label="Preset name" placeholder="Name" autocomplete="off" spellcheck="false"><button type="submit">Save current map</button></form>
+  </div>
+
   <div id="status">Starting…</div>
 
   <div class="summary" id="summary"></div>
@@ -292,6 +337,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <section class="panel">
       <h2>Gate map</h2>
       <div class="selbar" id="selbar" hidden></div>
+      <div class="selquiet" id="selQuiet"></div>
       <svg id="map" viewBox="0 0 600 600" role="img" aria-label="Systems arranged in rings by jump distance"></svg>
       <div class="legend">
         <span><i style="background:var(--hot)"></i>kill in last hour</span>
@@ -361,6 +407,24 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
   <div class="dock" id="dock" aria-label="Collapsed sections"></div>
 
+  <section class="panel collapsible" id="hostilePanel" data-title="Hostile tracker">
+    <div class="phead"><h2>Hostile tracker</h2></div>
+    <div class="note">Pilots named in intel in the last hour, where they were reported, and whether they're getting closer to you. Click a pilot to highlight their path on the map. Friendly pilots are left out.</div>
+    <div id="hostileList" class="hlist"></div>
+  </section>
+
+  <section class="panel collapsible" id="timerPanel" data-title="Timers">
+    <div class="phead"><h2>Timers</h2></div>
+    <form class="timerform" id="timerForm">
+      <label>What <input id="timerWhat" placeholder="e.g. Astrahus armor timer" autocomplete="off"></label>
+      <label>System <input id="timerSys" placeholder="optional" autocomplete="off" spellcheck="false"></label>
+      <label>When <input id="timerWhen" placeholder="in 2h 30m, or 2026.11.20 18:00" autocomplete="off"></label>
+      <button type="submit">Add timer</button>
+    </form>
+    <div class="note" id="timerNote">Timers from your characters' notifications appear automatically. EVE time is UTC.</div>
+    <div id="timerList" class="tlist"></div>
+  </section>
+
   <section class="panel collapsible" id="routePanel" data-title="Route planner" data-start="closed">
     <div class="phead"><h2>Route planner</h2></div>
     <form class="routeform" id="routeForm">
@@ -392,6 +456,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
         <label><input type="checkbox" id="alKills"> Also alert on new kills and gate camps in range</label>
         <label><input type="checkbox" id="alBig"> Always alert on capitals, dictors, HICs and Black Ops anywhere on the map</label>
         <label><input type="checkbox" id="alWatch"> Always alert on intel, kills, gate camps and sov fights in watched systems</label>
+        <label><input type="checkbox" id="alTimers"> Alert 60 and 15 minutes before each timer</label>
         <label><input type="checkbox" id="alSov"> Alert on sov fights and structure kills anywhere on the map, and ESS reports in range</label>
         <div><button type="button" id="alTest">Test alert</button></div>
         <div class="note" id="alNote"></div>
@@ -421,6 +486,21 @@ footer { font: 11px var(--mono); color: var(--muted); }
         <label><input type="checkbox" id="alNotif"> Alert on attacks, reinforcements, sov and war notifications</label>
         <label><input type="checkbox" id="alNotifWarn"> Also alert on fuel, low power and service warnings</label>
         <div class="note" id="ssoNote"></div>
+      </fieldset>
+      <fieldset>
+        <legend>Phone relay</legend>
+        <div class="note">Sends your intel channel from this PC to your phone, which can't read chat logs. Messages are encrypted on this PC and pass through ntfy.sh, a free public relay, which can't read them.</div>
+        <label><input type="checkbox" id="relaySend"> On this PC: send my intel to my phone</label>
+        <label>Send every <select id="relayEvery"><option value="30">30 seconds</option><option value="60">minute</option><option value="120">2 minutes</option><option value="300">5 minutes</option></select></label>
+        <label><input type="checkbox" id="relayAll"> Include intel about systems off the map</label>
+        <label><input type="checkbox" id="relayPush"> Also push readable alerts to the ntfy app</label>
+        <div class="note">Pairing code: <code id="relayCodeShow"></code> <button type="button" id="relayNew">New code</button></div>
+        <div class="note">On your phone, scan this or open the link: <code id="relayLink"></code> <button type="button" id="relayCopy">Copy</button></div>
+        <div id="relayQr" class="relayqr"></div>
+        <div class="note">For alerts with the phone's screen off, install the ntfy app and subscribe to <code id="relayPushTopic"></code>. Those alerts are readable by anyone who knows that name, so keep it private.</div>
+        <label><input type="checkbox" id="relayRecv"> On this phone: receive intel from my PC</label>
+        <form id="relayPair" class="relaypair"><input id="relayCodeIn" placeholder="Pairing code" autocomplete="off" spellcheck="false"><button type="submit">Pair</button></form>
+        <div class="note" id="relayNote"></div>
       </fieldset>
       <fieldset>
         <legend>Standings</legend>
@@ -455,7 +535,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">Local Intel</h2>
-    <span class="ver" id="aboutVer">Version 2.11</span>
+    <span class="ver" id="aboutVer">Version 2.12</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -498,6 +578,27 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Layout</h3>
     <p>From the top: the summary numbers, with Thera/Turnur connections and sov fights side by side below them (each box lights up when there's something in range, and a sov fight under way pulses red); the gate map with the systems table and intel beside it; watched systems; then <b>Alerts and settings</b>, <b>Character notifications</b> and <b>Kills</b>. Each of the last three has a <b>–</b> button that collapses it into a small button in a row above them. Press the small button to open it again. The page remembers which are open. A collapsed Character notifications button shows how many attacks arrived in the last hour.</p>
+
+    <h3>Presets</h3>
+    <p>The <b>Presets</b> row under the header saves the current map (center system, jumps and watched systems) under a name. Click a preset to switch back to it; × deletes it. Loading a preset turns <b>Follow me</b> off so the map stays where you put it.</p>
+
+    <h3>Hostile tracker</h3>
+    <p>Lists every non-friendly pilot named in intel in the last hour: corp and alliance, the systems they were reported in (oldest first), where they were last seen and how long ago, and whether they're <b>closing in</b> on you or moving away. Their paths are drawn on the map as red dashed lines for 30 minutes. Click a pilot to highlight their path; click again to show all.</p>
+
+    <h3>Timers</h3>
+    <p>Every upcoming timer from your characters' notifications in one list, soonest first: structures leaving reinforcement, sov command nodes, moon chunks ready and breaking, and other timed events. You can add your own with <b>Add timer</b>: write the time as "in 2h 30m", "1d 4h" or an EVE date like 2026.11.20 18:00. Timers under an hour show red, under 6 hours orange. With "Alert 60 and 15 minutes before each timer" on, you get an alert at both points.</p>
+
+    <h3>Quiet hours</h3>
+    <p>Click a system on the map: under the bar above the map, a grid shows when kills usually happen there, by weekday and hour in EVE time (from zKillboard). It says whether the system is usually quiet, somewhat active or busy right now, and its quietest stretch of hours. Watched-system cards say the same for the current hour.</p>
+
+    <h3>Phone relay</h3>
+    <p>Phones can't read EVE's chat logs, so your PC can send its intel to your phone:</p>
+    <ol>
+      <li>On the PC, in <b>Alerts and settings → Phone relay</b>, tick "send my intel to my phone".</li>
+      <li>On the phone, scan the QR code or open the link shown. That pairs the phone and turns receiving on; the intel then shows in the phone's intel panel, with the map rings, counts, hostile tracker and alerts.</li>
+    </ol>
+    <p>Messages are encrypted on the PC with a key from the pairing code and pass through <b>ntfy.sh</b>, a free public relay that can't read them. ntfy.sh allows 250 messages a day per internet connection, so intel is sent in bundles (every minute by default) and only for systems on the map or watched, unless you include the rest. The settings show how much of the day's allowance is used. <b>New code</b> makes a new pairing code; pair the phone again afterwards.</p>
+    <p>Phones pause web pages in the background. For alerts with the screen off, install the ntfy app, subscribe to the topic shown in the settings, and tick "push readable alerts". Those alerts are not encrypted, so keep the topic name private.</p>
 
     <h3>Using your EVE login</h3>
     <p>These need extra permissions. A character logged in before version 2.8 shows <b>Allow new features</b> under EVE login: press it and approve once. Actions use the character you're flying (your latest jump), or another logged-in character that has the permission.</p>
@@ -570,6 +671,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <h3>How often it updates</h3>
     <table>
       <tr><td>Intel, and your location from the chat log</td><td>every 1.5 seconds</td></tr>
+      <tr><td>Intel sent to your phone</td><td>in bundles every 30 seconds to 5 minutes (your choice)</td></tr>
       <tr><td>Your location from the EVE login</td><td>every 10 seconds (CCP updates about every 5); online status every minute</td></tr>
       <tr><td>Kill feed and kill counts</td><td>every 2 minutes</td></tr>
       <tr><td>Hourly stats, sov, wormholes</td><td>every 10 minutes</td></tr>
@@ -587,6 +689,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.12</b> Timers board, hostile tracker, quiet hours for each system, map presets, and a phone relay that sends intel from your PC to your phone.</li>
       <li><b>2.11</b> Sov fights also come from your characters' notifications: entosis started, structure reinforced (with the node timer), command nodes up and structure lost, including systems off the map.</li>
       <li><b>2.10</b> Watched-system cards are a little wider and their buttons sit on one tidy row below the distance, instead of squeezing beside it.</li>
       <li><b>2.9</b> Thera/Turnur connections and sov fights share one row under the summary numbers, and light up when something is in range. Sov fights under way pulse red.</li>
@@ -892,6 +995,7 @@ function renderMap() {
     const a = pos.get(s.id), b = pos.get(n);
     h += `<line class="edge" x1="${a.x.toFixed(1)}" y1="${a.y.toFixed(1)}" x2="${b.x.toFixed(1)}" y2="${b.y.toFixed(1)}"/>`;
   }
+  h += hostilePathsSvg(pos);
   // planned route through systems on the map
   if (state.route) for (let i = 1; i < state.route.length; i++) {
     const a = pos.get(state.route[i - 1]), b = pos.get(state.route[i]); if (!a || !b) continue;
@@ -997,7 +1101,7 @@ function renderSummary() {
     <div class="specials">${whSummary()}${sovSummary()}</div>`;
 }
 
-function renderAll() { renderWatch(); computeCounts(); computeCamps(); campAlerts(); sovAlerts(); computeIntel(); renderIntel(); renderSummary(); renderMap(); renderTable(); renderFeed(); }
+function renderAll() { renderTimers(); timerAlerts(); renderHostiles(); renderWatch(); computeCounts(); computeCamps(); campAlerts(); sovAlerts(); computeIntel(); renderIntel(); renderSummary(); renderMap(); renderTable(); renderFeed(); }
 
 /* ---------- intel channel (reads EVE chat logs from disk) ---------- */
 const intel = { dir: null, files: new Map(), locals: new Map(), reports: [], poll: null, scan: null, audio: null };
@@ -1042,7 +1146,7 @@ function parseLine(line, f) {
   if (Date.now() - t > 36e5 || m[7] === "EVE System") return;
   const r = { t, who: m[7], msg: m[8].trim(), ch: f.ch, live: !!f.primed };
   intel.reports.push(r);
-  if (f.primed) maybeAlert(r);
+  if (f.primed) { maybeAlert(r); relayQueue(r); }
 }
 
 function parseLocalLine(line, f) {
@@ -1112,7 +1216,7 @@ async function pollIntel() {
   const cut = Date.now() - 36e5;
   intel.reports = intel.reports.filter(r => r.t >= cut);
   checkFollow();
-  if (changed) { computeIntel(); renderIntel(); renderMap(); renderTable(); renderWatch(); resolvePilots(); }
+  if (changed) { computeIntel(); renderIntel(); renderMap(); renderTable(); renderWatch(); renderHostiles(); resolvePilots(); }
 }
 
 function startIntel() {
@@ -1175,7 +1279,7 @@ function intelCell(s) {
 
 function renderIntel() {
   renderYou();
-  if (!intel.dir) return;
+  if (!intel.dir && !relay?.on) return; // intel comes from chat logs, or from the PC through the phone relay
   const lim = +cfg.alRange, fromYou = cfg.alFrom === "you" && youNow();
   const onMap = cfg.intelFilter === "map";
   const list = [...intel.reports].filter(r => !onMap || matchSystems(r.msg).length || matchWatch(r.msg).length).sort((a, b) => b.t - a.t).slice(0, 60);
@@ -1256,7 +1360,7 @@ $("#intelReconnect").addEventListener("click", async () => {
 $("#intelChannels").addEventListener("change", () => { ls.set("intelChannels", $("#intelChannels").value); if (intel.dir) startIntel(); });
 
 /* ---------- settings ---------- */
-const SETTINGS_DEFAULT = { alRange: "1", alFrom: "you", alSound: true, alDesktop: false, alSpeak: false, alKills: false, alBig: true, follow: false, locEsi: true, killCap: "1000", intelFilter: "all", showRats: true, showSov: true, alSov: true, watch: "", alWatch: true, ssoClient: "", stdEsi: true, shipAware: true, routeFlag: "shortest", avCamps: true, avKills: true, avIntel: true, alNotif: true, alNotifWarn: true, showWh: true, friends: "", enemies: "", hideFriendly: false };
+const SETTINGS_DEFAULT = { alRange: "1", alFrom: "you", alSound: true, alDesktop: false, alSpeak: false, alKills: false, alBig: true, follow: false, locEsi: true, killCap: "1000", intelFilter: "all", showRats: true, showSov: true, alSov: true, watch: "", alWatch: true, alTimers: true, relaySend: false, relayRecv: false, relayEvery: "60", relayAll: false, relayPush: false, relayCode: "", ssoClient: "", stdEsi: true, shipAware: true, routeFlag: "shortest", avCamps: true, avKills: true, avIntel: true, alNotif: true, alNotifWarn: true, showWh: true, friends: "", enemies: "", hideFriendly: false };
 let cfg;
 try { cfg = { ...SETTINGS_DEFAULT, ...JSON.parse(ls.get("settings", "{}")) }; } catch { cfg = { ...SETTINGS_DEFAULT }; }
 if (ls.get("settings", null) == null && ls.get("intelAlert", null) != null) cfg.alRange = ls.get("intelAlert"); // older version's setting
@@ -1275,6 +1379,7 @@ function onSetting(k) {
   if (k === "hideFriendly") renderFeed();
   if (k === "showRats") { $("#ratLegend").hidden = !cfg.showRats; renderMap(); }
   if (k === "watch") loadWatch();
+  if (/^relay/.test(k) && k !== "relayCode") relaySetup();
   if (k === "killCap") refreshKills();
   if (k === "stdEsi") loadContacts();
   if (k === "shipAware") renderIntel();
@@ -1323,6 +1428,7 @@ function fireAlert(key, title, body, speech, force) {
   }
   if (cfg.alSpeak && "speechSynthesis" in window) { try { speechSynthesis.speak(new SpeechSynthesisUtterance(speech || title)); } catch {} }
   if (document.hidden || force) flashTitle(title);
+  if (!force) relayPush(title, body);
 }
 function flashTitle(msg) {
   clearInterval(flashTimer);
@@ -1673,7 +1779,7 @@ async function resolvePilots() {
       if (big.length && sysIds.length) { const s0 = state.systems.get(sysIds[0]); fireAlert("b" + r.t + r.msg, `${big.join(", ")} reported in ${s0.name}`, `${r.who}: ${r.msg}`, `${big.join(", ")}, ${say(s0.name)}`); }
     }
   } finally { pil.busy = false; }
-  computeIntel(); renderIntel(); renderMap(); renderTable();
+  computeIntel(); renderIntel(); renderMap(); renderTable(); renderHostiles();
   if (pil.again) { pil.again = false; resolvePilots(); }
 }
 function pilotLine(id) {
@@ -1811,7 +1917,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.11";
+const APP_VERSION = "2.12";
 let watchGen = 0;
 function watchNames() { return (cfg.watch || "").split(",").map(x => x.trim()).filter(Boolean); }
 async function loadWatch() {
@@ -1894,7 +2000,9 @@ function renderWatch() {
     const intelTxt = rep
       ? `${ago(rep.t)}: ${esc(rep.msg)} · ${esc(rep.who)}`
       : intel.dir ? "No intel in the last hour" : "Connect chat logs for intel";
-    const where = [here ? "you are here" : yd != null ? `${yd}j from you` : "", onMap ? `on map, ${onMap.dist}j` : "off map"].filter(Boolean).join(" · ");
+    const act = actCache.get(w.id); if (act === undefined) activityOf(w.id).then(a => a && renderWatch());
+    const busy = act && !(act instanceof Promise) ? busyNow(act) : null;
+    const where = [here ? "you are here" : yd != null ? `${yd}j from you` : "", onMap ? `on map, ${onMap.dist}j` : "off map", busy ? busy.label : ""].filter(Boolean).join(" · ");
     return `<div class="wcard${k1 || camp ? " hot" : live ? " intel" : ""}">
       <div class="wh"><span class="wname">${esc(w.name)}</span><span class="sec" style="color:${secColor(w.sec)}">${fmtSec(w.sec)}</span>${chips}</div>
       <div class="wstats">${stat("Kills 1h", k1, true)}${stat("Kills 24h", k24 && state.capped.has(w.id) ? k24 + "+" : k24)}${stat("Jumps 1h", w.jumps)}${stat("Rats 1h", w.npc_kills)}</div>
@@ -2126,7 +2234,7 @@ async function loadNotifs() {
   }
   ls.set("notifSeen", JSON.stringify([...notifSeen].slice(-3000)));
   state.notifAt = Date.now();
-  renderChars(); renderNotifs(); renderDock(); renderSummary(); renderMap(); renderTable(); renderWatch();
+  renderChars(); renderNotifs(); renderDock(); renderSummary(); renderTimers(); renderMap(); renderTable(); renderWatch();
 }
 function notifAlert(x) {
   if (!cfg.alNotif) return;
@@ -2414,13 +2522,363 @@ setInterval(loadContacts, 30 * 60e3);
 loadFleet();
 setInterval(loadFleet, 30e3);
 
+/* ---------- 1. timers board: every upcoming timer from notifications, plus your own ---------- */
+const TIMER_LABEL = { decloakTime: "command nodes appear", readyTime: "moon chunk ready", autoTime: "chunk breaks automatically", reinforceExitTime: "leaves reinforcement", timeLeft: "timer ends", vulnerableTime: "vulnerable", startDate: "starts", endDate: "ends", expireTime: "expires" };
+let manualTimers = [];
+try { manualTimers = JSON.parse(ls.get("timers", "[]")) || []; } catch {}
+const saveTimers = () => ls.set("timers", JSON.stringify(manualTimers));
+function notifTimers() {
+  const out = [];
+  if (!state.notifs) return out;
+  for (const x of state.notifs.values()) for (const [k, v] of Object.entries(x.data)) {
+    if (typeof v !== "number" || v <= 0) continue;
+    let at = null;
+    if (/^timeLeft$/i.test(k) && v < 1e15) at = x.t + v / 1e4;                 // a duration in 100 ns ticks from the notification
+    else if (/(Time|Date)$/.test(k) && v > 1e17) at = v / 1e4 - FILETIME_EPOCH_MS; // an absolute Windows file time
+    if (at == null) continue;
+    const title = x.type.replace(/Msg$/, "").replace(/([a-z])([A-Z])/g, "$1 $2");
+    out.push({ id: `n${x.notification_id}:${k}`, at, what: `${title}: ${TIMER_LABEL[k] || k}`, sys: sysOf(x), type: x.data.structureTypeID || x.data.typeID, char: x.char, src: "notification" });
+  }
+  return out;
+}
+function allTimers() {
+  const now = Date.now();
+  const list = [...notifTimers(), ...manualTimers.map(m => ({ ...m, src: "added by you" }))];
+  // keep upcoming timers and ones that ended in the last hour; drop duplicates from repeated notifications
+  const seen = new Set();
+  return list.filter(t => t.at > now - 36e5 && t.at < now + 30 * 864e5)
+    .sort((a, b) => a.at - b.at)
+    .filter(t => { const k = `${t.sys}|${t.what}|${Math.round(t.at / 6e4)}`; if (seen.has(k)) return false; seen.add(k); return true; });
+}
+function parseWhen(txt) {
+  const s = txt.trim();
+  const rel = s.match(/^(?:in\s+)?(?:(\d+)\s*d)?\s*(?:(\d+)\s*h)?\s*(?:(\d+)\s*m)?$/i);
+  if (rel && (rel[1] || rel[2] || rel[3])) return Date.now() + ((+rel[1] || 0) * 1440 + (+rel[2] || 0) * 60 + (+rel[3] || 0)) * 6e4;
+  const abs = s.match(/^(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})[ T]+(\d{1,2}):(\d{2})$/);
+  if (abs) return Date.UTC(+abs[1], abs[2] - 1, +abs[3], +abs[4], +abs[5]); // EVE time is UTC
+  return null;
+}
+function renderTimers() {
+  const now = Date.now(), list = allTimers(), box = $("#timerList");
+  if (!list.length) { box.innerHTML = `<div class="empty">No timers. They appear here from your notifications (reinforcements, sov nodes, moon chunks), or add your own above.</div>`; renderDock(); return; }
+  box.innerHTML = list.map(t => {
+    const left = t.at - now, s = t.sys && (state.systems.get(t.sys) || state.watch.get(t.sys));
+    const cls = left < 0 ? "past" : left < 36e5 ? "soon" : left < 6 * 36e5 ? "near" : "";
+    return `<div class="trow ${cls}">
+      <span class="tleft">${left < 0 ? "ended " + dur(-left) + " ago" : dur(left)}</span>
+      <span class="twhat"><b>${t.sys ? esc(nm(t.sys)) : ""}</b> ${esc(t.what)}${t.type ? " · " + esc(nm(t.type)) : ""}${s ? ` <span class="note">(${s.dist != null ? s.dist + "j" : "watched"})</span>` : ""}
+        <span class="note">· ${esc(fmtEve(t.at))} · ${t.src === "notification" ? esc(nm(t.char)) : "added by you"}</span></span>
+      <span>${t.sys ? `<button type="button" class="mini" data-act="dest" data-id="${t.sys}" data-name="${esc(nm(t.sys))}">Destination</button>` : ""}${t.src !== "notification" ? `<button type="button" class="mini" data-deltimer="${esc(t.id)}">Remove</button>` : ""}</span>
+    </div>`;
+  }).join("");
+  renderDock();
+}
+function timerAlerts() {
+  if (!cfg.alTimers) return;
+  const now = Date.now();
+  for (const t of allTimers()) for (const mins of [60, 15]) {
+    const left = t.at - now;
+    if (left <= mins * 6e4 && left > (mins - 5) * 6e4) {
+      const where = t.sys ? nm(t.sys) : "";
+      fireAlert(`tm${t.id}:${mins}`, `Timer in ${mins} minutes${where ? ": " + where : ""}`, t.what, `Timer in ${mins} minutes${where ? ", " + say(where) : ""}`);
+    }
+  }
+}
+$("#timerForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const note = $("#timerNote"), at = parseWhen($("#timerWhen").value), what = $("#timerWhat").value.trim() || "Timer";
+  if (!at) { note.textContent = 'Write the time as "in 2h 30m", "1d 4h" or an EVE date like 2026.11.20 18:00.'; note.className = "note err"; return; }
+  let sys = null;
+  if ($("#timerSys").value.trim()) { const r = await idOf($("#timerSys").value).catch(() => null); if (!r) { note.textContent = `No system named "${$("#timerSys").value.trim()}".`; note.className = "note err"; return; } sys = r.id; }
+  manualTimers.push({ id: "m" + Date.now(), at, what, sys }); saveTimers();
+  $("#timerWhat").value = ""; $("#timerWhen").value = ""; $("#timerSys").value = "";
+  note.textContent = `Added: ${what}, ${fmtEve(at)}.`; note.className = "note";
+  renderTimers();
+});
+$("#timerList").addEventListener("click", e => {
+  const b = e.target.closest("[data-deltimer]"); if (!b) return;
+  manualTimers = manualTimers.filter(t => t.id !== b.dataset.deltimer); saveTimers(); renderTimers();
+});
+
+/* ---------- 2. hostile tracker: pilots named in intel, where they were seen, which way they're moving ---------- */
+state.selPilot = null;
+function hostileTracks() {
+  const now = Date.now(), tracks = new Map();
+  for (const r of [...intel.reports].sort((a, b) => a.t - b.t)) {
+    if (now - r.t > 36e5 || isClear(r.msg) || !r.seg?.pilots?.length) continue;
+    const sys = [...matchSystems(r.msg), ...matchWatch(r.msg)]; if (!sys.length) continue;
+    for (const id of r.seg.pilots) {
+      const i = pil.info.get(id) || {};
+      if (state.friends.has(id) || state.friends.has(i.corp) || state.friends.has(i.alliance)) continue;
+      const tr = tracks.get(id) || tracks.set(id, { id, seen: [] }).get(id);
+      const last = tr.seen[tr.seen.length - 1];
+      if (last && last.sys === sys[0]) last.t = r.t; else tr.seen.push({ sys: sys[0], t: r.t });
+    }
+  }
+  return [...tracks.values()].sort((a, b) => b.seen[b.seen.length - 1].t - a.seen[a.seen.length - 1].t);
+}
+function renderHostiles() {
+  const box = $("#hostileList"), list = hostileTracks();
+  if (!list.length) { box.innerHTML = `<div class="empty">${intel.dir || relay.on ? "No pilots named in intel in the last hour." : "Connect your chat logs (or receive intel from your PC) to track pilots named in intel."}</div>`; return; }
+  const me = youNow();
+  box.innerHTML = list.map(tr => {
+    const i = pil.info.get(tr.id) || {}, last = tr.seen[tr.seen.length - 1], prev = tr.seen[tr.seen.length - 2];
+    const dl = me ? distFromYou(last.sys) : null, dp = me && prev ? distFromYou(prev.sys) : null;
+    const trend = dl != null && dp != null ? (dl < dp ? `<span class="closing">closing in</span>` : dl > dp ? `<span class="note">moving away</span>` : "") : "";
+    const org = [i.corp ? nm(i.corp) : "", i.alliance ? nm(i.alliance) : ""].filter(Boolean).join(" · ");
+    const hostile = state.enemies.has(tr.id) || state.enemies.has(i.corp) || state.enemies.has(i.alliance);
+    return `<div class="hrow${state.selPilot === tr.id ? " sel" : ""}" data-pilot="${tr.id}">
+      <span class="hname"><a href="https://zkillboard.com/character/${tr.id}/" target="_blank" rel="noopener">${esc(nm(tr.id))}</a>${hostile ? `<span class="chip red">HOSTILE</span>` : ""}<button type="button" class="mini" data-act="info" data-id="${tr.id}" data-name="${esc(nm(tr.id))}">in EVE</button><span class="note">${esc(org)}</span></span>
+      <span class="hpath">${tr.seen.map(x => esc(nm(x.sys)) || "?").join(" → ")}</span>
+      <span class="hlast"><b>${esc(nm(last.sys))}</b> ${ago(last.t)}${dl != null ? ` · ${dl}j from you` : ""} ${trend}</span>
+    </div>`;
+  }).join("");
+}
+$("#hostileList").addEventListener("click", e => {
+  if (e.target.closest("a, button")) return;
+  const row = e.target.closest("[data-pilot]"); if (!row) return;
+  state.selPilot = state.selPilot === +row.dataset.pilot ? null : +row.dataset.pilot;
+  renderHostiles(); renderMap();
+});
+function hostilePathsSvg(pos) {
+  let h = "";
+  for (const tr of hostileTracks()) {
+    if (Date.now() - tr.seen[tr.seen.length - 1].t > 30 * 60e3 && state.selPilot !== tr.id) continue;
+    const pts = tr.seen.map(x => pos.get(x.sys)).filter(Boolean);
+    if (pts.length < 2) continue;
+    const cls = state.selPilot == null ? "hpath" : state.selPilot === tr.id ? "hpath on" : "hpath dim";
+    h += `<polyline class="${cls}" points="${pts.map(p => p.x.toFixed(1) + "," + p.y.toFixed(1)).join(" ")}"><title>${esc(nm(tr.id))}: ${esc(tr.seen.map(x => nm(x.sys)).join(" → "))}</title></polyline>`;
+  }
+  return h;
+}
+
+/* ---------- 5. quiet hours: when a system usually sees kills (zKillboard, by weekday and hour, EVE time) ---------- */
+const actCache = new Map();
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+async function activityOf(id) {
+  if (actCache.has(id)) return actCache.get(id);
+  let stored = null;
+  try { stored = JSON.parse(localStorage.getItem("act:" + id) || "null"); } catch {}
+  if (stored && Date.now() - stored.at < 12 * 36e5) { actCache.set(id, stored.a); return stored.a; }
+  const p = getJSON(`${ZKB}/stats/solarSystemID/${id}/`, { headers: { Accept: "application/json" } }, 2)
+    .then(d => { const a = d?.activity || null; try { localStorage.setItem("act:" + id, JSON.stringify({ at: Date.now(), a })); } catch {} actCache.set(id, a); return a; })
+    .catch(() => { actCache.set(id, false); return null; });
+  actCache.set(id, p);
+  return p;
+}
+function busyNow(a) {
+  if (!a || !a.max) return null;
+  const d = new Date(), v = a[d.getUTCDay()]?.[d.getUTCHours()] ?? 0, f = v / a.max;
+  return { f, label: f < 0.12 ? "usually quiet now" : f < 0.35 ? "usually some activity now" : "usually busy now" };
+}
+function quietestHours(a) {
+  // the longest run of hours (over all weekdays) with the least activity
+  const tot = Array.from({ length: 24 }, (_, h) => [0, 1, 2, 3, 4, 5, 6].reduce((s, d) => s + (a[d]?.[h] || 0), 0));
+  const max = Math.max(...tot) || 1, lo = tot.map(v => v / max < 0.25);
+  let best = [0, 0], cur = null;
+  for (let i = 0; i < 48; i++) { const h = i % 24; if (lo[h]) { if (cur == null) cur = i; if (i - cur + 1 > best[1] - best[0]) best = [cur, i + 1]; } else cur = null; }
+  if (best[1] - best[0] >= 24) return "quiet all day";
+  return best[1] > best[0] ? `quietest ${String(best[0] % 24).padStart(2, "0")}:00–${String(best[1] % 24).padStart(2, "0")}:00 EVE` : "no clearly quiet hours";
+}
+function heatmapSvg(a) {
+  const cw = 9, ch = 9, W = 24 * cw + 30, H = 7 * ch + 14, now = new Date();
+  let g = "";
+  for (let d = 0; d < 7; d++) {
+    g += `<text x="0" y="${d * ch + 8}" class="hmlbl">${DAYS[d]}</text>`;
+    for (let h = 0; h < 24; h++) {
+      const f = (a[d]?.[h] || 0) / (a.max || 1), isNow = d === now.getUTCDay() && h === now.getUTCHours();
+      g += `<rect x="${30 + h * cw}" y="${d * ch}" width="${cw - 1}" height="${ch - 1}" fill="var(--hot)" fill-opacity="${(0.06 + 0.94 * Math.sqrt(f)).toFixed(2)}"${isNow ? ' class="hmnow"' : ""}><title>${DAYS[d]} ${String(h).padStart(2, "0")}:00 EVE: ${a[d]?.[h] || 0} kills</title></rect>`;
+    }
+  }
+  for (const h of [0, 6, 12, 18]) g += `<text x="${30 + h * cw}" y="${7 * ch + 11}" class="hmlbl">${String(h).padStart(2, "0")}</text>`;
+  return `<svg class="heatmap" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Kills by weekday and hour">${g}</svg>`;
+}
+async function renderQuiet() {
+  const box = $("#selQuiet"), id = state.sel; if (!box) return;
+  if (!id) { box.innerHTML = ""; return; }
+  box.innerHTML = `<span class="note">Loading activity by hour…</span>`;
+  const a = await activityOf(id);
+  if (state.sel !== id) return;
+  if (!a || !a.max) { box.innerHTML = `<span class="note">No kill history on zKillboard for this system.</span>`; return; }
+  const b = busyNow(a);
+  box.innerHTML = `${heatmapSvg(a)}<div class="qtext"><b class="${b.f < 0.12 ? "q-quiet" : b.f < 0.35 ? "q-some" : "q-busy"}">${b.label}</b><span class="note">${quietestHours(a)} · kills by weekday and hour from zKillboard, EVE time</span></div>`;
+}
+
+/* ---------- 8. map presets: center, radius and watched systems saved under a name ---------- */
+let presets = [];
+try { presets = JSON.parse(ls.get("presets", "[]")) || []; } catch {}
+const savePresets = () => ls.set("presets", JSON.stringify(presets));
+function renderPresets() {
+  $("#presetChips").innerHTML = presets.map((p, i) => `<span class="pchip"><button type="button" data-preset="${i}" title="${esc(`${p.origin}, ${p.radius} jumps${p.watch ? ", watching " + p.watch : ""}`)}">${esc(p.name)}</button><button type="button" class="px" data-delpreset="${i}" aria-label="Delete preset ${esc(p.name)}">×</button></span>`).join("")
+    || `<span class="note">Save the current map (center, jumps and watched systems) to switch back to it in one click.</span>`;
+}
+$("#presetForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const name = $("#presetName").value.trim(); const o = state.systems.get(state.origin);
+  if (!name) return toast("Type a name for the preset first.", true);
+  if (!o) return toast("Load a system first.", true);
+  const p = { name, origin: o.name, radius: state.radius, watch: cfg.watch || "" };
+  const i = presets.findIndex(x => x.name.toLowerCase() === name.toLowerCase());
+  if (i >= 0) presets[i] = p; else presets.push(p);
+  savePresets(); renderPresets(); $("#presetName").value = "";
+  toast(`Saved "${name}": ${p.origin}, ${p.radius} jumps${p.watch ? ", " + watchNames().length + " watched" : ""}.`);
+});
+$("#presetChips").addEventListener("click", e => {
+  const d = e.target.closest("[data-delpreset]");
+  if (d) { presets.splice(+d.dataset.delpreset, 1); savePresets(); renderPresets(); return; }
+  const b = e.target.closest("[data-preset]"); if (!b) return;
+  const p = presets[+b.dataset.preset]; if (!p) return;
+  if (cfg.follow) { cfg.follow = false; $("#follow").checked = false; saveCfg(); toast(`Loaded "${p.name}". Follow me is now off so the map stays on ${p.origin}.`); }
+  else toast(`Loaded "${p.name}".`);
+  $("#origin").value = p.origin.toUpperCase(); $("#radius").value = p.radius;
+  if (!state.pinned) { ls.set("origin", p.origin.toUpperCase()); ls.set("radius", String(p.radius)); }
+  cfg.watch = p.watch || ""; saveCfg(); loadWatch();
+  start(p.origin.toUpperCase(), +p.radius);
+});
+
+/* ---------- 9. intel on your phone: the PC sends intel, end-to-end encrypted, through the ntfy.sh relay ---------- */
+const RELAY = "https://ntfy.sh", RELAY_DAILY = 250; // ntfy.sh's free limit per internet connection
+var relay = { on: false, topic: null, key: null, es: null, queue: [], timer: null, lastSend: 0, lastRecv: 0, seen: new Set() };
+const te = new TextEncoder(), td = new TextDecoder();
+const toB64 = u8 => { let s = ""; for (let i = 0; i < u8.length; i += 8192) s += String.fromCharCode(...u8.subarray(i, i + 8192)); return btoa(s); };
+const fromB64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+function newCode() {
+  const A = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", r = crypto.getRandomValues(new Uint8Array(20));
+  return [...r].map(b => A[b % 32]).join("").match(/.{4}/g).join("-"); // 100 bits
+}
+async function relayKeys(code) {
+  const norm = code.replace(/[^A-Z0-9]/gi, "").toUpperCase();
+  const h1 = new Uint8Array(await crypto.subtle.digest("SHA-256", te.encode("localintel-topic:" + norm)));
+  const h2 = await crypto.subtle.digest("SHA-256", te.encode("localintel-key:" + norm));
+  return { topic: "li-" + [...h1.slice(0, 16)].map(b => b.toString(16).padStart(2, "0")).join(""), key: await crypto.subtle.importKey("raw", h2, "AES-GCM", false, ["encrypt", "decrypt"]) };
+}
+async function seal(obj) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, relay.key, te.encode(JSON.stringify(obj))));
+  const all = new Uint8Array(12 + ct.length); all.set(iv); all.set(ct, 12); return toB64(all);
+}
+async function unseal(b64) {
+  const all = fromB64(b64);
+  return JSON.parse(td.decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: all.slice(0, 12) }, relay.key, all.slice(12))));
+}
+function sentToday() {
+  let a = []; try { a = JSON.parse(localStorage.getItem("relaySent") || "[]"); } catch {}
+  return a.filter(t => Date.now() - t < 864e5);
+}
+function countSend() { const a = sentToday(); a.push(Date.now()); try { localStorage.setItem("relaySent", JSON.stringify(a)); } catch {} }
+function relayMsg(m, err) { const n = $("#relayNote"); n.textContent = m; n.className = "note" + (err ? " err" : ""); }
+async function publish(body) {
+  if (sentToday().length >= RELAY_DAILY - 3) { relayMsg(`ntfy.sh's free limit of ${RELAY_DAILY} messages a day is used up; sending resumes as the oldest drop off.`, true); return false; }
+  const r = await fetch(RELAY + "/", { method: "POST", body: JSON.stringify(body) });
+  countSend();
+  if (!r.ok) throw new Error(r.status === 429 ? "the relay says too many messages, slowing down" : "HTTP " + r.status);
+  return true;
+}
+// PC side: queue new intel and send it in bundles
+function relayQueue(r) {
+  if (!cfg.relaySend || !relay?.key) return;
+  if (!cfg.relayAll && !matchSystems(r.msg).length && !matchWatch(r.msg).length) return;
+  relay.queue.push({ t: r.t, who: r.who, msg: r.msg.slice(0, 300), ch: r.ch });
+  scheduleFlush();
+}
+function scheduleFlush() {
+  if (relay.timer) return;
+  const every = Math.max(30, +cfg.relayEvery || 60) * 1000;
+  relay.timer = setTimeout(flushRelay, Math.max(0, relay.lastSend + every - Date.now()));
+}
+async function flushRelay() {
+  relay.timer = null;
+  if (!relay.queue.length || !relay.key) return;
+  const batch = [];
+  let size = 0;
+  while (relay.queue.length && size < 2600) { const x = relay.queue.shift(); size += JSON.stringify(x).length; batch.push(x); }
+  try {
+    if (await publish({ topic: relay.topic, message: await seal({ v: 1, reports: batch }) })) {
+      relay.lastSend = Date.now();
+      relayMsg(`Sending intel to your phone. Last sent ${new Date().toLocaleTimeString()} · ${sentToday().length} of ${RELAY_DAILY} messages used in the last 24 hours.`);
+    } else relay.queue.unshift(...batch);
+  } catch (e) { relay.queue.unshift(...batch); relayMsg("Couldn't reach the relay: " + e.message + ". Retrying.", true); relay.lastSend = Date.now(); }
+  if (relay.queue.length) scheduleFlush();
+}
+async function relayPush(title, body) {
+  if (!cfg.relaySend || !cfg.relayPush || !relay?.topic) return;
+  try { await publish({ topic: relay.topic + "-alerts", title, message: body || title, priority: 4, tags: ["warning"] }); } catch {}
+}
+// phone side: listen for intel from the PC
+function relayListen() {
+  relay.es?.close(); relay.es = null; relay.on = false;
+  if (!cfg.relayRecv || !relay.topic) { renderIntel(); renderHostiles(); return; }
+  relay.on = true;
+  intelStatus("Waiting for intel from your PC…");
+  const es = new EventSource(`${RELAY}/${relay.topic}/sse?since=1h`);
+  relay.es = es;
+  es.onmessage = async ev => {
+    let d; try { d = JSON.parse(ev.data); } catch { return; }
+    if (d.event !== "message" || !d.message) return;
+    let p; try { p = await unseal(d.message); } catch { return; } // not ours, or a different code
+    const now = Date.now();
+    for (const x of p.reports || []) {
+      const k = x.t + "|" + x.who + "|" + x.msg; if (relay.seen.has(k)) continue; relay.seen.add(k);
+      if (now - x.t > 36e5) continue;
+      const r = { t: x.t, who: x.who, msg: x.msg, ch: x.ch || "PC", live: now - d.time * 1000 < 3 * 60e3 };
+      intel.reports.push(r);
+      if (r.live) maybeAlert(r);
+    }
+    intel.reports = intel.reports.filter(r => now - r.t < 36e5);
+    relay.lastRecv = now;
+    intelStatus(`Receiving intel from your PC · last update ${new Date().toLocaleTimeString()}`);
+    computeIntel(); renderIntel(); renderMap(); renderTable(); renderWatch(); renderHostiles(); resolvePilots();
+  };
+  es.onerror = () => intelStatus("Reconnecting to the relay…", true);
+}
+async function relaySetup() {
+  if (!cfg.relayCode) { cfg.relayCode = newCode(); saveCfg(); }
+  $("#relayCodeShow").textContent = cfg.relayCode;
+  try { Object.assign(relay, await relayKeys(cfg.relayCode)); } catch { relayMsg("This browser can't encrypt here (it needs an https:// address).", true); return; }
+  const link = `${callbackUrl()}#pair=${cfg.relayCode}`;
+  $("#relayLink").textContent = link;
+  $("#relayPushTopic").textContent = relay.topic + "-alerts";
+  if (cfg.relaySend) {
+    relayMsg(`Sending intel to your phone · ${sentToday().length} of ${RELAY_DAILY} messages used in the last 24 hours.`);
+    drawQr(link);
+  } else if (!cfg.relayRecv) relayMsg("Off. Tick the first box on your PC, or the second on your phone.");
+  relayListen();
+}
+function drawQr(text) {
+  const box = $("#relayQr");
+  const go = () => { box.innerHTML = ""; try { new QRCode(box, { text, width: 148, height: 148, colorDark: "#0b0f14", colorLight: "#ffffff" }); } catch {} };
+  if (window.QRCode) return go();
+  const s = document.createElement("script");
+  s.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"; s.onload = go;
+  document.head.appendChild(s);
+}
+$("#relayNew").addEventListener("click", () => { cfg.relayCode = newCode(); saveCfg(); relay.seen.clear(); relaySetup(); toast("New pairing code. Pair your phone again with the new link."); });
+$("#relayCopy").addEventListener("click", () => { const t = $("#relayLink").textContent; navigator.clipboard?.writeText(t).then(() => toast("Phone link copied."), () => toast("Select the link and copy it.", true)); });
+$("#relayPair").addEventListener("submit", e => {
+  e.preventDefault();
+  const v = $("#relayCodeIn").value.trim().toUpperCase(); if (v.replace(/[^A-Z0-9]/g, "").length < 16) return toast("That pairing code is too short.", true);
+  cfg.relayCode = v; cfg.relayRecv = true; $("#relayRecv").checked = true; saveCfg(); relaySetup(); toast("Paired. Intel from your PC will appear in the intel panel.");
+});
+// opening the phone link (#pair=CODE) pairs this browser and turns receiving on
+(() => {
+  const m = location.hash.match(/^#pair=([A-Z0-9-]{16,})$/i); if (!m) return;
+  cfg.relayCode = m[1].toUpperCase(); cfg.relayRecv = true; cfg.relaySend = false; saveCfg();
+  $("#relayRecv").checked = true; $("#relaySend").checked = false;
+  try { history.replaceState(null, "", location.pathname + location.search); } catch {}
+  setTimeout(() => toast("Paired with your PC. Its intel will appear in the intel panel."), 500);
+})();
+
+setTimeout(() => { renderPresets(); renderTimers(); relaySetup(); }); // after the collapsing code below has loaded
+
 /* ---------- sections that collapse into small buttons ---------- */
 const panelState = (() => { try { return JSON.parse(ls.get("panels", "{}")) || {}; } catch { return {}; } })();
 const collapsibles = () => [...document.querySelectorAll(".collapsible")];
 function isClosed(el) { return panelState[el.id] != null ? panelState[el.id] === "closed" : el.dataset.start === "closed"; }
 function renderDock() {
   $("#dock").innerHTML = collapsibles().filter(isClosed).map(el => {
-    const cnt = el.id === "notifPanel" && state.notifs ? [...state.notifs.values()].filter(x => Date.now() - x.t < 36e5 && notifKind(x.type) === "attack").length : 0;
+    const cnt = el.id === "notifPanel" && state.notifs ? [...state.notifs.values()].filter(x => Date.now() - x.t < 36e5 && notifKind(x.type) === "attack").length
+      : el.id === "timerPanel" ? allTimers().filter(t => t.at > Date.now() && t.at - Date.now() < 36e5).length
+      : el.id === "hostilePanel" ? hostileTracks().filter(t => Date.now() - t.seen[t.seen.length - 1].t < 15 * 60e3).length : 0;
     return `<button type="button" data-open="${el.id}" title="Show ${esc(el.dataset.title)}">+ ${esc(el.dataset.title)}${cnt ? `<span class="cnt">${cnt}</span>` : ""}</button>`;
   }).join("");
   for (const el of collapsibles()) el.hidden = isClosed(el);
@@ -2444,7 +2902,7 @@ function watchTabUrl(name) {
 }
 
 /* ---------- interaction ---------- */
-function select(id) { state.sel = state.sel === id ? null : id; renderMap(); renderTable(); renderFeed(); }
+function select(id) { state.sel = state.sel === id ? null : id; renderMap(); renderTable(); renderFeed(); renderQuiet(); }
 $("#map").addEventListener("click", e => { const g = e.target.closest("g[data-id]"); if (g) select(+g.dataset.id); });
 $("#tbl tbody").addEventListener("click", e => { if (e.target.closest("a")) return; const tr = e.target.closest("tr[data-id]"); if (tr) select(+tr.dataset.id); });
 $("#tbl thead").addEventListener("click", e => {
