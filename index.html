@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  Local Intel, version 2.14
+  Local Intel, version 2.15
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -553,7 +553,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">Local Intel</h2>
-    <span class="ver" id="aboutVer">Version 2.14</span>
+    <span class="ver" id="aboutVer">Version 2.15</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -636,7 +636,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
       <li>Systems sit in rings by jumps from the center. Lines are stargates.</li>
       <li>Dot color: red is a kill in the last hour, orange a kill in the last 6 hours, blue is ship traffic only, grey is quiet. Bigger dots mean more ship jumps in the last hour.</li>
       <li>Green glow is ratting: NPC kills in the last hour. The label shows rats per hour.</li>
-      <li>A purple ring is a system named in intel in the last 15 minutes. It pulses for the first 3 minutes. A number in brackets is the reported pilot count.</li>
+      <li>A purple ring is a system named in intel in the last 15 minutes. It pulses for the first 3 minutes. A number in brackets is the reported pilot count. When every pilot named in a system's latest report has since been sighted in another system, that ring goes away and the systems table shows "moved", so the rings follow the hostiles. Reports that don't name pilots (like "5 nv") keep their ring for the full 15 minutes.</li>
       <li>A dashed ring and YOU mark where your character is.</li>
       <li>Sov fights come from two places. CCP's public list only shows a fight once a structure has been reinforced. Your characters' notifications fill the gap: <b>ENTOSIS</b> (someone started entosising, shown for 90 minutes), <b>REINFORCED</b> (with the time the command nodes appear), <b>NODES</b> (command nodes are up) and <b>LOST</b>. These show in the Sov fights box even for systems off the map, marked "notification".</li>
       <li>Labels: <b>CAMP</b> possible gate camp, big ship type (e.g. DICTOR), <b>VULN</b> sov hub vulnerable, <b>FIGHT</b> sov fight, <b>ESS</b> ESS activity reported, <b>ATTACKED</b> a structure attack from your notifications, <b>TH</b>/<b>TU</b> Thera or Turnur wormhole.</li>
@@ -708,6 +708,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.15</b> A purple intel ring goes away once the pilots reported there are sighted in another system; the systems table shows "moved".</li>
       <li><b>2.14</b> Changing Jumps redraws the map and is remembered. Hostile paths animate: blue dashes flow in the direction the pilot moved, with an arrowhead at their latest system. Typed settings save as you type, the page asks the browser to keep its saved data, and settings can be copied to another browser or your phone.</li>
       <li><b>2.13</b> Phone relay is reliable on phones: it checks for new intel every 15 seconds and as soon as you switch back to the page, and catches up on anything sent while the phone was asleep. The status line says when it last checked.</li>
       <li><b>2.12</b> Timers board, hostile tracker, quiet hours for each system, map presets, and a phone relay that sends intel from your PC to your phone.</li>
@@ -1028,7 +1029,7 @@ function renderMap() {
     const tip = `${s.name} (${fmtSec(s.sec)}) · ${s.dist}j · kills 1h ${s.k1} / 24h ${s.k24} · jumps ${s.jumps}`;
     h += `<g data-id="${s.id}"><title>${esc(tip)}</title><circle class="node${state.sel === s.id ? " sel" : ""}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${r.toFixed(1)}" fill="${heat(s)}"/>`;
     const below = p.y >= 300;
-    if (s.intelAge != null && s.intelAge < 15 && !s.intelClear) {
+    if (s.intelAge != null && s.intelAge < 15 && !s.intelClear && !s.intelMoved) {
       h += `<circle class="intelring" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${(r + 4).toFixed(1)}"/>`;
       if (s.intelAge < 3) h += `<circle class="intelring live" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${(r + 4).toFixed(1)}"/>`;
     }
@@ -1036,7 +1037,7 @@ function renderMap() {
       h += `<circle class="youring" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${(r + 8).toFixed(1)}"/>`;
       h += `<text class="youlbl" x="${p.x.toFixed(1)}" y="${(p.y + (below ? -r - 12 : r + 20)).toFixed(1)}" text-anchor="middle">${esc(s.here.length > 1 ? s.here.length + " of you" : "YOU")}</text>`;
     }
-    const cnt = s.intelCount != null && s.countAge < 15 ? ` (${s.intelCount})` : "";
+    const cnt = s.intelCount != null && s.countAge < 15 && !s.intelMoved ? ` (${s.intelCount})` : "";
     let tags = "";
     if (state.camps.has(s.id)) tags += `<tspan class="tag camp"> CAMP</tspan>`;
     const big = bigTags(s); if (big.length) tags += `<tspan class="tag big"> ${esc(big[0].toUpperCase())}${big.length > 1 ? "+" : ""}</tspan>`;
@@ -1250,18 +1251,25 @@ function startIntel() {
 }
 
 function computeIntel() {
-  for (const s of state.systems.values()) { s.intelAge = null; s.intelClear = false; s.intelCount = null; s.countAge = null; s.here = []; s.bigI = new Set(); s.essI = false; }
-  const now = Date.now();
+  for (const s of state.systems.values()) { s.intelAge = null; s.intelClear = false; s.intelCount = null; s.countAge = null; s.here = []; s.bigI = new Set(); s.essI = false; s.intelRep = null; s.intelMoved = false; }
+  const now = Date.now(), lastSeen = new Map(); // pilot id -> { sys, t } of their latest sighting
   for (const r of [...intel.reports].sort((a, b) => a.t - b.t)) {
+    if (!isClear(r.msg) && r.seg?.pilots?.length) { const sys = [...matchSystems(r.msg), ...matchWatch(r.msg)][0]; if (sys) for (const id of r.seg.pilots) lastSeen.set(id, { sys, t: r.t }); }
     const clr = isClear(r.msg), ids = matchSystems(r.msg);
     // a count is only trusted when the message names exactly one system
     const n = ids.length === 1 ? parseCount(r.msg) : null;
     for (const id of ids) {
       const s = state.systems.get(id);
-      s.intelAge = (now - r.t) / 60e3; s.intelClear = clr;
+      s.intelAge = (now - r.t) / 60e3; s.intelClear = clr; s.intelRep = r;
       if (n != null) { s.intelCount = n; s.countAge = s.intelAge; }
       if (!clr && now - r.t < 15 * 60e3) { reportBig(r).forEach(b => s.bigI.add(b)); if (isEss(r.msg)) s.essI = true; }
     }
+  }
+  // a system's ring goes once every pilot named in its latest report has been sighted somewhere else since
+  for (const s of state.systems.values()) {
+    const r = s.intelRep;
+    if (r && !s.intelClear && r.seg?.pilots?.length)
+      s.intelMoved = r.seg.pilots.every(id => { const l = lastSeen.get(id); return l && l.t > r.t && l.sys !== s.id; });
   }
   const byName = new Map([...state.systems.values()].map(s => [s.name.toUpperCase(), s]));
   for (const p of presences()) {
@@ -1295,7 +1303,9 @@ function renderYou() {
 function intelCell(s) {
   if (s.intelAge == null) return `<span class="zero">–</span>`;
   const m = Math.floor(s.intelAge) + "m";
-  return s.intelClear ? `<span class="pill c" title="Last report said clear">clr ${m}</span>` : `<span class="pill i">${m}</span>`;
+  return s.intelClear ? `<span class="pill c" title="Last report said clear">clr ${m}</span>`
+    : s.intelMoved ? `<span class="pill" style="color:var(--muted)" title="The pilots reported here have been sighted somewhere else since">moved ${m}</span>`
+    : `<span class="pill i">${m}</span>`;
 }
 
 function renderIntel() {
@@ -1947,7 +1957,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.14";
+const APP_VERSION = "2.15";
 let watchGen = 0;
 function watchNames() { return (cfg.watch || "").split(",").map(x => x.trim()).filter(Boolean); }
 async function loadWatch() {
