@@ -1,0 +1,30 @@
+{
+  "name": "local-intel-desktop",
+  "productName": "Local Intel",
+  "version": "1.0.0",
+  "description": "Local Intel for EVE Online as a Windows app: tray, always on top, notifications in the background.",
+  "main": "main.js",
+  "author": "quietstatic01",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win portable zip --x64"
+  },
+  "devDependencies": {
+    "electron": "33.4.11",
+    "electron-builder": "25.1.8"
+  },
+  "build": {
+    "appId": "com.quietstatic.localintel",
+    "productName": "Local Intel",
+    "artifactName": "LocalIntel-${version}-${arch}.${ext}",
+    "directories": { "output": "dist" },
+    "files": ["main.js", "offline.html", "icon.png"],
+    "win": {
+      "icon": "icon.png",
+      "signAndEditExecutable": false
+    },
+    "portable": { "artifactName": "LocalIntel-${version}-portable.exe" }
+  }
+}
