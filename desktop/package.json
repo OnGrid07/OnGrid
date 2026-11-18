@@ -1,7 +1,7 @@
 {
   "name": "local-intel-desktop",
   "productName": "Local Intel",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Local Intel for EVE Online as a Windows app: tray, always on top, notifications in the background.",
   "main": "main.js",
   "author": "quietstatic01",
@@ -9,7 +9,7 @@
   "private": true,
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win portable zip --x64"
+    "dist": "electron-builder --win nsis portable --x64 --publish never"
   },
   "devDependencies": {
     "electron": "33.4.11",
@@ -19,12 +19,45 @@
     "appId": "com.quietstatic.localintel",
     "productName": "Local Intel",
     "artifactName": "LocalIntel-${version}-${arch}.${ext}",
-    "directories": { "output": "dist" },
-    "files": ["main.js", "offline.html", "icon.png"],
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "offline.html",
+      "icon.png"
+    ],
     "win": {
       "icon": "icon.png",
-      "signAndEditExecutable": false
+      "signAndEditExecutable": false,
+      "target": [
+        "nsis",
+        "portable"
+      ]
     },
-    "portable": { "artifactName": "LocalIntel-${version}-portable.exe" }
+    "portable": {
+      "artifactName": "LocalIntel-${version}-portable.exe"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "artifactName": "LocalIntel-Setup-${version}.${ext}",
+      "shortcutName": "Local Intel"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "quietstatic01",
+        "repo": "Eve-Intel",
+        "releaseType": "release"
+      }
+    ]
+  },
+  "dependencies": {
+    "electron-updater": "6.3.9"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/quietstatic01/Eve-Intel.git"
   }
 }

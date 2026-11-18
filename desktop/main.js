@@ -2,7 +2,8 @@
 // It loads the website, so page updates arrive without reinstalling the app.
 // What the app adds: tray icon, keeps running (and alerting) when minimized or closed to the tray,
 // always-on-top, start with Windows, and no repeated permission prompts for the chat logs folder.
-const { app, BrowserWindow, Tray, Menu, shell, session, nativeImage, Notification } = require("electron");
+const { app, BrowserWindow, Tray, Menu, shell, session, nativeImage, Notification, net } = require("electron");
+const { autoUpdater } = require("electron-updater");
 const path = require("path");
 const fs = require("fs");
 
@@ -12,6 +13,9 @@ const LOGIN_HOST = "login.eveonline.com";
 const ICON = path.join(__dirname, "icon.png");
 
 let win = null, tray = null, quitting = false;
+const RELEASES = "https://github.com/quietstatic01/Eve-Intel/releases/latest";
+const isPortable = !!process.env.PORTABLE_EXECUTABLE_DIR; // the single-file version can't replace itself
+let update = { state: "idle", version: null, error: null };
 const prefsFile = () => path.join(app.getPath("userData"), "desktop-prefs.json");
 let prefs = { alwaysOnTop: false, closeToTray: true, bounds: null };
 try { prefs = { ...prefs, ...JSON.parse(fs.readFileSync(prefsFile(), "utf8")) }; } catch {}
@@ -58,10 +62,57 @@ function createWindow() {
 
 function show() { if (!win) return; if (win.isMinimized()) win.restore(); win.show(); win.focus(); }
 
-function buildTray() {
-  tray = new Tray(nativeImage.createFromPath(ICON).resize({ width: 16, height: 16 }));
-  tray.setToolTip("Local Intel");
-  const menu = () => Menu.buildFromTemplate([
+function notify(title, body, onClick) {
+  const n = new Notification({ title, body, icon: ICON });
+  if (onClick) n.on("click", onClick);
+  n.show();
+}
+
+/* ---------- updates ----------
+   Installed copy: electron-updater checks the GitHub releases, downloads a newer version in the background
+   and installs it when the app restarts (or straight away from the tray menu).
+   Portable copy: it can't replace itself, so it only checks and offers the download page. */
+function setupUpdates() {
+  if (!app.isPackaged) return;
+  if (isPortable) {
+    const check = async () => {
+      try {
+        const r = await net.fetch("https://api.github.com/repos/quietstatic01/Eve-Intel/releases/latest", { headers: { Accept: "application/vnd.github+json" } });
+        const v = ((await r.json()).tag_name || "").replace(/^[^\d]*/, "");
+        if (v && newer(v, app.getVersion()) && update.version !== v) {
+          update = { state: "portable", version: v, error: null }; refreshTray();
+          notify("Local Intel update available", `Version ${v} is out. Click to open the download page.`, () => shell.openExternal(RELEASES));
+        }
+      } catch {}
+    };
+    setTimeout(check, 15e3); setInterval(check, 6 * 36e5);
+    return;
+  }
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.on("checking-for-update", () => { update.state = "checking"; refreshTray(); });
+  autoUpdater.on("update-not-available", () => { update.state = "current"; refreshTray(); });
+  autoUpdater.on("update-available", i => { update = { state: "downloading", version: i.version, error: null }; refreshTray(); });
+  autoUpdater.on("update-downloaded", i => {
+    update = { state: "ready", version: i.version, error: null }; refreshTray();
+    notify("Local Intel update ready", `Version ${i.version} installs next time the app starts. Click to restart now.`, () => { quitting = true; autoUpdater.quitAndInstall(); });
+  });
+  autoUpdater.on("error", e => { update.state = "error"; update.error = String(e?.message || e).slice(0, 120); refreshTray(); });
+  const check = () => autoUpdater.checkForUpdates().catch(() => {});
+  setTimeout(check, 10e3); setInterval(check, 4 * 36e5);
+}
+function newer(a, b) { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; }
+function updateItems() {
+  const v = app.getVersion();
+  if (update.state === "ready") return [{ label: `Restart to update to ${update.version}`, click: () => { quitting = true; autoUpdater.quitAndInstall(); } }];
+  if (update.state === "portable") return [{ label: `Download version ${update.version}…`, click: () => shell.openExternal(RELEASES) }];
+  const status = { checking: "Checking for updates…", downloading: `Downloading ${update.version}…`, current: `Up to date (${v})`, error: "Update check failed" }[update.state] || `Version ${v}`;
+  return [{ label: status, enabled: false }, ...(isPortable || !app.isPackaged ? [] : [{ label: "Check for updates", click: () => autoUpdater.checkForUpdates().catch(() => {}) }])];
+}
+function refreshTray() { if (tray) tray.setContextMenu(trayMenu()); }
+
+function trayMenu() {
+  return Menu.buildFromTemplate([
     { label: "Show Local Intel", click: show },
     { type: "separator" },
     { label: "Always on top", type: "checkbox", checked: prefs.alwaysOnTop, click: i => { prefs.alwaysOnTop = i.checked; win.setAlwaysOnTop(i.checked); savePrefs(); } },
@@ -69,10 +120,17 @@ function buildTray() {
     { label: "Start with Windows", type: "checkbox", checked: app.getLoginItemSettings().openAtLogin, click: i => app.setLoginItemSettings({ openAtLogin: i.checked }) },
     { type: "separator" },
     { label: "Reload page", click: () => win.loadURL(SITE) },
+    { type: "separator" },
+    ...updateItems(),
+    { type: "separator" },
     { label: "Quit", click: () => { quitting = true; app.quit(); } }
   ]);
-  tray.setContextMenu(menu());
-  tray.on("right-click", () => tray.setContextMenu(menu()));
+}
+function buildTray() {
+  tray = new Tray(nativeImage.createFromPath(ICON).resize({ width: 16, height: 16 }));
+  tray.setToolTip(`Local Intel ${app.getVersion()}`);
+  tray.setContextMenu(trayMenu());
+  tray.on("right-click", refreshTray);
   tray.on("click", show);
 }
 
@@ -83,6 +141,7 @@ app.whenReady().then(() => {
   ses.setPermissionCheckHandler((wc, permission, origin) => isOurs(origin || wc?.getURL() || ""));
   createWindow();
   buildTray();
+  setupUpdates();
 });
 app.on("before-quit", () => { quitting = true; });
 app.on("window-all-closed", () => { if (quitting) app.quit(); });

@@ -1,17 +1,21 @@
 # Builds "Local Intel for Windows" from desktop/ on a Windows machine and publishes it as a GitHub Release.
-# Start it from the repository's Actions tab: "Build Windows app" → "Run workflow".
+# It runs by itself when anything in desktop/ changes on main; if desktop/package.json's version already has
+# a release, it does nothing. It can also be started by hand from the Actions tab ("Build Windows app").
+# The installed app checks these releases (latest.yml) and updates itself.
 name: Build Windows app
 
 on:
+  push:
+    branches: [main]
+    paths: ["desktop/**"]
   workflow_dispatch:
-    inputs:
-      version:
-        description: "App version, e.g. 1.0.1"
-        required: true
-        default: "1.0.0"
 
 permissions:
   contents: write
+
+concurrency:
+  group: desktop-release
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -19,34 +23,48 @@ jobs:
     defaults:
       run:
         working-directory: desktop
+        shell: bash
     steps:
       - uses: actions/checkout@v4
+      - name: Read version
+        id: v
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v=$(node -p "require('./package.json').version")
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          if gh release view "v$v" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release v$v already exists; bump the version in desktop/package.json to publish a new one."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/setup-node@v4
+        if: steps.v.outputs.skip == 'false'
         with:
           node-version: 20
       - name: Install
+        if: steps.v.outputs.skip == 'false'
         run: npm ci
-      - name: Set version
-        run: npm version "${{ inputs.version }}" --no-git-tag-version --allow-same-version
-      - name: Build
-        run: npx electron-builder --win portable zip --x64 --publish never
+      - name: Build installer and portable
+        if: steps.v.outputs.skip == 'false'
+        run: npx electron-builder --win nsis portable --x64 --publish never
       - name: Publish release
+        if: steps.v.outputs.skip == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
-        shell: bash
         run: |
+          v="${{ steps.v.outputs.version }}"
           cd dist
-          sha256sum LocalIntel-*.exe LocalIntel-*.zip > SHA256SUMS.txt
-          cat > notes.md <<'NOTES'
-          **Local Intel for Windows.** It's the same page as https://quietstatic01.github.io/Eve-Intel/, in its own app window.
+          sha256sum LocalIntel-*.exe > SHA256SUMS.txt
+          cat > notes.md <<NOTES
+          **Local Intel for Windows $v.** It's the same page as https://quietstatic01.github.io/Eve-Intel/, in its own app window, with a tray icon, background alerts, always on top and start with Windows.
 
-          - Keeps running in the system tray. Alerts and Windows notifications keep working while it's minimized or behind the game.
-          - Always on top, Start with Windows and Keep running when closed: right-click the tray icon.
-          - Remembers your chat logs folder, so there's no permission prompt every time.
-          - Loads the live page, so page updates arrive without reinstalling.
+          **Download \`LocalIntel-Setup-$v.exe\`** and run it. It installs in a few seconds and **updates itself** from now on: when a new version is out, it downloads in the background and installs the next time the app starts, or right away from the tray menu.
 
-          **Download:** `LocalIntel-…-portable.exe` is a single file you can run from anywhere, with no install. The `.zip` is the same app as a folder.
+          \`LocalIntel-$v-portable.exe\` is a single file that runs without installing. It can't update itself; it tells you when a new version is out.
 
           Windows may say "Windows protected your PC", because the app isn't signed with a paid certificate. Click **More info → Run anyway**. Checksums are in SHA256SUMS.txt.
           NOTES
-          gh release create "desktop-v${{ inputs.version }}" LocalIntel-*.exe LocalIntel-*.zip SHA256SUMS.txt --title "Local Intel for Windows ${{ inputs.version }}" --notes-file notes.md --target "${{ github.sha }}"
+          gh release create "v$v" LocalIntel-Setup-$v.exe LocalIntel-Setup-$v.exe.blockmap latest.yml LocalIntel-$v-portable.exe SHA256SUMS.txt \
+            --title "Local Intel for Windows $v" --notes-file notes.md --target "$GITHUB_SHA"
