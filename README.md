@@ -12,6 +12,12 @@ On the page above, open **Alerts and settings** and press **Log in with EVE**. T
 
 A copy hosted at another address needs its own app at https://developers.eveonline.com with the permission `esi-characters.read_notifications.v1`, a callback URL that matches that address exactly, and its Client ID pasted into the page. The page never needs the app's secret.
 
+## Windows app
+
+`desktop/` is Local Intel for Windows: the page in its own window with a tray icon, background alerts, always on top and start with Windows. Download `LocalIntel-Setup-<version>.exe` from the [releases page](https://github.com/OnGrid07/OnGrid/releases/latest). The installed app updates itself from those releases.
+
+To publish a new app version, raise `version` in `desktop/package.json` and push to `main`: the "Build Windows app" workflow builds it on Windows and publishes the release.
+
 ## Data
 
 CCP's EVE Swagger Interface and EVE login, zKillboard, and EVE-Scout.

@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  Local Intel, version 2.17
+  Local Intel, version 2.18
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -199,6 +199,20 @@ tr:hover td { background: #141d27; }
 .relayqr:empty { display: none; }
 .relayqr { background: #fff; padding: 8px; border-radius: 6px; width: max-content; }
 .relaypair { display: flex; gap: 6px; }
+/* free layout: boxes placed anywhere on a board, moved by their title and resized by their corner */
+#board { position: relative; min-height: 200px; }
+#board > .fbox { position: absolute; margin: 0; display: flex; flex-direction: column; overflow: hidden; }
+#board > .fbox > * { flex-shrink: 0; }
+#board > .fbox > .tablebox, #board > .fbox > .feed, #board > .fbox > .hlist, #board > .fbox > .tlist, #board > .fbox > .setgrid,
+#board > .fbox > .watchgrid, #board > .fbox > .routelist { flex: 1 1 auto; min-height: 0; overflow: auto; }
+#board #mapPanel > svg { flex: 1 1 0; min-height: 120px; }
+#board thead th { position: sticky; top: 0; background: var(--panel); z-index: 1; }
+.fbox > .rsz { display: none; }
+.arranging #board > .fbox { outline: 1px dashed var(--accent); outline-offset: -1px; }
+.arranging #board > .fbox > h2, .arranging #board > .fbox .phead, .arranging #board > .fbox .watchbar { cursor: move; user-select: none; }
+.arranging .fbox > .rsz { display: block; position: absolute; right: 0; bottom: 0; width: 18px; height: 18px; cursor: nwse-resize; background: linear-gradient(135deg, transparent 50%, var(--accent) 50%); border-bottom-right-radius: 6px; z-index: 3; }
+#board > .fbox.dragging { box-shadow: 0 10px 34px rgba(0,0,0,.55); }
+.wrap.freelayout #dock { margin-bottom: 0; }
 #savedNote { margin-left: auto; margin-right: 8px; transition: color .3s; }
 #savedNote.flash { color: var(--ok); }
 .bkbtns button { font: 12px var(--mono); background: var(--bg); color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 4px 9px; cursor: pointer; }
@@ -329,6 +343,8 @@ footer { font: 11px var(--mono); color: var(--muted); }
       <select id="radius"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select>
       <button type="submit">Load</button>
       <button type="button" id="refresh">Refresh</button>
+      <button type="button" id="arrangeBtn" title="Move and resize the boxes">Arrange boxes</button>
+      <button type="button" id="layoutReset" hidden title="Put every box back in the normal layout">Standard layout</button>
       <button type="button" id="aboutBtn">About</button>
     </form>
   </header>
@@ -344,7 +360,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
   <div class="summary" id="summary"></div>
 
   <div class="grid">
-    <section class="panel">
+    <section class="panel" id="mapPanel">
       <h2>Gate map</h2>
       <div class="selbar" id="selbar" hidden></div>
       <div class="selquiet" id="selQuiet"></div>
@@ -364,7 +380,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
     </section>
 
     <div class="col">
-    <section class="panel">
+    <section class="panel" id="sysPanel">
       <h2>Systems</h2>
       <div class="tablebox">
         <table id="tbl">
@@ -553,7 +569,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">Local Intel</h2>
-    <span class="ver" id="aboutVer">Version 2.17</span>
+    <span class="ver" id="aboutVer">Version 2.18</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -597,13 +613,18 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <h3>Layout</h3>
     <p>From the top: the summary numbers, with Thera/Turnur connections and sov fights side by side below them (each box lights up when there's something in range, and a sov fight under way pulses red); the gate map with the systems table and intel beside it; watched systems; then <b>Alerts and settings</b>, <b>Character notifications</b> and <b>Kills</b>. Each of the last three has a <b>–</b> button that collapses it into a small button in a row above them. Press the small button to open it again. The page remembers which are open. A collapsed Character notifications button shows how many attacks arrived in the last hour.</p>
 
+    <h3>Arranging boxes</h3>
+    <p>Press <b>Arrange boxes</b> at the top. Every box gets a dashed outline: drag a box by its title to move it, and drag the blue corner at its bottom right to resize it. Boxes snap to a small grid and can overlap; the one you touched last comes to the front. The map grows and shrinks with its box. Press <b>Done arranging</b> to lock them in place. Your layout is saved and included in <b>Copy my settings</b>. <b>Standard layout</b> puts everything back. Windows narrower than 900 pixels, and phones, always use the standard layout.</p>
+
     <h3>Windows app</h3>
-    <p><b>Local Intel for Windows</b> is this page in its own app window. Download it from <a href="https://github.com/OnGrid07/OnGrid/releases/latest" target="_blank" rel="noopener">the releases page</a>: <code>LocalIntel-…-portable.exe</code> is a single file to run from anywhere, with no install.</p>
+    <p><b>Local Intel for Windows</b> is this page in its own app window. Download <code>LocalIntel-Setup-….exe</code> from <a href="https://github.com/OnGrid07/OnGrid/releases/latest" target="_blank" rel="noopener">the releases page</a> and run it; it installs in a few seconds and adds a Start menu shortcut.</p>
     <ul>
       <li>It keeps running in the system tray, and alerts and Windows notifications keep working while it's minimized or behind the game. Closing the window hides it to the tray; quit from the tray icon.</li>
       <li>Right-click the tray icon for <b>Always on top</b>, <b>Keep running when closed</b> and <b>Start with Windows</b>.</li>
       <li>It remembers your chat logs folder, so there's no permission prompt each time.</li>
-      <li>It loads this live page, so every update shows up in the app without reinstalling. Your settings in the app are separate from your browser's; use Backup and other devices to copy them across.</li>
+      <li>It loads this live page, so every page update shows up in the app straight away. The app itself <b>updates itself</b> too: it checks for a new version when it starts and every 4 hours, downloads it in the background, and installs it the next time it starts. A notification (and the tray menu) offers to restart and update right away. The tray menu shows the version and has <b>Check for updates</b>.</li>
+      <li>There's also a portable <code>…-portable.exe</code> that runs without installing. It can't replace itself, so it only tells you when a new version is out and opens the download page.</li>
+      <li>Your settings in the app are separate from your browser's; use Backup and other devices to copy them across.</li>
       <li>Windows may say "Windows protected your PC" because the app isn't signed with a paid certificate: click <b>More info → Run anyway</b>.</li>
     </ul>
 
@@ -718,6 +739,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.18</b> Arrange boxes: move and resize the map and every other box, in the browser and the Windows app. Windows app 1.1: an installer that keeps the app up to date by itself.</li>
       <li><b>2.17</b> Local Intel for Windows: the page as a desktop app with a tray icon, background alerts, always on top and start with Windows.</li>
       <li><b>2.16</b> Fixes intel rings all disappearing. Ordinary intel words that are also EVE character names ("Heading", "Moving", "Red"…) were being treated as pilots. A name now counts as a pilot only with zKillboard history or when it has two or more words, and many more common words are ignored. This also cleans up the hostile tracker and the pilot lines under intel.</li>
       <li><b>2.15</b> A purple intel ring goes away once the pilots reported there are sighted in another system; the systems table shows "moved".</li>
@@ -1985,7 +2007,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.17";
+const APP_VERSION = "2.18";
 let watchGen = 0;
 function watchNames() { return (cfg.watch || "").split(",").map(x => x.trim()).filter(Boolean); }
 async function loadWatch() {
@@ -2967,7 +2989,7 @@ $("#relayPair").addEventListener("submit", e => {
 setTimeout(() => { renderPresets(); renderTimers(); relaySetup(); }); // after the collapsing code below has loaded
 
 /* ---------- backup: copy settings to another browser or device (never the EVE login) ---------- */
-const BK_KEYS = ["settings", "presets", "timers", "intelChannels", "panels", "origin", "radius"];
+const BK_KEYS = ["settings", "presets", "timers", "intelChannels", "panels", "origin", "radius", "layout"];
 $("#bkCopy").addEventListener("click", () => {
   const data = { app: "local-intel", v: APP_VERSION, saved: new Date().toISOString(), items: {} };
   for (const k of BK_KEYS) { const v = ls.get(k, null); if (v != null) data.items[k] = v; }
@@ -3000,6 +3022,7 @@ function renderDock() {
     return `<button type="button" data-open="${el.id}" title="Show ${esc(el.dataset.title)}">+ ${esc(el.dataset.title)}${cnt ? `<span class="cnt">${cnt}</span>` : ""}</button>`;
   }).join("");
   for (const el of collapsibles()) el.hidden = isClosed(el);
+  fitBoard();
 }
 function expandPanel(id) { panelState[id] = "open"; ls.set("panels", JSON.stringify(panelState)); renderDock(); }
 function collapsePanel(id) { panelState[id] = "closed"; ls.set("panels", JSON.stringify(panelState)); renderDock(); }
@@ -3018,6 +3041,105 @@ function watchTabUrl(name) {
   u.search = new URLSearchParams({ system: name, jumps: $("#radius").value || "3" }).toString(); u.hash = "";
   return u.toString();
 }
+
+/* ---------- free boxLayout: move and resize the boxes (desktop widths only) ---------- */
+const FREE_IDS = ["mapPanel", "sysPanel", "intelPanel", "watchPanel", "hostilePanel", "timerPanel", "routePanel", "notifPanel", "killPanel", "settings"];
+const SNAP = 8, MIN_W = 240, MIN_H = 140;
+let boxLayout = (() => { try { return JSON.parse(ls.get("layout", "null")) || { free: false, boxes: {} }; } catch { return { free: false, boxes: {} }; } })();
+const saveLayout = () => ls.set("layout", JSON.stringify(boxLayout));
+let arranging = false, zTop = 10;
+const freeAllowed = () => window.innerWidth >= 900; // phones and narrow windows keep the normal stacked boxLayout
+const snap = v => Math.round(v / SNAP) * SNAP;
+function board() {
+  let b = document.getElementById("board");
+  if (!b) {
+    b = document.createElement("div"); b.id = "board";
+    const grid = document.querySelector(".grid");
+    grid.after(b); b.before($("#dock")); // collapsed-section buttons sit just above the boxes
+  }
+  return b;
+}
+function fitBoard() {
+  const b = document.getElementById("board"); if (!b) return;
+  let bottom = 0;
+  for (const id of FREE_IDS) { const el = document.getElementById(id); if (el && !el.hidden && el.parentElement === b) bottom = Math.max(bottom, el.offsetTop + el.offsetHeight); }
+  b.style.height = bottom + 24 + "px";
+}
+function placeBox(el, box) {
+  Object.assign(el.style, { left: box.x + "px", top: box.y + "px", width: box.w + "px", height: box.h + "px", zIndex: box.z || 1 });
+  zTop = Math.max(zTop, box.z || 1);
+}
+function enterFree() {
+  // measure where every box is right now, so switching to free boxLayout looks the same until you move something
+  const b = board(), origin = b.getBoundingClientRect(), wrapLeft = document.querySelector(".wrap").getBoundingClientRect().left;
+  const tops = [];
+  const measured = {};
+  for (const id of FREE_IDS) { const el = document.getElementById(id); if (!el || el.hidden) continue; const r = el.getBoundingClientRect(); measured[id] = r; tops.push(r.top); }
+  const top0 = Math.min(...tops);
+  let nextY = 0;
+  for (const id of FREE_IDS) {
+    const el = document.getElementById(id); if (!el) continue;
+    if (!boxLayout.boxes[id]) {
+      const r = measured[id];
+      boxLayout.boxes[id] = r ? { x: snap(r.left - wrapLeft), y: snap(r.top - top0), w: snap(r.width), h: snap(Math.min(r.height, id === "settings" ? 640 : 900)), z: 1 }
+        : { x: 0, y: 0, w: 520, h: 360, z: 1 }; // hidden right now: placed below the others when first opened
+    }
+    nextY = Math.max(nextY, boxLayout.boxes[id].y + boxLayout.boxes[id].h);
+  }
+  for (const id of FREE_IDS) { const box = boxLayout.boxes[id]; if (box && box.w === 520 && box.h === 360 && box.x === 0 && box.y === 0) { box.y = snap(nextY + 16); nextY = box.y + box.h; } }
+  applyFree();
+}
+function applyFree() {
+  const b = board();
+  document.querySelector(".wrap").classList.add("freelayout");
+  document.querySelector(".grid").hidden = true;
+  for (const id of FREE_IDS) {
+    const el = document.getElementById(id); if (!el) continue;
+    if (el.parentElement !== b) b.appendChild(el);
+    el.classList.add("fbox");
+    if (!el.querySelector(":scope > .rsz")) { const h = document.createElement("div"); h.className = "rsz"; h.title = "Drag to resize"; el.appendChild(h); }
+    placeBox(el, boxLayout.boxes[id] || { x: 0, y: 0, w: 520, h: 360, z: 1 });
+  }
+  fitBoard(); renderMap?.();
+}
+function setArranging(on) {
+  arranging = on;
+  document.querySelector(".wrap").classList.toggle("arranging", on);
+  $("#arrangeBtn").textContent = on ? "Done arranging" : "Arrange boxes";
+  $("#layoutReset").hidden = !boxLayout.free;
+}
+$("#arrangeBtn").addEventListener("click", () => {
+  if (!freeAllowed()) return toast("Moving boxes needs a window at least 900 pixels wide.", true);
+  if (!boxLayout.free) { boxLayout.free = true; enterFree(); saveLayout(); toast("Drag a box by its title to move it, and its bottom-right corner to resize it. Press Done arranging when you're finished."); }
+  setArranging(!arranging);
+});
+$("#layoutReset").addEventListener("click", () => { boxLayout = { free: false, boxes: {} }; saveLayout(); location.reload(); });
+// dragging: by the title bar to move, by the corner to resize; snaps to an 8-pixel grid; the page grows to fit
+document.addEventListener("pointerdown", e => {
+  if (!arranging) return;
+  const el = e.target.closest(".fbox"); if (!el) return;
+  const rsz = e.target.closest(".rsz");
+  const handle = rsz || e.target.closest(".phead, .watchbar, .fbox > h2");
+  if (!handle || (!rsz && e.target.closest("button, input, select, a, form"))) return;
+  e.preventDefault();
+  const box = boxLayout.boxes[el.id], start = { x: e.clientX, y: e.clientY, bx: box.x, by: box.y, bw: box.w, bh: box.h };
+  box.z = ++zTop; el.style.zIndex = box.z;
+  el.classList.add("dragging");
+  const move = ev => {
+    const dx = ev.clientX - start.x, dy = ev.clientY - start.y;
+    if (rsz) { box.w = Math.max(MIN_W, snap(start.bw + dx)); box.h = Math.max(MIN_H, snap(start.bh + dy)); }
+    else { box.x = Math.max(0, snap(start.bx + dx)); box.y = Math.max(0, snap(start.by + dy)); }
+    placeBox(el, box); fitBoard();
+  };
+  const up = () => { document.removeEventListener("pointermove", move); el.classList.remove("dragging"); saveLayout(); if (el.id === "mapPanel") renderMap(); };
+  document.addEventListener("pointermove", move);
+  document.addEventListener("pointerup", up, { once: true });
+});
+window.addEventListener("resize", () => {
+  if (boxLayout.free && !freeAllowed() && document.querySelector(".wrap").classList.contains("freelayout")) location.reload(); // narrow: go back to stacked
+});
+if (boxLayout.free && freeAllowed()) setTimeout(() => { applyFree(); setArranging(false); }, 0);
+else $("#layoutReset").hidden = !boxLayout.free;
 
 /* ---------- interaction ---------- */
 function select(id) { state.sel = state.sel === id ? null : id; renderMap(); renderTable(); renderFeed(); renderQuiet(); }
