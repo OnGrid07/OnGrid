@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.28
+  OnGrid (formerly Local Intel), version 2.29
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -645,7 +645,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.28</span>
+    <span class="ver" id="aboutVer">Version 2.29</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -823,6 +823,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.29</b> Windows app 1.2.1 has a new internal app ID. If you installed an earlier version: uninstall OnGrid in Windows Settings → Apps (remove every OnGrid entry), then install <code>OnGrid-Setup-1.2.1.exe</code> from the Windows app download page. Updates work normally after that.</li>
       <li><b>2.28</b> New address: <code>https://ongrid07.github.io/OnGrid/</code>. Settings can be carried over from the old address. The Windows app is now OnGrid too.</li>
       <li><b>2.27</b> Renamed to <b>OnGrid</b> (formerly Local Intel).</li>
       <li><b>2.26</b> Share links open a page with only the scan results.</li>
@@ -2121,7 +2122,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.28";
+const APP_VERSION = "2.29";
 let watchGen = 0;
 function watchNames() { return (cfg.watch || "").split(",").map(x => x.trim()).filter(Boolean); }
 async function loadWatch() {
