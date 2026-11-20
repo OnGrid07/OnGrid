@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  Local Intel, version 2.18
+  Local Intel, version 2.19
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -199,12 +199,31 @@ tr:hover td { background: #141d27; }
 .relayqr:empty { display: none; }
 .relayqr { background: #fff; padding: 8px; border-radius: 6px; width: max-content; }
 .relaypair { display: flex; gap: 6px; }
+.scangrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); gap: 16px; }
+.scancol { display: grid; gap: 6px; align-content: start; min-width: 0; }
+.scanhead { display: flex; align-items: center; justify-content: space-between; }
+.scanhead .lbl { font: 600 12px var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.scancol textarea { font: 12px var(--mono); background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px; width: 100%; resize: vertical; min-height: 4.5em; }
+.scanout { display: grid; gap: 6px; min-width: 0; }
+.lthreat { display: flex; flex-wrap: wrap; gap: 4px 2px; align-items: center; font: 12px var(--mono); }
+.lthreat .chip { margin-left: 4px; }
+.lgrp { border: 1px solid var(--line); border-radius: 4px; background: var(--bg); }
+.lgrp.red { border-color: var(--hot); } .lgrp.blue { opacity: .75; }
+.lgrp > summary { cursor: pointer; padding: 5px 8px; font-size: 13px; list-style: none; display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: baseline; }
+.lgrp > summary::-webkit-details-marker { display: none; }
+.lgrp .lcount { font: 600 13px var(--mono); min-width: 2.2em; text-align: right; color: var(--muted); }
+.lgrp.red .lcount { color: var(--hot); }
+.lgrp .pilots { padding: 0 8px 8px; }
+.dscols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.dscols h4 { margin: 4px 0; font: 600 11px var(--display); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.drow { display: flex; justify-content: space-between; gap: 8px; font: 12px var(--mono); padding: 2px 0; border-bottom: 1px solid var(--line); }
+.drow b { font-variant-numeric: tabular-nums; }
 /* free layout: boxes placed anywhere on a board, moved by their title and resized by their corner */
 #board { position: relative; min-height: 200px; }
 #board > .fbox { position: absolute; margin: 0; display: flex; flex-direction: column; overflow: hidden; }
 #board > .fbox > * { flex-shrink: 0; }
 #board > .fbox > .tablebox, #board > .fbox > .feed, #board > .fbox > .hlist, #board > .fbox > .tlist, #board > .fbox > .setgrid,
-#board > .fbox > .watchgrid, #board > .fbox > .routelist { flex: 1 1 auto; min-height: 0; overflow: auto; }
+#board > .fbox > .watchgrid, #board > .fbox > .routelist, #board > .fbox > .scangrid { flex: 1 1 auto; min-height: 0; overflow: auto; }
 #board #mapPanel > svg { flex: 1 1 0; min-height: 120px; }
 #board thead th { position: sticky; top: 0; background: var(--panel); z-index: 1; }
 .fbox > .rsz { display: none; }
@@ -433,6 +452,24 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
   <div class="dock" id="dock" aria-label="Collapsed sections"></div>
 
+  <section class="panel collapsible" id="scanPanel" data-title="Local &amp; D-scan">
+    <div class="phead"><h2>Local &amp; D-scan</h2></div>
+    <div class="scangrid">
+      <div class="scancol">
+        <div class="scanhead"><label class="lbl" for="localIn">Local</label><button type="button" class="mini" id="localClear">Clear</button></div>
+        <textarea id="localIn" rows="4" placeholder="Paste the Local member list here" spellcheck="false"></textarea>
+        <div class="note" id="localNote"></div>
+        <div id="localOut" class="scanout"></div>
+      </div>
+      <div class="scancol">
+        <div class="scanhead"><label class="lbl" for="dscanIn">D-scan</label><button type="button" class="mini" id="dscanClear">Clear</button></div>
+        <textarea id="dscanIn" rows="4" placeholder="Paste directional scan results here" spellcheck="false"></textarea>
+        <div class="note" id="dscanNote"></div>
+        <div id="dscanOut" class="scanout"></div>
+      </div>
+    </div>
+  </section>
+
   <section class="panel collapsible" id="hostilePanel" data-title="Hostile tracker">
     <div class="phead"><h2>Hostile tracker</h2></div>
     <div class="note">Pilots named in intel in the last hour, where they were reported, and whether they're getting closer to you. Click a pilot to highlight their path on the map. Friendly pilots are left out.</div>
@@ -569,7 +606,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">Local Intel</h2>
-    <span class="ver" id="aboutVer">Version 2.18</span>
+    <span class="ver" id="aboutVer">Version 2.19</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -630,6 +667,11 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Presets</h3>
     <p>The <b>Presets</b> row under the header saves the current map (center system, jumps and watched systems) under a name. Click a preset to switch back to it; × deletes it. Loading a preset turns <b>Follow me</b> off so the map stays where you put it.</p>
+
+    <h3>Local &amp; D-scan</h3>
+    <p><b>Local:</b> in EVE, click a name in the Local member list, press Ctrl+A then Ctrl+C, and paste into the Local box. Everyone is grouped by alliance (or corp), hostile groups first and opened, blue groups last. Pilots who aren't blue are checked on zKillboard (up to 60 per paste); anyone dangerous (danger 70% or more with 20+ kills) or flagged as a likely cloaky hunter or cyno alt is listed under <b>Watch out</b>. Blues and hostiles come from your EVE contacts and the Standings lists. Open a group to see each pilot, with an <b>in EVE</b> button for their info window.</p>
+    <p><b>D-scan:</b> run the directional scanner, click a result, press Ctrl+A then Ctrl+C, and paste into the D-scan box. You get the number of ships (and how many are on grid, within about 8,000 km), structures, deployables, drones and fighters, ships counted by class and by type, and <b>Threats</b>: capitals, dictors, HICs, Black Ops, bombers, recons, Strategic Cruisers, interceptors, covert ops and logistics. Hover a threat to see the nearest one's distance.</p>
+    <p>Paste a new scan any time to replace the old one; nothing is saved or sent anywhere except the look-ups to EVE and zKillboard.</p>
 
     <h3>Hostile tracker</h3>
     <p>Lists every non-friendly pilot named in intel in the last hour: corp and alliance, the systems they were reported in (oldest first), where they were last seen and how long ago, and whether they're <b>closing in</b> on you or moving away. Their paths are drawn on the map for 30 minutes: a faint red track with blue dashes flowing from where they were first reported toward where they were last seen, and a blue arrowhead on their latest system. Click a pilot to highlight their path; click again to show all.</p>
@@ -739,6 +781,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.19</b> Local &amp; D-scan: paste Local to see who's in system by alliance with blues, hostiles and dangerous pilots; paste a directional scan to see ships by class and type with threats called out.</li>
       <li><b>2.18</b> Arrange boxes: move and resize the map and every other box, in the browser and the Windows app. Windows app 1.1: an installer that keeps the app up to date by itself.</li>
       <li><b>2.17</b> Local Intel for Windows: the page as a desktop app with a tray icon, background alerts, always on top and start with Windows.</li>
       <li><b>2.16</b> Fixes intel rings all disappearing. Ordinary intel words that are also EVE character names ("Heading", "Moving", "Red"…) were being treated as pilots. A name now counts as a pilot only with zKillboard history or when it has two or more words, and many more common words are ignored. This also cleans up the hostile tracker and the pilot lines under intel.</li>
@@ -1824,6 +1867,27 @@ function segment(msg) {
   }
   return { pilots: [...new Set(pilots)], ships: [...new Set(ships)] };
 }
+// corp, alliance and zKillboard history for one pilot (used for intel and for Local scans)
+async function pilotInfo(id) {
+  const info = { id };
+  try { const c = await getJSON(`${ESI}/characters/${id}/?${DS}`); info.corp = c.corporation_id; info.alliance = c.alliance_id; } catch {}
+  try {
+    const z = await getJSON(`${ZKB}/stats/characterID/${id}/`, { headers: { "Accept": "application/json" } });
+    if (z && typeof z === "object") {
+      info.danger = z.dangerRatio; info.gang = z.gangRatio; info.kills = z.shipsDestroyed || 0; info.losses = z.shipsLost || 0;
+      const tl = (z.topLists || []).find(t => t.type === "shipType");
+      info.ships = (tl?.values || []).slice(0, 3).map(v => v.shipName).filter(Boolean);
+      const g = z.groups || {};
+      const killsIn = list => list.reduce((a, i) => a + (g[i]?.shipsDestroyed || 0), 0);
+      const lostIn = list => list.reduce((a, i) => a + (g[i]?.shipsLost || 0), 0);
+      info.cloaky = killsIn([830, 833, 834, 898]) >= 5 && killsIn([830, 833, 834, 898]) >= 0.2 * info.kills; // a real share of their kills in covert ops, recons, bombers, Black Ops
+      info.cyno = info.kills < 10 && lostIn([830, 833, 898]) >= 1; // few kills, lost cyno-capable cloaky hulls
+      info.zkb = true;
+    }
+  } catch {}
+  pil.info.set(id, info);
+  return info;
+}
 async function resolvePilots() {
   if (pil.busy) { pil.again = true; return; }
   pil.busy = true;
@@ -1843,25 +1907,7 @@ async function resolvePilots() {
     for (const r of intel.reports) { r.seg = segment(r.msg); r.seg.pilots.forEach(id => ids.add(id)); r.seg.ships.forEach(t => types.add(t)); }
     await loadGroups([...types]);
     const need = [...ids].filter(id => !pil.info.has(id));
-    await pool(need, 2, async id => {
-      const info = { id };
-      try { const c = await getJSON(`${ESI}/characters/${id}/?${DS}`); info.corp = c.corporation_id; info.alliance = c.alliance_id; } catch {}
-      try {
-        const z = await getJSON(`${ZKB}/stats/characterID/${id}/`, { headers: { "Accept": "application/json" } });
-        if (z && typeof z === "object") {
-          info.danger = z.dangerRatio; info.gang = z.gangRatio; info.kills = z.shipsDestroyed || 0; info.losses = z.shipsLost || 0;
-          const tl = (z.topLists || []).find(t => t.type === "shipType");
-          info.ships = (tl?.values || []).slice(0, 3).map(v => v.shipName).filter(Boolean);
-          const g = z.groups || {};
-          const killsIn = list => list.reduce((a, i) => a + (g[i]?.shipsDestroyed || 0), 0);
-          const lostIn = list => list.reduce((a, i) => a + (g[i]?.shipsLost || 0), 0);
-          info.cloaky = killsIn([830, 833, 834, 898]) >= 5;          // kills in covert ops, recons, bombers, Black Ops
-          info.cyno = info.kills < 10 && lostIn([830, 833, 898]) >= 1; // few kills, lost cyno-capable cloaky hulls
-          info.zkb = true;
-        }
-      } catch {}
-      pil.info.set(id, info);
-    });
+    await pool(need, 2, pilotInfo);
     await resolveNames([...pil.info.values()].flatMap(i => [i.corp, i.alliance]));
     // ship names (e.g. "Sabre") only become known now; alert for live reports that turned out to mention big ships
     for (const r of intel.reports) if (r.live && Date.now() - r.t < 5 * 60e3 && cfg.alBig && !isClear(r.msg)) {
@@ -2007,7 +2053,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.18";
+const APP_VERSION = "2.19";
 let watchGen = 0;
 function watchNames() { return (cfg.watch || "").split(",").map(x => x.trim()).filter(Boolean); }
 async function loadWatch() {
@@ -3010,6 +3056,126 @@ $("#bkLoad").addEventListener("click", () => {
   } catch { note.textContent = "That isn't a settings backup from this page. Copy it again with Copy my settings."; note.className = "note err"; }
 });
 
+/* ---------- Local scan and D-scan analyzer: paste from the game, read at a glance ---------- */
+async function idsFor(names) {
+  const out = { characters: [], inventory_types: [] };
+  for (let i = 0; i < names.length; i += 500) {
+    const r = await getJSON(`${ESI}/universe/ids/?${DS}`, POSTJSON(names.slice(i, i + 500)), 2);
+    out.characters.push(...(r.characters || [])); out.inventory_types.push(...(r.inventory_types || []));
+  }
+  return out;
+}
+const isNpcCorp = id => id >= 1000000 && id < 2000000;
+function standingOf(a) {
+  const fr = state.friends, en = state.enemies;
+  if (fr.has(a.character_id) || fr.has(a.corporation_id) || fr.has(a.alliance_id)) return "blue";
+  if (en.has(a.character_id) || en.has(a.corporation_id) || en.has(a.alliance_id)) return "red";
+  return "neutral";
+}
+const dangerous = i => i?.zkb && (i.danger || 0) >= 70 && (i.kills || 0) >= 20;
+
+// ----- Local -----
+let localGen = 0, localTimer = null;
+const LOCAL_LOOKUPS = 60; // zKillboard look-ups per scan, for pilots who aren't blue (busy systems: the rest show without danger)
+function localNote(m, err) { const n = $("#localNote"); n.textContent = m; n.className = "note" + (err ? " err" : ""); }
+async function analyzeLocal() {
+  const g = ++localGen;
+  const names = [...new Set($("#localIn").value.split(/\r?\n/).map(x => x.replace(/\s+$/, "").trim()).filter(x => x && x.length <= 37))].slice(0, 1500);
+  if (!names.length) { state.localScan = null; $("#localOut").innerHTML = ""; localNote("In EVE, click a name in the Local member list, press Ctrl+A then Ctrl+C, and paste here."); return; }
+  localNote(`Looking up ${names.length} pilot${names.length === 1 ? "" : "s"}…`);
+  try {
+    const r = await idsFor(names);
+    if (g !== localGen) return;
+    r.characters.forEach(c => state.names.set(c.id, c.name));
+    const aff = [];
+    for (let i = 0; i < r.characters.length; i += 1000) aff.push(...await getJSON(`${ESI}/characters/affiliation/?${DS}`, POSTJSON(r.characters.slice(i, i + 1000).map(c => c.id)), 2));
+    await resolveNames(aff.flatMap(a => [a.corporation_id, a.alliance_id]));
+    if (g !== localGen) return;
+    const found = new Set(r.characters.map(c => c.name.toLowerCase()));
+    state.localScan = { aff, missing: names.filter(n => !found.has(n.toLowerCase())), at: Date.now() };
+    renderLocal();
+    const look = aff.filter(a => standingOf(a) !== "blue" && !pil.info.has(a.character_id)).slice(0, LOCAL_LOOKUPS).map(a => a.character_id);
+    let n = 0;
+    await pool(look, 3, async id => { await pilotInfo(id); if (++n % 6 === 0 && g === localGen) renderLocal(); });
+    if (g === localGen) renderLocal();
+  } catch (e) { localNote("Couldn't look up those names right now: " + e.message, true); }
+}
+function renderLocal() {
+  const L = state.localScan; if (!L) return;
+  const groups = new Map(), cnt = { blue: 0, red: 0, neutral: 0 }, threats = [];
+  for (const a of L.aff) {
+    const st = standingOf(a); cnt[st]++;
+    const key = a.alliance_id || (isNpcCorp(a.corporation_id) ? "npc" : a.corporation_id);
+    const gr = groups.get(key) || groups.set(key, { key, alliance: a.alliance_id, corp: a.corporation_id, pilots: [], st: { blue: 0, red: 0, neutral: 0 } }).get(key);
+    gr.pilots.push(a); gr.st[st]++;
+    const i = pil.info.get(a.character_id);
+    if (st !== "blue" && (dangerous(i) || i?.cloaky || i?.cyno)) threats.push(a.character_id);
+  }
+  const rank = gr => gr.st.red ? 0 : gr.st.blue === gr.pilots.length ? 2 : 1;
+  const list = [...groups.values()].sort((a, b) => rank(a) - rank(b) || b.pilots.length - a.pilots.length);
+  const looked = L.aff.filter(a => standingOf(a) !== "blue").length, have = L.aff.filter(a => standingOf(a) !== "blue" && pil.info.has(a.character_id)).length;
+  localNote(`${L.aff.length} pilots · ${cnt.red} hostile · ${cnt.neutral} neutral · ${cnt.blue} blue` + (have < looked ? ` · checking danger ${have}/${Math.min(looked, LOCAL_LOOKUPS + have)}…` : "") + (L.missing.length ? ` · not found: ${L.missing.slice(0, 5).join(", ")}${L.missing.length > 5 ? "…" : ""}` : ""));
+  const label = gr => gr.key === "npc" ? "NPC corporations" : gr.alliance ? nm(gr.alliance) : nm(gr.corp);
+  const tag = gr => gr.st.red ? `<span class="chip red">HOSTILE</span>` : gr.st.blue === gr.pilots.length ? `<span class="chip blue">BLUE</span>` : "";
+  const pilot = a => { const i = pil.info.get(a.character_id); return i ? pilotLine(a.character_id) : `<div><a href="https://zkillboard.com/character/${a.character_id}/" target="_blank" rel="noopener">${esc(nm(a.character_id))}</a>${a.alliance_id ? " · " + esc(nm(a.corporation_id)) : ""}</div>`; };
+  $("#localOut").innerHTML =
+    (threats.length ? `<div class="lthreat"><b>Watch out:</b> ${threats.sort((x, y) => { const a = pil.info.get(x) || {}, b = pil.info.get(y) || {}; return (b.danger || 0) * Math.log10(10 + (b.kills || 0)) - (a.danger || 0) * Math.log10(10 + (a.kills || 0)); }).slice(0, 12).map(id => { const i = pil.info.get(id); return `<span class="chip red">${esc(nm(id))}${i?.danger != null ? " " + i.danger + "%" : ""}${i?.cloaky ? " · cloaky" : ""}${i?.cyno ? " · cyno?" : ""}</span>`; }).join(" ")}${threats.length > 12 ? ` <span class="note">+${threats.length - 12} more in the groups below</span>` : ""}</div>` : "")
+    + list.map(gr => `<details class="lgrp ${gr.st.red ? "red" : gr.st.blue === gr.pilots.length ? "blue" : ""}"${gr.st.red ? " open" : ""}>
+        <summary><span class="lcount">${gr.pilots.length}</span> <b>${esc(label(gr))}</b>${tag(gr)}${gr.alliance && new Set(gr.pilots.map(p => p.corporation_id)).size > 1 ? ` <span class="note">${new Set(gr.pilots.map(p => p.corporation_id)).size} corps</span>` : ""}</summary>
+        <div class="pilots">${gr.pilots.map(pilot).join("")}</div></details>`).join("");
+}
+
+// ----- D-scan -----
+const THREAT_GROUPS = { ...BIG, 834: "Stealth Bomber", 833: "Force Recon", 906: "Combat Recon", 963: "Strategic Cruiser", 831: "Interceptor", 830: "Covert Ops", 832: "Logistics", 1527: "Logistics Frigate" };
+let dscanGen = 0, dscanTimer = null;
+function parseDist(s) {
+  const m = (s || "").replace(/,/g, "").match(/([\d.]+)\s*(km|m|AU)/i); if (!m) return null;
+  const v = parseFloat(m[1]); return m[2].toLowerCase() === "au" ? v * 149597870.7 : m[2] === "m" ? v / 1000 : v; // in km
+}
+function fmtDist(km) { return km == null ? "?" : km > 1e6 ? (km / 149597870.7).toFixed(1) + " AU" : km >= 1000 ? Math.round(km).toLocaleString() + " km" : Math.round(km) + " km"; }
+async function analyzeDscan() {
+  const g = ++dscanGen, note = $("#dscanNote"), out = $("#dscanOut");
+  const rows = $("#dscanIn").value.split(/\r?\n/).map(l => l.split("\t").map(x => x.trim())).filter(p => p.length >= 3)
+    .map(p => /^\d+$/.test(p[0]) ? { typeId: +p[0], name: p[1], type: p[2], dist: parseDist(p[3]) } : { name: p[0], type: p[1], dist: parseDist(p[2]) });
+  if (!rows.length) { out.innerHTML = ""; note.textContent = "In EVE, open the directional scanner, scan, click a result, press Ctrl+A then Ctrl+C, and paste here."; note.className = "note"; return; }
+  note.textContent = `Reading ${rows.length} results…`; note.className = "note";
+  try {
+    const noId = [...new Set(rows.filter(r => !r.typeId).map(r => r.type))];
+    if (noId.length) { const r = await idsFor(noId); const by = new Map(r.inventory_types.map(t => [t.name.toLowerCase(), t.id])); rows.forEach(x => { if (!x.typeId) x.typeId = by.get(x.type.toLowerCase()); }); }
+    await loadGroups(rows.map(r => r.typeId).filter(Boolean));
+    await loadCats(rows.map(r => typeGroup[r.typeId]).filter(Boolean));
+    if (g !== dscanGen) return;
+    const ships = [], other = { structures: 0, deployables: 0, drones: 0, fighters: 0 };
+    for (const r of rows) {
+      const gid = typeGroup[r.typeId], cat = groupInfo[gid]?.c;
+      if (cat === 6) ships.push({ ...r, gid, cls: groupInfo[gid]?.n || "Ship" });
+      else if (cat === 65 || cat === 40 || cat === 23) other.structures++;
+      else if (cat === 22) other.deployables++;
+      else if (cat === 18) other.drones++;
+      else if (cat === 87) other.fighters++;
+    }
+    const onGrid = ships.filter(s => s.dist != null && s.dist < 8000).length;
+    const byClass = new Map(), byType = new Map(), threat = new Map();
+    for (const s of ships) {
+      byClass.set(s.cls, (byClass.get(s.cls) || 0) + 1);
+      byType.set(s.type, (byType.get(s.type) || 0) + 1);
+      const t = THREAT_GROUPS[s.gid];
+      if (t) { const e = threat.get(t) || { n: 0, near: null }; e.n++; if (s.dist != null && (e.near == null || s.dist < e.near)) e.near = s.dist; threat.set(t, e); }
+    }
+    const sorted = m => [...m.entries()].sort((a, b) => b[1] - a[1]);
+    const one = { structures: "structure", deployables: "deployable", drones: "drone", fighters: "fighter" };
+    note.textContent = `${ships.length} ship${ships.length === 1 ? "" : "s"}${ships.length ? ` (${onGrid} on grid)` : ""}` + Object.entries(other).filter(([, v]) => v).map(([k, v]) => ` · ${v} ${v === 1 ? one[k] : k}`).join("");
+    out.innerHTML = (threat.size ? `<div class="lthreat"><b>Threats:</b> ${[...threat.entries()].sort((a, b) => b[1].n - a[1].n).map(([t, e]) => `<span class="chip ${BIG[Object.keys(THREAT_GROUPS).find(k => THREAT_GROUPS[k] === t)] ? "big" : "red"}" title="Nearest ${fmtDist(e.near)}">${e.n} ${esc(t)}${e.n > 1 && !/s$/.test(t) ? "s" : ""}</span>`).join(" ")}</div>` : "")
+      + (ships.length ? `<div class="dscols"><div><h4>By class</h4>${sorted(byClass).map(([k, v]) => `<div class="drow"><span>${esc(k)}</span><b>${v}</b></div>`).join("")}</div>
+        <div><h4>By ship</h4>${sorted(byType).slice(0, 25).map(([k, v]) => `<div class="drow"><span>${esc(k)}</span><b>${v}</b></div>`).join("")}</div></div>` : `<div class="empty">No ships on this scan.</div>`);
+  } catch (e) { note.textContent = "Couldn't read that scan right now: " + e.message; note.className = "note err"; }
+}
+$("#localIn").addEventListener("input", () => { clearTimeout(localTimer); localTimer = setTimeout(analyzeLocal, 500); });
+$("#dscanIn").addEventListener("input", () => { clearTimeout(dscanTimer); dscanTimer = setTimeout(analyzeDscan, 400); });
+$("#localClear").addEventListener("click", () => { $("#localIn").value = ""; analyzeLocal(); $("#localIn").focus(); });
+$("#dscanClear").addEventListener("click", () => { $("#dscanIn").value = ""; analyzeDscan(); $("#dscanIn").focus(); });
+analyzeLocal(); analyzeDscan();
+
 /* ---------- sections that collapse into small buttons ---------- */
 const panelState = (() => { try { return JSON.parse(ls.get("panels", "{}")) || {}; } catch { return {}; } })();
 const collapsibles = () => [...document.querySelectorAll(".collapsible")];
@@ -3043,7 +3209,7 @@ function watchTabUrl(name) {
 }
 
 /* ---------- free boxLayout: move and resize the boxes (desktop widths only) ---------- */
-const FREE_IDS = ["mapPanel", "sysPanel", "intelPanel", "watchPanel", "hostilePanel", "timerPanel", "routePanel", "notifPanel", "killPanel", "settings"];
+const FREE_IDS = ["mapPanel", "sysPanel", "intelPanel", "watchPanel", "scanPanel", "hostilePanel", "timerPanel", "routePanel", "notifPanel", "killPanel", "settings"];
 const SNAP = 8, MIN_W = 240, MIN_H = 140;
 let boxLayout = (() => { try { return JSON.parse(ls.get("layout", "null")) || { free: false, boxes: {} }; } catch { return { free: false, boxes: {} }; } })();
 const saveLayout = () => ls.set("layout", JSON.stringify(boxLayout));
