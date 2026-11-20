@@ -1,4 +1,4 @@
-# Builds "Local Intel for Windows" from desktop/ on a Windows machine and publishes it as a GitHub Release.
+# Builds "OnGrid for Windows" from desktop/ on a Windows machine and publishes it as a GitHub Release.
 # It runs by itself when anything in desktop/ changes on main; if desktop/package.json's version already has
 # a release, it does nothing. It can also be started by hand from the Actions tab ("Build Windows app").
 # The installed app checks these releases (latest.yml) and updates itself.
@@ -56,15 +56,15 @@ jobs:
         run: |
           v="${{ steps.v.outputs.version }}"
           cd dist
-          sha256sum LocalIntel-*.exe > SHA256SUMS.txt
+          sha256sum OnGrid-*.exe > SHA256SUMS.txt
           cat > notes.md <<NOTES
-          **Local Intel for Windows $v.** It's the same page as https://ongrid07.github.io/OnGrid/, in its own app window, with a tray icon, background alerts, always on top and start with Windows.
+          **OnGrid for Windows $v.** It's the same page as https://ongrid07.github.io/OnGrid/, in its own app window, with a tray icon, background alerts, always on top and start with Windows.
 
-          **Download \`LocalIntel-Setup-$v.exe\`** and run it. It installs in a few seconds and **updates itself** from now on: when a new version is out, it downloads in the background and installs the next time the app starts, or right away from the tray menu.
+          **Download \`OnGrid-Setup-$v.exe\`** and run it. It installs in a few seconds and **updates itself** from now on: when a new version is out, it downloads in the background and installs the next time the app starts, or right away from the tray menu.
 
-          \`LocalIntel-$v-portable.exe\` is a single file that runs without installing. It can't update itself; it tells you when a new version is out.
+          \`OnGrid-$v-portable.exe\` is a single file that runs without installing. It can't update itself; it tells you when a new version is out.
 
           Windows may say "Windows protected your PC", because the app isn't signed with a paid certificate. Click **More info → Run anyway**. Checksums are in SHA256SUMS.txt.
           NOTES
-          gh release create "v$v" LocalIntel-Setup-$v.exe LocalIntel-Setup-$v.exe.blockmap latest.yml LocalIntel-$v-portable.exe SHA256SUMS.txt \
-            --title "Local Intel for Windows $v" --notes-file notes.md --target "$GITHUB_SHA"
+          gh release create "v$v" OnGrid-Setup-$v.exe OnGrid-Setup-$v.exe.blockmap latest.yml OnGrid-$v-portable.exe SHA256SUMS.txt \
+            --title "OnGrid for Windows $v" --notes-file notes.md --target "$GITHUB_SHA"

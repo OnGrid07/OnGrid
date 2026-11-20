@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.27
+  OnGrid (formerly Local Intel), version 2.28
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -645,7 +645,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.27</span>
+    <span class="ver" id="aboutVer">Version 2.28</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -693,7 +693,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <p>Press <b>Arrange boxes</b> at the top. Every box gets a dashed outline: drag a box by its title to move it, and drag the blue corner at its bottom right to resize it. Boxes snap to a small grid and can overlap; the one you touched last comes to the front. The map grows and shrinks with its box. Press <b>Done arranging</b> to lock them in place. Your layout is saved and included in <b>Copy my settings</b>. <b>Standard layout</b> puts everything back. Windows narrower than 900 pixels, and phones, always use the standard layout.</p>
 
     <h3>Windows app</h3>
-    <p><b>OnGrid for Windows</b> is this page in its own app window. Download <code>LocalIntel-Setup-….exe</code> (the Windows app keeps its old name, Local Intel, until its next version) from <a href="https://github.com/OnGrid07/OnGrid/releases/latest" target="_blank" rel="noopener">the releases page</a> and run it; it installs in a few seconds and adds a Start menu shortcut.</p>
+    <p><b>OnGrid for Windows</b> is this page in its own app window. Download <code>OnGrid-Setup-….exe</code> from <a href="https://github.com/OnGrid07/OnGrid/releases/latest" target="_blank" rel="noopener">the releases page</a> and run it; it installs in a few seconds and adds a Start menu shortcut.</p>
     <ul>
       <li>It keeps running in the system tray, and alerts and Windows notifications keep working while it's minimized or behind the game. Closing the window hides it to the tray; quit from the tray icon.</li>
       <li>Right-click the tray icon for <b>Always on top</b>, <b>Keep running when closed</b> and <b>Start with Windows</b>.</li>
@@ -823,6 +823,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.28</b> New address: <code>https://ongrid07.github.io/OnGrid/</code>. Settings can be carried over from the old address. The Windows app is now OnGrid too.</li>
       <li><b>2.27</b> Renamed to <b>OnGrid</b> (formerly Local Intel).</li>
       <li><b>2.26</b> Share links open a page with only the scan results.</li>
       <li><b>2.25</b> Share link: copies a link that opens your Local and D-scan results on this page for anyone.</li>
@@ -866,6 +867,23 @@ footer { font: 11px var(--mono); color: var(--muted); }
 </dialog>
 
 <script>
+// #import=<backup>: settings carried over from the old address (or any "Copy my settings" text), never an EVE login.
+// Runs before anything else so the page's own start-up saves can't make a fresh browser look already set up.
+(() => {
+  const m = location.hash.match(/^#import=([A-Za-z0-9+/=_-]+)(?:&next=(.*))?$/); if (!m) return;
+  const KEYS = ["settings", "presets", "timers", "intelChannels", "panels", "origin", "radius", "layout"];
+  let fresh = false;
+  try {
+    let b = m[1].replace(/-/g, "+").replace(/_/g, "/"); b += "=".repeat((4 - b.length % 4) % 4);
+    const data = JSON.parse(decodeURIComponent(escape(atob(b))));
+    if (data.app === "local-intel" && data.items) {
+      fresh = localStorage.getItem("settings") == null; // only fill an empty browser; never overwrite settings already here
+      if (fresh) for (const [k, v] of Object.entries(data.items)) if (KEYS.includes(k)) localStorage.setItem(k, v);
+      sessionStorage.setItem("imported", fresh ? "1" : "0");
+    }
+  } catch {}
+  history.replaceState(null, "", location.pathname + location.search + (m[2] ? decodeURIComponent(m[2]) : ""));
+})();
 const ESI = "https://esi.evetech.net/latest";
 const ZKB = "https://zkillboard.com/api";
 const DS = "datasource=tranquility";
@@ -2103,7 +2121,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.27";
+const APP_VERSION = "2.28";
 let watchGen = 0;
 function watchNames() { return (cfg.watch || "").split(",").map(x => x.trim()).filter(Boolean); }
 async function loadWatch() {
@@ -3095,6 +3113,10 @@ $("#bkCopy").addEventListener("click", () => {
   navigator.clipboard?.writeText(txt).then(() => done("Copied. Paste it into the same box on the other device and press Load."), () => { $("#bkText").select(); done("Selected below: press Ctrl+C to copy it."); })
     ?? ($("#bkText").select(), done("Selected below: press Ctrl+C to copy it."));
 });
+setTimeout(() => {
+  const v = sessionStorage.getItem("imported"); if (v == null) return; sessionStorage.removeItem("imported");
+  toast(v === "1" ? "Your settings came across from the old address. Log in with EVE again under Alerts and settings." : "Settings were already here, so the old ones weren't copied over.");
+}, 800);
 $("#bkLoad").addEventListener("click", () => {
   const note = $("#bkNote");
   try {

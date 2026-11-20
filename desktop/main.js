@@ -1,4 +1,4 @@
-// Local Intel for Windows: a small Electron shell around the live page at SITE.
+// OnGrid for Windows: a small Electron shell around the live page at SITE.
 // It loads the website, so page updates arrive without reinstalling the app.
 // What the app adds: tray icon, keeps running (and alerting) when minimized or closed to the tray,
 // always-on-top, start with Windows, and no repeated permission prompts for the chat logs folder.
@@ -33,7 +33,7 @@ function createWindow() {
     width: prefs.bounds?.width || 1400, height: prefs.bounds?.height || 950,
     x: prefs.bounds?.x, y: prefs.bounds?.y,
     minWidth: 420, minHeight: 500,
-    title: "Local Intel", icon: ICON, backgroundColor: "#0b0f14",
+    title: "OnGrid", icon: ICON, backgroundColor: "#0b0f14",
     alwaysOnTop: prefs.alwaysOnTop, autoHideMenuBar: true,
     webPreferences: { backgroundThrottling: false, contextIsolation: true, sandbox: true } // keep timers and alerts running when hidden
   });
@@ -55,7 +55,7 @@ function createWindow() {
     prefs.bounds = win.getBounds(); savePrefs();
     if (!quitting && prefs.closeToTray) {
       e.preventDefault(); win.hide();
-      if (!prefs.toldTray) { prefs.toldTray = true; savePrefs(); new Notification({ title: "Local Intel is still running", body: "It keeps watching intel in the tray. Right-click the tray icon to quit.", icon: ICON }).show(); }
+      if (!prefs.toldTray) { prefs.toldTray = true; savePrefs(); new Notification({ title: "OnGrid is still running", body: "It keeps watching intel in the tray. Right-click the tray icon to quit.", icon: ICON }).show(); }
     }
   });
 }
@@ -81,7 +81,7 @@ function setupUpdates() {
         const v = ((await r.json()).tag_name || "").replace(/^[^\d]*/, "");
         if (v && newer(v, app.getVersion()) && update.version !== v) {
           update = { state: "portable", version: v, error: null }; refreshTray();
-          notify("Local Intel update available", `Version ${v} is out. Click to open the download page.`, () => shell.openExternal(RELEASES));
+          notify("OnGrid update available", `Version ${v} is out. Click to open the download page.`, () => shell.openExternal(RELEASES));
         }
       } catch {}
     };
@@ -95,7 +95,7 @@ function setupUpdates() {
   autoUpdater.on("update-available", i => { update = { state: "downloading", version: i.version, error: null }; refreshTray(); });
   autoUpdater.on("update-downloaded", i => {
     update = { state: "ready", version: i.version, error: null }; refreshTray();
-    notify("Local Intel update ready", `Version ${i.version} installs next time the app starts. Click to restart now.`, () => { quitting = true; autoUpdater.quitAndInstall(); });
+    notify("OnGrid update ready", `Version ${i.version} installs next time the app starts. Click to restart now.`, () => { quitting = true; autoUpdater.quitAndInstall(); });
   });
   autoUpdater.on("error", e => { update.state = "error"; update.error = String(e?.message || e).slice(0, 120); refreshTray(); });
   const check = () => autoUpdater.checkForUpdates().catch(() => {});
@@ -113,7 +113,7 @@ function refreshTray() { if (tray) tray.setContextMenu(trayMenu()); }
 
 function trayMenu() {
   return Menu.buildFromTemplate([
-    { label: "Show Local Intel", click: show },
+    { label: "Show OnGrid", click: show },
     { type: "separator" },
     { label: "Always on top", type: "checkbox", checked: prefs.alwaysOnTop, click: i => { prefs.alwaysOnTop = i.checked; win.setAlwaysOnTop(i.checked); savePrefs(); } },
     { label: "Keep running when closed", type: "checkbox", checked: prefs.closeToTray, click: i => { prefs.closeToTray = i.checked; savePrefs(); } },
@@ -128,7 +128,7 @@ function trayMenu() {
 }
 function buildTray() {
   tray = new Tray(nativeImage.createFromPath(ICON).resize({ width: 16, height: 16 }));
-  tray.setToolTip(`Local Intel ${app.getVersion()}`);
+  tray.setToolTip(`OnGrid ${app.getVersion()}`);
   tray.setContextMenu(trayMenu());
   tray.on("right-click", refreshTray);
   tray.on("click", show);
