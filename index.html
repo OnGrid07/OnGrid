@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  Local Intel, version 2.23
+  Local Intel, version 2.24
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -638,7 +638,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">Local Intel</h2>
-    <span class="ver" id="aboutVer">Version 2.23</span>
+    <span class="ver" id="aboutVer">Version 2.24</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -704,7 +704,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <p><b>Local:</b> in EVE, click a name in the Local member list, press Ctrl+A then Ctrl+C, and paste into the Local box. Everyone is grouped by alliance (or corp), hostile groups first and opened, blue groups last. Pilots who aren't blue are checked on zKillboard (up to 60 per paste); anyone dangerous (danger 70% or more with 20+ kills) or flagged as a likely cloaky hunter or cyno alt is listed under <b>Watch out</b>. Blues and hostiles come from your EVE contacts and the Standings lists. Open a group to see each pilot, with an <b>in EVE</b> button for their info window.</p>
     <p><b>D-scan:</b> run the directional scanner, click a result, press Ctrl+A then Ctrl+C, and paste into the D-scan box. You get the number of ships (and how many are on grid, within about 8,000 km), structures, deployables, drones and fighters, ships counted by class and by type, and <b>Threats</b>: capitals, dictors, HICs, Black Ops, bombers, recons, Strategic Cruisers, interceptors, covert ops and logistics. Hover a threat to see the nearest one's distance.</p>
     <p>Results show under a header with the system and how long ago you scanned, then side-by-side cards: <b>Ships</b> and <b>Ship Classes</b> from the D-scan, <b>Alliances</b> and <b>Corporations</b> from Local, each with counts, logos and tickers. Hostile groups have a red edge and blue groups a blue edge; click one to see its pilots. <b>Watch out</b> and <b>Threats</b> sit above the cards.</p>
-    <p><b>Copy</b>, in the results header, copies a short message ready to paste into Discord: the system name and EVE time, then the Local summary and the D-scan summary (whichever you've pasted; Local first when there are both), with totals, threats and groups or ship classes, kept under Discord's 2,000-character limit. The <b>System</b> box fills in with where you are (or the map's center); type a different system to label the scan with that instead.</p>
+    <p><b>Copy</b>, in the results header, copies a message for Discord laid out like the results: the system and scan time, the summary, Watch out and Threats, then the cards as two columns of aligned text (Ships next to Ship Classes, Alliances next to Corporations) with tickers and counts. Hostile rows start with "!" and blue rows with "+". Long lists are shortened with "+N more" so it fits in one Discord message. On a phone, Discord may wrap the two columns. The <b>System</b> box fills in with where you are (or the map's center); type a different system to label the scan with that instead.</p>
     <p>Paste a new scan any time to replace the old one; nothing is saved or sent anywhere except the look-ups to EVE and zKillboard.</p>
 
     <h3>Hostile tracker</h3>
@@ -815,6 +815,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.24</b> Copy for Discord matches the results layout: header, summary, Watch out and Threats, then Ships and Ship Classes, and Alliances and Corporations, as side-by-side columns with tickers and counts.</li>
       <li><b>2.23</b> Scan results laid out as cards: Ships, Ship Classes, Alliances and Corporations, with ship icons, alliance and corp logos, tickers and counts, under a header with the system and how long ago the scan was.</li>
       <li><b>2.22</b> One <b>Copy</b> button for Local and D-scan, next to the System box.</li>
       <li><b>2.21</b> Copy both for Discord: Local and D-scan in one message with the system name.</li>
@@ -2091,7 +2092,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.23";
+const APP_VERSION = "2.24";
 let watchGen = 0;
 function watchNames() { return (cfg.watch || "").split(",").map(x => x.trim()).filter(Boolean); }
 async function loadWatch() {
@@ -3254,15 +3255,13 @@ function renderScan() {
     cards += scanCard("Ship Classes", D.byClass.length, D.byClass.map(([k, n]) => `<div class="srrow"><span class="srname">${esc(k)}</span><span class="srbadge">${n}</span></div>`).join("") || `<div class="empty">No ships.</div>`);
   }
   if (LV && L) {
-    const group = keyOf => { const m = new Map(); for (const a of L.aff) { const k = keyOf(a); (m.get(k) || m.set(k, []).get(k)).push(a); } return [...m.entries()].sort((x, y) => y[1].length - x[1].length); };
-    const stOf = ps => ps.some(a => standingOf(a) === "red") ? "red" : ps.every(a => standingOf(a) === "blue") ? "blue" : "";
     const pilots = ps => ps.map(a => pil.info.has(a.character_id) ? pilotLine(a.character_id) : `<div><a href="https://zkillboard.com/character/${a.character_id}/" target="_blank" rel="noopener">${esc(nm(a.character_id))}</a></div>`).join("");
     const orgRow = (kind, id, ps, fallback) => {
-      const st = stOf(ps), tk = id ? tickers[id] : "";
+      const st = ps.some(a => standingOf(a) === "red") ? "red" : ps.every(a => standingOf(a) === "blue") ? "blue" : "", tk = id ? tickers[id] : "";
       const logo = id ? `<img src="https://images.evetech.net/${kind}/${id}/logo?size=64" alt="" loading="lazy" onerror="this.classList.add('broken')">` : `<span class="nologo"></span>`;
       return `<details class="srorg ${st}"><summary>${logo}<span class="srorgname"><span class="tk">${esc(id ? tk || "…" : fallback.tk)}</span><span class="full">${esc(id ? nm(id) : fallback.name)}</span></span>${st === "red" ? `<span class="chip red">HOSTILE</span>` : st === "blue" ? `<span class="chip blue">BLUE</span>` : ""}<span class="srbig">${ps.length}</span></summary><div class="pilots">${pilots(ps)}</div></details>`;
     };
-    const alliances = group(a => a.alliance_id || 0), corps = group(a => a.corporation_id);
+    const { alliances: ga, corps: gc } = orgGroups(L), alliances = ga.map(x => [x.id, x.ps]), corps = gc.map(x => [x.id, x.ps]);
     cards += scanCard("Alliances", alliances.filter(([k]) => k).length, alliances.map(([id, ps]) => orgRow("alliances", id, ps, { tk: "No alliance", name: "Pilots without an alliance" })).join(""), "orgs");
     cards += scanCard("Corporations", corps.length, corps.map(([id, ps]) => orgRow("corporations", id, ps)).join(""), "orgs");
     loadTickers([...alliances.map(([id]) => ({ id, kind: "alliances" })), ...corps.map(([id]) => ({ id, kind: "corporations" }))]);
@@ -3288,47 +3287,56 @@ function clip(lines) { // Discord messages are capped at 2,000 characters
   for (const l of lines) { if ((out + l + "\n").length > 1950) { out += "…"; break; } out += l + "\n"; }
   return out.trim();
 }
-function localText() {
-  const v = state.localView; if (!v) return "";
-  return clip([`**Local in ${scanSys()}** · ${eveStamp(v.at)}`, ...localLines()]);
+const scanSys = () => $("#scanSys").value.trim() || "unknown";
+// alliances and corps in the pasted Local, biggest first, with their standing (shared by the cards and the Discord copy)
+function orgGroups(L) {
+  const by = keyOf => { const m = new Map(); for (const a of L.aff) { const k = keyOf(a); (m.get(k) || m.set(k, []).get(k)).push(a); } return [...m.entries()].sort((x, y) => y[1].length - x[1].length); };
+  const stOf = ps => ps.some(a => standingOf(a) === "red") ? "red" : ps.every(a => standingOf(a) === "blue") ? "blue" : "";
+  return { alliances: by(a => a.alliance_id || 0).map(([id, ps]) => ({ id, ps, st: stOf(ps) })), corps: by(a => a.corporation_id).map(([id, ps]) => ({ id, ps, st: stOf(ps) })) };
 }
-function localLines() {
-  const v = state.localView; if (!v) return [];
-  const name = gr => gr.key === "npc" ? "NPC corps" : gr.alliance ? nm(gr.alliance) : nm(gr.corp);
-  const part = (st, title) => {
-    const gs = v.list.filter(gr => (st === "red" ? gr.st.red : st === "blue" ? gr.st.blue === gr.pilots.length : !gr.st.red && gr.st.blue !== gr.pilots.length));
-    if (!gs.length) return null;
-    const shown = gs.slice(0, 12).map(gr => `${name(gr)} ×${gr.pilots.length}`).join(", ");
-    return `**${title}:** ${shown}${gs.length > 12 ? `, +${gs.length - 12} more groups` : ""}`;
-  };
-  const watch = v.threats.slice(0, 8).map(id => { const i = pil.info.get(id) || {}; return `${nm(id)}${i.danger != null ? ` (${i.danger}%${i.cloaky ? ", cloaky" : ""}${i.cyno ? ", cyno?" : ""})` : ""}`; });
-  return [
-    `${plural(v.total, "pilot")} · ${v.cnt.red} hostile · ${v.cnt.neutral} neutral · ${v.cnt.blue} blue`,
-    watch.length ? `**Watch out:** ${watch.join(", ")}${v.threats.length > 8 ? `, +${v.threats.length - 8} more` : ""}` : null,
-    part("red", "Hostile"), part("neutral", "Neutral"), part("blue", "Blue")
-  ].filter(Boolean);
+/* The Discord copy follows the results layout: header, summary, Watch out, Threats, then the cards as two
+   side-by-side text columns in a code block (Ships | Ship Classes, Alliances | Corporations).
+   Hostile rows start with "!", blue rows with "+". Kept under Discord's 2,000-character limit. */
+const COLW = 27; // each column's width in characters; two columns fit Discord's code block on desktop
+function cell(label, n, mark = " ") {
+  const room = COLW - 5, text = mark + label;
+  return (text.length > room ? text.slice(0, room - 1) + "…" : text.padEnd(room)) + String(n).padStart(4) + " ";
 }
-function dscanText() {
-  const v = state.dscanView; if (!v) return "";
-  return clip([`**D-scan in ${scanSys()}** · ${eveStamp(v.at)}`, ...dscanLines()]);
+function twoCols(t1, a, t2, b, rows) {
+  const head = (t, n) => `${t.toUpperCase()} · ${n}`.padEnd(COLW);
+  const lines = [head(t1.t, t1.n) + " " + head(t2.t, t2.n)];
+  const n = Math.min(rows, Math.max(a.length, b.length));
+  for (let i = 0; i < n; i++) lines.push((a[i] || " ".repeat(COLW)) + " " + (b[i] || ""));
+  const more = [a.length > n ? `+${a.length - n} more` : "", b.length > n ? `+${b.length - n} more` : ""];
+  if (more[0] || more[1]) lines.push(more[0].padEnd(COLW) + " " + more[1]);
+  return lines.map(l => l.replace(/\s+$/, ""));
 }
-function dscanLines() {
-  const v = state.dscanView; if (!v) return [];
-  const one = { structures: "structure", deployables: "deployable", drones: "drone", fighters: "fighter" };
-  const extras = Object.entries(v.other).filter(([, n]) => n).map(([k, n]) => `${n} ${n === 1 ? one[k] : k}`);
-  return [
-    [`${plural(v.ships, "ship")}${v.ships ? ` (${v.onGrid} on grid)` : ""}`, ...extras].join(" · "),
-    v.threat.length ? `**Threats:** ${v.threat.map(([t, e]) => `${e.n} ${t}${e.n > 1 && !/s$/.test(t) ? "s" : ""}${e.near != null ? ` (${fmtDist(e.near)})` : ""}`).join(", ")}` : null,
-    v.byClass.length ? `**By class:** ${v.byClass.map(([k, n]) => `${k} ${n}`).join(", ")}` : null,
-    v.byType.length ? `**Ships:** ${v.byType.slice(0, 20).map(([k, n]) => `${k} ×${n}`).join(", ")}${v.byType.length > 20 ? `, +${v.byType.length - 20} more types` : ""}` : null
-  ].filter(Boolean);
-}
-const scanSys = () => $("#scanSys").value.trim() || "unknown system";
-// one message with both: Local first (who's here), then D-scan (what they're flying)
 function bothText() {
-  const L = state.localView, D = state.dscanView;
-  if (!L || !D) return L ? localText() : dscanText();
-  return clip([`**${scanSys()}** · ${eveStamp(Math.max(L.at, D.at))}`, `__Local__`, ...localLines(), `__D-scan__`, ...dscanLines()]);
+  const L = state.localScan, LV = state.localView, D = state.dscanView;
+  if (!LV && !D) return "";
+  const at = Math.max(LV?.at || 0, D?.at || 0);
+  const mark = st => st === "red" ? "!" : st === "blue" ? "+" : " ";
+  const build = rows => {
+    const out = [`**System: ${scanSys()}** · scanned ${eveStamp(at)}`];
+    out.push([LV ? `${LV.total} in Local: ${LV.cnt.red} hostile · ${LV.cnt.neutral} neutral · ${LV.cnt.blue} blue` : "", D ? `${D.ships} ship${D.ships === 1 ? "" : "s"} on D-scan (${D.onGrid} on grid)` : ""].filter(Boolean).join(" · "));
+    if (LV?.threats.length) out.push(`**Watch out:** ${LV.threats.slice(0, 6).map(id => { const i = pil.info.get(id) || {}; return `${nm(id)}${i.danger != null ? ` ${i.danger}%` : ""}${i.cloaky ? " cloaky" : ""}${i.cyno ? " cyno?" : ""}`; }).join(", ")}${LV.threats.length > 6 ? `, +${LV.threats.length - 6} more` : ""}`);
+    if (D?.threat.length) out.push(`**Threats:** ${D.threat.map(([t, e]) => `${e.n} ${t}${e.n > 1 && !/s$/.test(t) ? "s" : ""}${e.near != null ? ` (${fmtDist(e.near)})` : ""}`).join(", ")}`);
+    const block = [];
+    if (D && D.ships) block.push(...twoCols({ t: "Ships", n: D.ships }, D.byType.map(([k, n]) => cell(k, n)), { t: "Ship classes", n: D.byClass.length }, D.byClass.map(([k, n]) => cell(k, n)), rows));
+    if (LV && L) {
+      const g = orgGroups(L);
+      if (block.length) block.push("");
+      block.push(...twoCols({ t: "Alliances", n: g.alliances.filter(x => x.id).length },
+        g.alliances.map(x => cell(x.id ? `${tickers[x.id] || nm(x.id)} ${tickers[x.id] ? nm(x.id) : ""}`.trim() : "No alliance", x.ps.length, mark(x.st))),
+        { t: "Corporations", n: g.corps.length }, g.corps.map(x => cell(`${tickers[x.id] || nm(x.id)} ${tickers[x.id] ? nm(x.id) : ""}`.trim(), x.ps.length, mark(x.st))), rows));
+      if (g.alliances.some(x => x.st) || g.corps.some(x => x.st)) block.push("", "! hostile   + blue");
+    }
+    if (block.length) out.push("```", ...block, "```");
+    return out.join("\n");
+  };
+  // fewer rows per column until it fits in one Discord message
+  for (let rows = 15; rows >= 3; rows--) { const t = build(rows); if (t.length <= 1990) return t; }
+  return build(3).slice(0, 1990);
 }
 function updateShareBoth() { renderScan(); }
 async function copyText(txt, where) {
