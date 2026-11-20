@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  Local Intel, version 2.26
+  OnGrid (formerly Local Intel), version 2.27
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -8,7 +8,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Local Intel</title>
+<title>OnGrid</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
@@ -47,6 +47,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 
 header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
 h1 { font: 700 28px/1 var(--display); letter-spacing: .02em; margin: 0; text-wrap: balance; }
+.brandtag { font: 600 13px var(--display); letter-spacing: .04em; color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 2px 7px; margin-left: 12px; vertical-align: 5px; }
 h1 small { display: block; font: 500 12px/1.4 var(--mono); color: var(--muted); letter-spacing: .08em; text-transform: uppercase; margin-top: 6px; }
 h2 { font: 600 13px/1 var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
 .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font: 12px var(--mono); color: var(--muted); }
@@ -392,7 +393,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <body>
 <div class="wrap">
   <header>
-    <h1 id="title">Local Intel<small id="subtitle">Enter a system to start</small></h1>
+    <h1 id="title">OnGrid<small id="subtitle">Enter a system to start</small></h1>
     <form class="controls" id="cfg">
       <label for="origin">System</label>
       <input id="origin" value="" placeholder="System name" autocomplete="off" spellcheck="false">
@@ -643,8 +644,8 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <div id="toast" role="status" hidden></div>
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
-    <h2 id="aboutTitle">Local Intel</h2>
-    <span class="ver" id="aboutVer">Version 2.26</span>
+    <h2 id="aboutTitle">OnGrid</h2>
+    <span class="ver" id="aboutVer">Version 2.27</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -692,7 +693,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <p>Press <b>Arrange boxes</b> at the top. Every box gets a dashed outline: drag a box by its title to move it, and drag the blue corner at its bottom right to resize it. Boxes snap to a small grid and can overlap; the one you touched last comes to the front. The map grows and shrinks with its box. Press <b>Done arranging</b> to lock them in place. Your layout is saved and included in <b>Copy my settings</b>. <b>Standard layout</b> puts everything back. Windows narrower than 900 pixels, and phones, always use the standard layout.</p>
 
     <h3>Windows app</h3>
-    <p><b>Local Intel for Windows</b> is this page in its own app window. Download <code>LocalIntel-Setup-….exe</code> from <a href="https://github.com/OnGrid07/OnGrid/releases/latest" target="_blank" rel="noopener">the releases page</a> and run it; it installs in a few seconds and adds a Start menu shortcut.</p>
+    <p><b>OnGrid for Windows</b> is this page in its own app window. Download <code>LocalIntel-Setup-….exe</code> (the Windows app keeps its old name, Local Intel, until its next version) from <a href="https://github.com/OnGrid07/OnGrid/releases/latest" target="_blank" rel="noopener">the releases page</a> and run it; it installs in a few seconds and adds a Start menu shortcut.</p>
     <ul>
       <li>It keeps running in the system tray, and alerts and Windows notifications keep working while it's minimized or behind the game. Closing the window hides it to the tray; quit from the tray icon.</li>
       <li>Right-click the tray icon for <b>Always on top</b>, <b>Keep running when closed</b> and <b>Start with Windows</b>.</li>
@@ -822,6 +823,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.27</b> Renamed to <b>OnGrid</b> (formerly Local Intel).</li>
       <li><b>2.26</b> Share links open a page with only the scan results.</li>
       <li><b>2.25</b> Share link: copies a link that opens your Local and D-scan results on this page for anyone.</li>
       <li><b>2.24</b> Copy for Discord matches the results layout: header, summary, Watch out and Threats, then Ships and Ship Classes, and Alliances and Corporations, as side-by-side columns with tickers and counts.</li>
@@ -1597,14 +1599,14 @@ function fireAlert(key, title, body, speech, force) {
 }
 function flashTitle(msg) {
   clearInterval(flashTimer);
-  const base = state.baseTitle || "Local Intel"; let on = false, n = 0;
+  const base = state.baseTitle || "OnGrid"; let on = false, n = 0;
   flashTimer = setInterval(() => {
     document.title = (on = !on) ? "(!) " + msg : base;
     if (!document.hidden && ++n > 6) { clearInterval(flashTimer); flashTimer = null; document.title = base; }
   }, 1000);
 }
 document.addEventListener("visibilitychange", () => {
-  if (!document.hidden && flashTimer) { clearInterval(flashTimer); flashTimer = null; document.title = state.baseTitle || "Local Intel"; }
+  if (!document.hidden && flashTimer) { clearInterval(flashTimer); flashTimer = null; document.title = state.baseTitle || "OnGrid"; }
 });
 
 async function maybeAlert(r) {
@@ -2101,7 +2103,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.26";
+const APP_VERSION = "2.27";
 let watchGen = 0;
 function watchNames() { return (cfg.watch || "").split(",").map(x => x.trim()).filter(Boolean); }
 async function loadWatch() {
@@ -3371,7 +3373,7 @@ if (SCAN_ONLY) {
   document.documentElement.classList.add("scanonly");
   state.pinned = true;
   const bar = document.createElement("div"); bar.className = "sobar";
-  bar.innerHTML = `<span><b>Local Intel</b> · shared scan</span><a href="${esc(location.origin + location.pathname)}" target="_blank" rel="noopener">Open the full tool</a>`;
+  bar.innerHTML = `<span><b>OnGrid</b> · shared scan</span><a href="${esc(location.origin + location.pathname)}" target="_blank" rel="noopener">Open the full tool</a>`;
   document.querySelector(".wrap").prepend(bar);
 }
 async function packScan(obj) {
@@ -3424,7 +3426,7 @@ async function openSharedScan() {
   $("#localIn").value = payload.local || ""; $("#dscanIn").value = payload.dscan || "";
   if (!SCAN_ONLY) expandPanel("scanPanel");
   await Promise.all([analyzeLocal(), analyzeDscan()]);
-  if (SCAN_ONLY) document.title = `Scan of ${payload.sys || "a system"} · Local Intel`;
+  if (SCAN_ONLY) document.title = `Scan of ${payload.sys || "a system"} · OnGrid`;
   else $("#scanPanel").scrollIntoView({ behavior: "smooth", block: "start" });
   toast(`Shared scan${payload.sys ? " of " + payload.sys : ""} from ${eveStamp(sharedAt)}.`);
 }
@@ -3595,8 +3597,8 @@ async function start(origin, radius) {
     state.campKeys = new Set(); state.sovPrimed = false; bfsMemo.key = null;
     const o = state.systems.get(state.origin);
     state.target = o.name.toUpperCase();
-    document.title = state.baseTitle = `${o.name} Local Intel`;
-    $("#title").innerHTML = `${esc(o.name)} Local Intel<small>${esc(o.region || "")}${o.constellationName ? " · " + esc(o.constellationName) : ""} · ${radius}-jump radius · ${state.systems.size} systems${state.pinned ? ` · <span class="pinned-note">this tab stays on ${esc(o.name)}</span>` : ""}</small>`;
+    document.title = state.baseTitle = `${o.name} · OnGrid`;
+    $("#title").innerHTML = `${esc(o.name)}<span class="brandtag">OnGrid</span><small>${esc(o.region || "")}${o.constellationName ? " · " + esc(o.constellationName) : ""} · ${radius}-jump radius · ${state.systems.size} systems${state.pinned ? ` · <span class="pinned-note">this tab stays on ${esc(o.name)}</span>` : ""}</small>`;
     setStatus("Loading hourly stats…");
     await loadHourly(); if (gen !== state.gen) return; renderAll();
     loadWormholes().then(() => { if (gen === state.gen) renderAll(); });

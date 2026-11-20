@@ -1,4 +1,6 @@
-# Local Intel
+# OnGrid
+
+*Formerly Local Intel.*
 
 A live intel page for EVE Online: a gate map of the systems around you with kills, traffic, ratting, sov timers and wormholes, your intel channel and location read from EVE's chat logs, watched systems, alerts, and your characters' notifications.
 
@@ -14,7 +16,7 @@ A copy hosted at another address needs its own app at https://developers.eveonli
 
 ## Windows app
 
-`desktop/` is Local Intel for Windows: the page in its own window with a tray icon, background alerts, always on top and start with Windows. Download `LocalIntel-Setup-<version>.exe` from the [releases page](https://github.com/OnGrid07/OnGrid/releases/latest). The installed app updates itself from those releases.
+`desktop/` is OnGrid for Windows (the app itself is still named Local Intel until its next version): the page in its own window with a tray icon, background alerts, always on top and start with Windows. Download `LocalIntel-Setup-<version>.exe` from the [releases page](https://github.com/OnGrid07/OnGrid/releases/latest). The installed app updates itself from those releases.
 
 To publish a new app version, raise `version` in `desktop/package.json` and push to `main`: the "Build Windows app" workflow builds it on Windows and publishes the release.
 
