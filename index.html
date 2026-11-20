@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  Local Intel, version 2.20
+  Local Intel, version 2.21
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -202,7 +202,8 @@ tr:hover td { background: #141d27; }
 .scansys { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font: 12px var(--mono); color: var(--muted); margin-bottom: 10px; }
 .scansys input { font: 13px var(--mono); background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: 4px 8px; width: 11em; }
 .sharebar { display: flex; gap: 8px; align-items: center; }
-.sharebar .mini { font-size: 11.5px; padding: 3px 9px; margin: 0; }
+.sharebar .mini, #shareBoth { font-size: 11.5px; padding: 3px 9px; margin: 0; }
+#shareBoth { margin-left: auto; }
 #shareBox { width: 100%; font: 11px var(--mono); background: var(--bg); color: var(--fg); border: 1px solid var(--accent); border-radius: 4px; padding: 6px; }
 .scangrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); gap: 16px; }
 .scancol { display: grid; gap: 6px; align-content: start; min-width: 0; }
@@ -459,7 +460,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
   <section class="panel collapsible" id="scanPanel" data-title="Local &amp; D-scan">
     <div class="phead"><h2>Local &amp; D-scan</h2></div>
-    <div class="scansys"><label for="scanSys">System</label><input id="scanSys" placeholder="Where these scans are from" autocomplete="off" spellcheck="false"><span class="note">Filled in with where you are; type another system to change it.</span></div>
+    <div class="scansys"><label for="scanSys">System</label><input id="scanSys" placeholder="Where these scans are from" autocomplete="off" spellcheck="false"><span class="note">Filled in with where you are; type another system to change it.</span><button type="button" class="mini" id="shareBoth" data-share="both" hidden>Copy both for Discord</button></div>
     <div class="scangrid">
       <div class="scancol">
         <div class="scanhead"><label class="lbl" for="localIn">Local</label><button type="button" class="mini" id="localClear">Clear</button></div>
@@ -614,7 +615,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">Local Intel</h2>
-    <span class="ver" id="aboutVer">Version 2.20</span>
+    <span class="ver" id="aboutVer">Version 2.21</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -679,7 +680,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <h3>Local &amp; D-scan</h3>
     <p><b>Local:</b> in EVE, click a name in the Local member list, press Ctrl+A then Ctrl+C, and paste into the Local box. Everyone is grouped by alliance (or corp), hostile groups first and opened, blue groups last. Pilots who aren't blue are checked on zKillboard (up to 60 per paste); anyone dangerous (danger 70% or more with 20+ kills) or flagged as a likely cloaky hunter or cyno alt is listed under <b>Watch out</b>. Blues and hostiles come from your EVE contacts and the Standings lists. Open a group to see each pilot, with an <b>in EVE</b> button for their info window.</p>
     <p><b>D-scan:</b> run the directional scanner, click a result, press Ctrl+A then Ctrl+C, and paste into the D-scan box. You get the number of ships (and how many are on grid, within about 8,000 km), structures, deployables, drones and fighters, ships counted by class and by type, and <b>Threats</b>: capitals, dictors, HICs, Black Ops, bombers, recons, Strategic Cruisers, interceptors, covert ops and logistics. Hover a threat to see the nearest one's distance.</p>
-    <p><b>Copy for Discord</b>, under each result, copies a short message ready to paste into Discord: the system and EVE time, the totals, the threats, and the groups or ship classes, kept under Discord's 2,000-character limit. The <b>System</b> box at the top fills in with where you are (or the map's center); type a different system to label the scan with that instead.</p>
+    <p><b>Copy for Discord</b>, under each result, copies a short message ready to paste into Discord: the system and EVE time, the totals, the threats, and the groups or ship classes, kept under Discord's 2,000-character limit. With both a Local and a D-scan pasted, <b>Copy both for Discord</b> (next to the System box) copies them as one message under the system name, Local first. The <b>System</b> box at the top fills in with where you are (or the map's center); type a different system to label the scan with that instead.</p>
     <p>Paste a new scan any time to replace the old one; nothing is saved or sent anywhere except the look-ups to EVE and zKillboard.</p>
 
     <h3>Hostile tracker</h3>
@@ -790,6 +791,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.21</b> Copy both for Discord: Local and D-scan in one message with the system name.</li>
       <li><b>2.20</b> Copy for Discord: Local and D-scan results copy as a short Discord message headed with the system name and EVE time.</li>
       <li><b>2.19</b> Local &amp; D-scan: paste Local to see who's in system by alliance with blues, hostiles and dangerous pilots; paste a directional scan to see ships by class and type with threats called out.</li>
       <li><b>2.18</b> Arrange boxes: move and resize the map and every other box, in the browser and the Windows app. Windows app 1.1: an installer that keeps the app up to date by itself.</li>
@@ -2063,7 +2065,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.20";
+const APP_VERSION = "2.21";
 let watchGen = 0;
 function watchNames() { return (cfg.watch || "").split(",").map(x => x.trim()).filter(Boolean); }
 async function loadWatch() {
@@ -3091,7 +3093,7 @@ function localNote(m, err) { const n = $("#localNote"); n.textContent = m; n.cla
 async function analyzeLocal() {
   const g = ++localGen;
   const names = [...new Set($("#localIn").value.split(/\r?\n/).map(x => x.replace(/\s+$/, "").trim()).filter(x => x && x.length <= 37))].slice(0, 1500);
-  if (!names.length) { state.localScan = null; state.localView = null; $("#localShare").hidden = true; $("#localOut").innerHTML = ""; localNote("In EVE, click a name in the Local member list, press Ctrl+A then Ctrl+C, and paste here."); return; }
+  if (!names.length) { state.localScan = null; state.localView = null; $("#localShare").hidden = true; updateShareBoth(); $("#localOut").innerHTML = ""; localNote("In EVE, click a name in the Local member list, press Ctrl+A then Ctrl+C, and paste here."); return; }
   localNote(`Looking up ${names.length} pilot${names.length === 1 ? "" : "s"}…`);
   try {
     const r = await idsFor(names);
@@ -3124,7 +3126,7 @@ function renderLocal() {
   const rank = gr => gr.st.red ? 0 : gr.st.blue === gr.pilots.length ? 2 : 1;
   const list = [...groups.values()].sort((a, b) => rank(a) - rank(b) || b.pilots.length - a.pilots.length);
   state.localView = { list, cnt, threats, total: L.aff.length, at: L.at };
-  $("#localShare").hidden = false; fillScanSystem();
+  $("#localShare").hidden = false; fillScanSystem(); updateShareBoth();
   const looked = L.aff.filter(a => standingOf(a) !== "blue").length, have = L.aff.filter(a => standingOf(a) !== "blue" && pil.info.has(a.character_id)).length;
   localNote(`${L.aff.length} pilots · ${cnt.red} hostile · ${cnt.neutral} neutral · ${cnt.blue} blue` + (have < looked ? ` · checking danger ${have}/${Math.min(looked, LOCAL_LOOKUPS + have)}…` : "") + (L.missing.length ? ` · not found: ${L.missing.slice(0, 5).join(", ")}${L.missing.length > 5 ? "…" : ""}` : ""));
   const label = gr => gr.key === "npc" ? "NPC corporations" : gr.alliance ? nm(gr.alliance) : nm(gr.corp);
@@ -3149,7 +3151,7 @@ async function analyzeDscan() {
   const g = ++dscanGen, note = $("#dscanNote"), out = $("#dscanOut");
   const rows = $("#dscanIn").value.split(/\r?\n/).map(l => l.split("\t").map(x => x.trim())).filter(p => p.length >= 3)
     .map(p => /^\d+$/.test(p[0]) ? { typeId: +p[0], name: p[1], type: p[2], dist: parseDist(p[3]) } : { name: p[0], type: p[1], dist: parseDist(p[2]) });
-  if (!rows.length) { state.dscanView = null; $("#dscanShare").hidden = true; out.innerHTML = ""; note.textContent = "In EVE, open the directional scanner, scan, click a result, press Ctrl+A then Ctrl+C, and paste here."; note.className = "note"; return; }
+  if (!rows.length) { state.dscanView = null; $("#dscanShare").hidden = true; updateShareBoth(); out.innerHTML = ""; note.textContent = "In EVE, open the directional scanner, scan, click a result, press Ctrl+A then Ctrl+C, and paste here."; note.className = "note"; return; }
   note.textContent = `Reading ${rows.length} results…`; note.className = "note";
   try {
     const noId = [...new Set(rows.filter(r => !r.typeId).map(r => r.type))];
@@ -3176,7 +3178,7 @@ async function analyzeDscan() {
     }
     const sorted = m => [...m.entries()].sort((a, b) => b[1] - a[1]);
     state.dscanView = { ships: ships.length, onGrid, other, threat: [...threat.entries()].sort((a, b) => b[1].n - a[1].n), byClass: sorted(byClass), byType: sorted(byType), at: Date.now() };
-    $("#dscanShare").hidden = !ships.length && !Object.values(other).some(Boolean); fillScanSystem();
+    $("#dscanShare").hidden = !ships.length && !Object.values(other).some(Boolean); fillScanSystem(); updateShareBoth();
     const one = { structures: "structure", deployables: "deployable", drones: "drone", fighters: "fighter" };
     note.textContent = `${ships.length} ship${ships.length === 1 ? "" : "s"}${ships.length ? ` (${onGrid} on grid)` : ""}` + Object.entries(other).filter(([, v]) => v).map(([k, v]) => ` · ${v} ${v === 1 ? one[k] : k}`).join("");
     out.innerHTML = (threat.size ? `<div class="lthreat"><b>Threats:</b> ${[...threat.entries()].sort((a, b) => b[1].n - a[1].n).map(([t, e]) => `<span class="chip ${BIG[Object.keys(THREAT_GROUPS).find(k => THREAT_GROUPS[k] === t)] ? "big" : "red"}" title="Nearest ${fmtDist(e.near)}">${e.n} ${esc(t)}${e.n > 1 && !/s$/.test(t) ? "s" : ""}</span>`).join(" ")}</div>` : "")
@@ -3207,7 +3209,10 @@ function clip(lines) { // Discord messages are capped at 2,000 characters
 }
 function localText() {
   const v = state.localView; if (!v) return "";
-  const sys = $("#scanSys").value.trim() || "unknown system";
+  return clip([`**Local in ${scanSys()}** · ${eveStamp(v.at)}`, ...localLines()]);
+}
+function localLines() {
+  const v = state.localView; if (!v) return [];
   const name = gr => gr.key === "npc" ? "NPC corps" : gr.alliance ? nm(gr.alliance) : nm(gr.corp);
   const part = (st, title) => {
     const gs = v.list.filter(gr => (st === "red" ? gr.st.red : st === "blue" ? gr.st.blue === gr.pilots.length : !gr.st.red && gr.st.blue !== gr.pilots.length));
@@ -3216,26 +3221,35 @@ function localText() {
     return `**${title}:** ${shown}${gs.length > 12 ? `, +${gs.length - 12} more groups` : ""}`;
   };
   const watch = v.threats.slice(0, 8).map(id => { const i = pil.info.get(id) || {}; return `${nm(id)}${i.danger != null ? ` (${i.danger}%${i.cloaky ? ", cloaky" : ""}${i.cyno ? ", cyno?" : ""})` : ""}`; });
-  return clip([
-    `**Local in ${sys}** · ${eveStamp(v.at)}`,
+  return [
     `${plural(v.total, "pilot")} · ${v.cnt.red} hostile · ${v.cnt.neutral} neutral · ${v.cnt.blue} blue`,
     watch.length ? `**Watch out:** ${watch.join(", ")}${v.threats.length > 8 ? `, +${v.threats.length - 8} more` : ""}` : null,
     part("red", "Hostile"), part("neutral", "Neutral"), part("blue", "Blue")
-  ].filter(Boolean));
+  ].filter(Boolean);
 }
 function dscanText() {
   const v = state.dscanView; if (!v) return "";
-  const sys = $("#scanSys").value.trim() || "unknown system";
+  return clip([`**D-scan in ${scanSys()}** · ${eveStamp(v.at)}`, ...dscanLines()]);
+}
+function dscanLines() {
+  const v = state.dscanView; if (!v) return [];
   const one = { structures: "structure", deployables: "deployable", drones: "drone", fighters: "fighter" };
   const extras = Object.entries(v.other).filter(([, n]) => n).map(([k, n]) => `${n} ${n === 1 ? one[k] : k}`);
-  return clip([
-    `**D-scan in ${sys}** · ${eveStamp(v.at)}`,
+  return [
     [`${plural(v.ships, "ship")}${v.ships ? ` (${v.onGrid} on grid)` : ""}`, ...extras].join(" · "),
     v.threat.length ? `**Threats:** ${v.threat.map(([t, e]) => `${e.n} ${t}${e.n > 1 && !/s$/.test(t) ? "s" : ""}${e.near != null ? ` (${fmtDist(e.near)})` : ""}`).join(", ")}` : null,
     v.byClass.length ? `**By class:** ${v.byClass.map(([k, n]) => `${k} ${n}`).join(", ")}` : null,
     v.byType.length ? `**Ships:** ${v.byType.slice(0, 20).map(([k, n]) => `${k} ×${n}`).join(", ")}${v.byType.length > 20 ? `, +${v.byType.length - 20} more types` : ""}` : null
-  ].filter(Boolean));
+  ].filter(Boolean);
 }
+const scanSys = () => $("#scanSys").value.trim() || "unknown system";
+// one message with both: Local first (who's here), then D-scan (what they're flying)
+function bothText() {
+  const L = state.localView, D = state.dscanView;
+  if (!L || !D) return L ? localText() : dscanText();
+  return clip([`**${scanSys()}** · ${eveStamp(Math.max(L.at, D.at))}`, `__Local__`, ...localLines(), `__D-scan__`, ...dscanLines()]);
+}
+function updateShareBoth() { $("#shareBoth").hidden = !(state.localView && state.dscanView); }
 async function copyText(txt, where) {
   try { await navigator.clipboard.writeText(txt); toast("Copied. Paste it into Discord with Ctrl+V."); return; } catch {}
   // clipboard blocked: show the text selected so Ctrl+C works
@@ -3246,7 +3260,7 @@ async function copyText(txt, where) {
 }
 document.addEventListener("click", e => {
   const b = e.target.closest("[data-share]"); if (!b) return;
-  copyText(b.dataset.share === "local" ? localText() : dscanText(), b.closest(".sharebar"));
+  copyText(b.dataset.share === "both" ? bothText() : b.dataset.share === "local" ? localText() : dscanText(), b.closest(".sharebar, .scansys"));
 });
 
 /* ---------- sections that collapse into small buttons ---------- */
