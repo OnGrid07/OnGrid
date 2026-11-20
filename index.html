@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  Local Intel, version 2.24
+  Local Intel, version 2.26
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -199,6 +199,12 @@ tr:hover td { background: #141d27; }
 .relayqr:empty { display: none; }
 .relayqr { background: #fff; padding: 8px; border-radius: 6px; width: max-content; }
 .relaypair { display: flex; gap: 6px; }
+/* share view: only the scan results */
+.scanonly .wrap > :not(#scanPanel):not(.sobar), .scanonly #scanPanel > :not(#scanResult) { display: none !important; }
+.scanonly #scanPanel { display: block !important; border: 0; background: none; padding: 0; }
+.scanonly #scanResult { margin-top: 0; }
+.sobar { display: flex; justify-content: space-between; align-items: center; gap: 12px; font: 12px var(--mono); color: var(--muted); }
+.sobar b { color: var(--fg); font-family: var(--display); letter-spacing: .04em; }
 .scanres { display: grid; gap: 10px; margin-top: 14px; }
 .srhead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 10px 14px; border-radius: 6px; background: rgba(79,179,217,.14); border: 1px solid rgba(79,179,217,.35); }
 .srhead .srsys { font: 500 18px var(--display); flex: none; }
@@ -638,7 +644,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">Local Intel</h2>
-    <span class="ver" id="aboutVer">Version 2.24</span>
+    <span class="ver" id="aboutVer">Version 2.26</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -705,6 +711,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <p><b>D-scan:</b> run the directional scanner, click a result, press Ctrl+A then Ctrl+C, and paste into the D-scan box. You get the number of ships (and how many are on grid, within about 8,000 km), structures, deployables, drones and fighters, ships counted by class and by type, and <b>Threats</b>: capitals, dictors, HICs, Black Ops, bombers, recons, Strategic Cruisers, interceptors, covert ops and logistics. Hover a threat to see the nearest one's distance.</p>
     <p>Results show under a header with the system and how long ago you scanned, then side-by-side cards: <b>Ships</b> and <b>Ship Classes</b> from the D-scan, <b>Alliances</b> and <b>Corporations</b> from Local, each with counts, logos and tickers. Hostile groups have a red edge and blue groups a blue edge; click one to see its pilots. <b>Watch out</b> and <b>Threats</b> sit above the cards.</p>
     <p><b>Copy</b>, in the results header, copies a message for Discord laid out like the results: the system and scan time, the summary, Watch out and Threats, then the cards as two columns of aligned text (Ships next to Ship Classes, Alliances next to Corporations) with tickers and counts. Hostile rows start with "!" and blue rows with "+". Long lists are shortened with "+N more" so it fits in one Discord message. On a phone, Discord may wrap the two columns. The <b>System</b> box fills in with where you are (or the map's center); type a different system to label the scan with that instead.</p>
+    <p><b>Share link</b>, next to Copy, copies a link to a page that shows only the scan: the system, when it was scanned, Watch out, Threats, the summary and all four cards, with a small link to the full tool at the top. Nothing else on the page loads for whoever opens it. Post it in Discord and anyone can click it. Most scans travel inside the link itself, so the link never expires and no server stores them. A scan too big for that (a busy Local) is kept on the ntfy.sh relay under a random name and the link is short; those links work for 12 hours. Ship names people gave their ships aren't included. Whoever opens the link sees blues and hostiles by their own standings.</p>
     <p>Paste a new scan any time to replace the old one; nothing is saved or sent anywhere except the look-ups to EVE and zKillboard.</p>
 
     <h3>Hostile tracker</h3>
@@ -815,6 +822,8 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.26</b> Share links open a page with only the scan results.</li>
+      <li><b>2.25</b> Share link: copies a link that opens your Local and D-scan results on this page for anyone.</li>
       <li><b>2.24</b> Copy for Discord matches the results layout: header, summary, Watch out and Threats, then Ships and Ship Classes, and Alliances and Corporations, as side-by-side columns with tickers and counts.</li>
       <li><b>2.23</b> Scan results laid out as cards: Ships, Ship Classes, Alliances and Corporations, with ship icons, alliance and corp logos, tickers and counts, under a header with the system and how long ago the scan was.</li>
       <li><b>2.22</b> One <b>Copy</b> button for Local and D-scan, next to the System box.</li>
@@ -2092,7 +2101,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.24";
+const APP_VERSION = "2.26";
 let watchGen = 0;
 function watchNames() { return (cfg.watch || "").split(",").map(x => x.trim()).filter(Boolean); }
 async function loadWatch() {
@@ -3131,7 +3140,7 @@ async function analyzeLocal() {
     await resolveNames(aff.flatMap(a => [a.corporation_id, a.alliance_id]));
     if (g !== localGen) return;
     const found = new Set(r.characters.map(c => c.name.toLowerCase()));
-    state.localScan = { aff, missing: names.filter(n => !found.has(n.toLowerCase())), at: Date.now() };
+    state.localScan = { aff, missing: names.filter(n => !found.has(n.toLowerCase())), at: sharedAt || Date.now() };
     renderLocal();
     const look = aff.filter(a => standingOf(a) !== "blue" && !pil.info.has(a.character_id)).slice(0, LOCAL_LOOKUPS).map(a => a.character_id);
     let n = 0;
@@ -3204,15 +3213,16 @@ async function analyzeDscan() {
     }
     const sorted = m => [...m.entries()].sort((a, b) => b[1] - a[1]);
     const typeIdOf = Object.fromEntries(ships.map(x => [x.type, x.typeId]));
-    state.dscanView = { ships: ships.length, onGrid, other, threat: [...threat.entries()].sort((a, b) => b[1].n - a[1].n), byClass: sorted(byClass), byType: sorted(byType), typeIdOf, at: Date.now() };
+    state.dscanView = { ships: ships.length, onGrid, other, threat: [...threat.entries()].sort((a, b) => b[1].n - a[1].n), byClass: sorted(byClass), byType: sorted(byType), typeIdOf, at: sharedAt || Date.now() };
     fillScanSystem(); updateShareBoth();
     const one = { structures: "structure", deployables: "deployable", drones: "drone", fighters: "fighter" };
     note.textContent = `${ships.length} ship${ships.length === 1 ? "" : "s"}${ships.length ? ` (${onGrid} on grid)` : ""}` + Object.entries(other).filter(([, v]) => v).map(([k, v]) => ` · ${v} ${v === 1 ? one[k] : k}`).join("");
     renderScan();
   } catch (e) { note.textContent = "Couldn't read that scan right now: " + e.message; note.className = "note err"; }
 }
-$("#localIn").addEventListener("input", () => { clearTimeout(localTimer); localTimer = setTimeout(analyzeLocal, 500); });
-$("#dscanIn").addEventListener("input", () => { clearTimeout(dscanTimer); dscanTimer = setTimeout(analyzeDscan, 400); });
+var sharedAt = null; // set while showing a scan opened from a share link, so "scanned … ago" counts from when it was shared
+$("#localIn").addEventListener("input", () => { sharedAt = null; clearTimeout(localTimer); localTimer = setTimeout(analyzeLocal, 500); });
+$("#dscanIn").addEventListener("input", () => { sharedAt = null; clearTimeout(dscanTimer); dscanTimer = setTimeout(analyzeDscan, 400); });
 $("#localClear").addEventListener("click", () => { $("#localIn").value = ""; analyzeLocal(); $("#localIn").focus(); });
 $("#dscanClear").addEventListener("click", () => { $("#dscanIn").value = ""; analyzeDscan(); $("#dscanIn").focus(); });
 analyzeLocal(); analyzeDscan();
@@ -3243,7 +3253,7 @@ function renderScan() {
   if (!LV && !D) { box.hidden = true; box.innerHTML = ""; return; }
   box.hidden = false;
   const at = Math.max(LV?.at || 0, D?.at || 0);
-  let h = `<div class="srhead"><span class="srsys">System: <b>${esc($("#scanSys").value.trim() || "unknown")}</b></span><button type="button" class="mini" id="shareBoth" data-share="both" title="Copy Local and D-scan as a Discord message">Copy</button><span class="srage" data-at="${at}">Scanned ${agoLong(at)}</span></div>`;
+  let h = `<div class="srhead"><span class="srsys">System: <b>${esc($("#scanSys").value.trim() || "unknown")}</b></span><button type="button" class="mini" id="shareBoth" data-share="both" title="Copy Local and D-scan as a Discord message">Copy</button><button type="button" class="mini" data-sharelink title="Copy a link that opens this scan">Share link</button><span class="srage" data-at="${at}">Scanned ${agoLong(at)}</span></div>`;
   // what needs attention first
   if (LV?.threats.length) h += `<div class="lthreat"><b>Watch out:</b> ${LV.threats.slice(0, 12).map(id => { const i = pil.info.get(id); return `<span class="chip red">${esc(nm(id))}${i?.danger != null ? " " + i.danger + "%" : ""}${i?.cloaky ? " · cloaky" : ""}${i?.cyno ? " · cyno?" : ""}</span>`; }).join(" ")}${LV.threats.length > 12 ? ` <span class="note">+${LV.threats.length - 12} more</span>` : ""}</div>`;
   if (D?.threat.length) h += `<div class="lthreat"><b>Threats:</b> ${D.threat.map(([t, e]) => `<span class="chip ${Object.values(BIG).includes(t) ? "big" : "red"}" title="Nearest ${fmtDist(e.near)}">${e.n} ${esc(t)}${e.n > 1 && !/s$/.test(t) ? "s" : ""}</span>`).join(" ")}</div>`;
@@ -3351,6 +3361,75 @@ document.addEventListener("click", e => {
   const b = e.target.closest("[data-share]"); if (!b) return;
   copyText(bothText(), b.closest(".srhead"));
 });
+
+/* ---------- share a scan as a link ----------
+   Small scans travel inside the link itself (compressed, after the #, so no server sees them; never expires).
+   Scans too big for a Discord message are kept on the ntfy.sh relay under a random name for 12 hours. */
+// Opening a share link shows only the scan results: no map, intel or location tracking is started.
+const SCAN_ONLY = /^#(scan|s)=/.test(location.hash);
+if (SCAN_ONLY) {
+  document.documentElement.classList.add("scanonly");
+  state.pinned = true;
+  const bar = document.createElement("div"); bar.className = "sobar";
+  bar.innerHTML = `<span><b>Local Intel</b> · shared scan</span><a href="${esc(location.origin + location.pathname)}" target="_blank" rel="noopener">Open the full tool</a>`;
+  document.querySelector(".wrap").prepend(bar);
+}
+async function packScan(obj) {
+  const zs = new Blob([JSON.stringify(obj)]).stream().pipeThrough(new CompressionStream("deflate-raw"));
+  return toB64(new Uint8Array(await new Response(zs).arrayBuffer())).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+async function unpackScan(code) {
+  let b = code.replace(/-/g, "+").replace(/_/g, "/"); b += "=".repeat((4 - b.length % 4) % 4);
+  const zs = new Blob([fromB64(b)]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+  return JSON.parse(await new Response(zs).text());
+}
+function scanPayload() {
+  // the D-scan without the names people gave their ships: type, distance, and type id where the game gave one
+  const dscan = $("#dscanIn").value.split(/\r?\n/).map(l => l.split("\t").map(x => x.trim())).filter(p => p.length >= 3)
+    .map(p => /^\d+$/.test(p[0]) ? `${p[0]}\t-\t${p[2]}\t${p[3] || ""}` : `-\t${p[1]}\t${p[2] || ""}`).join("\n");
+  return { v: 1, sys: $("#scanSys").value.trim(), t: Math.max(state.localView?.at || 0, state.dscanView?.at || 0) || Date.now(), local: $("#localIn").value.trim(), dscan };
+}
+async function shareScan() {
+  if (!window.CompressionStream) return toast("This browser can't make share links. Use Copy instead.", true);
+  const code = await packScan(scanPayload()), base = callbackUrl();
+  let link = `${base}#scan=${code}`, how = "The scan is inside the link, so it never expires.";
+  if (link.length > 1500) { // too long to post in Discord comfortably: keep it on the relay instead
+    if (code.length > 3900) return toast("This scan is too big to share as a link. Use Copy instead.", true);
+    const id = b64url(crypto.getRandomValues(new Uint8Array(12)));
+    try {
+      const r = await fetch(RELAY + "/", { method: "POST", body: JSON.stringify({ topic: "lis-" + id, message: code }) });
+      countSend();
+      if (!r.ok) throw new Error(r.status === 429 ? "the relay's daily limit is used up" : "HTTP " + r.status);
+    } catch (e) { return toast("Couldn't save the scan for a short link: " + e.message + ". Use Copy instead.", true); }
+    link = `${base}#s=${id}`; how = "Short link: the scan is kept on the ntfy.sh relay for 12 hours.";
+  }
+  try { await navigator.clipboard.writeText(link); toast(`Link copied. ${how}`); }
+  catch { let box = $("#shareBox"); if (!box) { box = document.createElement("textarea"); box.id = "shareBox"; box.rows = 2; box.readOnly = true; } document.querySelector(".srhead").after(box); box.value = link; box.select(); toast("Press Ctrl+C to copy the selected link."); }
+}
+document.addEventListener("click", e => { if (e.target.closest("[data-sharelink]")) shareScan(); });
+async function openSharedScan() {
+  const h = location.hash; let m, payload = null;
+  if ((m = h.match(/^#scan=([\w-]+)$/))) payload = await unpackScan(m[1]).catch(() => null);
+  else if ((m = h.match(/^#s=([\w-]{8,40})$/))) {
+    try {
+      const r = await fetch(`${RELAY}/lis-${m[1]}/json?poll=1&since=all`, { cache: "no-store" });
+      const msgs = (await r.text()).split("\n").filter(Boolean).map(l => JSON.parse(l)).filter(d => d.event === "message");
+      if (msgs.length) payload = await unpackScan(msgs[msgs.length - 1].message);
+    } catch {}
+  } else return;
+  if (!SCAN_ONLY) try { history.replaceState(null, "", location.pathname + location.search); } catch {} // the share view keeps its link so reloading works
+  if (!payload) return toast("That shared scan couldn't be opened. Short links last 12 hours; ask for a new one.", true);
+  sharedAt = payload.t || Date.now();
+  $("#scanSys").value = payload.sys || ""; scanSysTyped = !!payload.sys;
+  $("#localIn").value = payload.local || ""; $("#dscanIn").value = payload.dscan || "";
+  if (!SCAN_ONLY) expandPanel("scanPanel");
+  await Promise.all([analyzeLocal(), analyzeDscan()]);
+  if (SCAN_ONLY) document.title = `Scan of ${payload.sys || "a system"} · Local Intel`;
+  else $("#scanPanel").scrollIntoView({ behavior: "smooth", block: "start" });
+  toast(`Shared scan${payload.sys ? " of " + payload.sys : ""} from ${eveStamp(sharedAt)}.`);
+}
+window.addEventListener("hashchange", openSharedScan);
+setTimeout(openSharedScan, 0);
 
 /* ---------- sections that collapse into small buttons ---------- */
 const panelState = (() => { try { return JSON.parse(ls.get("panels", "{}")) || {}; } catch { return {}; } })();
@@ -3480,7 +3559,7 @@ document.addEventListener("pointerdown", e => {
 window.addEventListener("resize", () => {
   if (boxLayout.free && !freeAllowed() && document.querySelector(".wrap").classList.contains("freelayout")) location.reload(); // narrow: go back to stacked
 });
-if (boxLayout.free && freeAllowed()) setTimeout(() => { applyFree(); setArranging(false); }, 0);
+if (boxLayout.free && freeAllowed() && !SCAN_ONLY) setTimeout(() => { applyFree(); setArranging(false); }, 0);
 else $("#layoutReset").hidden = !boxLayout.free;
 
 /* ---------- interaction ---------- */
@@ -3539,10 +3618,11 @@ $("#refresh").addEventListener("click", () => { refreshHourly(); refreshKills();
 setInterval(() => { if (state.systems.size) renderAll(); }, 30e3); // keep "x m ago", camps and rings fresh
 
 const qp = new URLSearchParams(location.search);
-state.pinned = !!qp.get("system"); // a system named in the link wins over your location
+state.pinned = SCAN_ONLY || !!qp.get("system"); // a system named in the link wins over your location
 const o0 = (qp.get("system") || ls.get("origin", "")).toUpperCase(), r0 = Math.min(5, Math.max(1, +qp.get("jumps") || +ls.get("radius", 3) || 3));
 $("#origin").value = o0; $("#radius").value = r0;
 (async () => {
+  if (SCAN_ONLY) return; // a share link only shows the scan
   // 1) link's system, 2) where you are now (if the chat log folder is still allowed), 3) last system you loaded
   if (!state.pinned && window.showDirectoryPicker) {
     const h = await kvGet("dir");
