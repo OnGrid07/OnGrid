@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.29
+  OnGrid (formerly Local Intel), version 2.30
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -83,8 +83,19 @@ h2 { font: 600 13px/1 var(--display); letter-spacing: .12em; text-transform: upp
 #map .rat { fill: url(#ratGlow); pointer-events: none; }
 #map .ratlbl { fill: var(--ok); font-size: 9px; }
 #map .edge { stroke: #2c3b4b; stroke-width: 1; }
-#map .node { cursor: pointer; stroke: var(--bg); stroke-width: 2; }
-#map .node.sel { stroke: var(--fg); }
+#map .node { cursor: pointer; stroke: #05080b; stroke-width: 1.2; }
+#map .node.sel { stroke: var(--fg); stroke-width: 2; }
+#map .sysg:hover .node { filter: brightness(1.25); }
+#map .secring { fill: none; stroke-width: 1.4; opacity: .55; pointer-events: none; }
+#map .hotglow { fill: var(--hot); opacity: .45; pointer-events: none; }
+@media (prefers-reduced-motion: no-preference) { #map .hotglow { animation: hotpulse 2.4s ease-in-out infinite; } }
+@keyframes hotpulse { 50% { opacity: .15; } }
+#map .kbadge rect { fill: var(--hot); stroke: #05080b; stroke-width: 1; }
+#map .kbadge text { fill: #fff; font-size: 8.5px; font-weight: 700; stroke: none; }
+#map text { paint-order: stroke; stroke: var(--bg); stroke-width: 3px; stroke-linejoin: round; }
+#map .sysname { font-size: 10.5px; }
+#map .origin .sysname { font-weight: 600; font-size: 11.5px; }
+#map .seclbl { font-size: 8.5px; font-weight: 400; }
 .legend { display: flex; flex-wrap: wrap; gap: 14px; font: 11px var(--mono); color: var(--muted); margin-top: 8px; }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
 
@@ -645,7 +656,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.29</span>
+    <span class="ver" id="aboutVer">Version 2.30</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -749,7 +760,8 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <h3>Gate map</h3>
     <ul>
       <li>Systems sit in rings by jumps from the center. Lines are stargates.</li>
-      <li>Dot color: red is a kill in the last hour, orange a kill in the last 6 hours, blue is ship traffic only, grey is quiet. Bigger dots mean more ship jumps in the last hour.</li>
+      <li>Each system is a small star. Its color: red is a kill in the last hour (it also glows and pulses), orange a kill in the last 6 hours, blue is ship traffic only, grey is quiet. Bigger stars mean more ship jumps in the last hour. The red badge on a star is the number of kills in the last hour.</li>
+      <li>The thin ring around each star and the number after its name show security status: green is high sec, orange low sec, red null sec.</li>
       <li>Green glow is ratting: NPC kills in the last hour. The label shows rats per hour.</li>
       <li>A purple ring is a system named in intel in the last 15 minutes. It pulses for the first 3 minutes. A number in brackets is the reported pilot count. When every pilot named in a system's latest report has since been sighted in another system, that ring goes away and the systems table shows "moved", so the rings follow the hostiles. Reports that don't name pilots (like "5 nv") keep their ring for the full 15 minutes.</li>
       <li>A dashed ring and YOU mark where your character is.</li>
@@ -823,6 +835,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.30</b> New look for systems on the map: shaded stars with a security-status ring, a glow on systems with kills in the last hour, the kill count as a badge, security after each name, and labels outlined so they read over lines and stay inside the map.</li>
       <li><b>2.29</b> Windows app 1.2.1 has a new internal app ID. If you installed an earlier version: uninstall OnGrid in Windows Settings → Apps (remove every OnGrid entry), then install <code>OnGrid-Setup-1.2.1.exe</code> from the Windows app download page. Updates work normally after that.</li>
       <li><b>2.28</b> New address: <code>https://ongrid07.github.io/OnGrid/</code>. Settings can be carried over from the old address. The Windows app is now OnGrid too.</li>
       <li><b>2.27</b> Renamed to <b>OnGrid</b> (formerly Local Intel).</li>
@@ -1104,11 +1117,15 @@ function computeCounts() {
 
 /* ---------- render ---------- */
 function heat(s) {
-  if (s.k1 > 0) return "var(--hot)";
-  if (s.k6 > 0) return "var(--warm)";
-  if (s.jumps > 0) return "var(--cool)";
-  return "#2a3542";
+  if (s.k1 > 0) return "hot";
+  if (s.k6 > 0) return "warm";
+  if (s.jumps > 0) return "cool";
+  return "idle";
 }
+// each system is drawn as a small shaded star: light from the top left, darker edge
+const NODE_DEFS = Object.entries({ hot: "var(--hot)", warm: "var(--warm)", cool: "var(--cool)", idle: "#3a4858" }).map(([k, c]) =>
+  `<radialGradient id="nd-${k}" cx="50%" cy="50%" fx="34%" fy="30%" r="62%"><stop offset="0" style="stop-color:color-mix(in srgb, ${c} 40%, #fff)"/><stop offset=".5" style="stop-color:${c}"/><stop offset="1" style="stop-color:color-mix(in srgb, ${c} 50%, #000)"/></radialGradient>`).join("")
+  + `<filter id="ndGlow" x="-150%" y="-150%" width="400%" height="400%"><feGaussianBlur stdDeviation="5"/></filter>`;
 
 function layout() {
   // rings by distance; order each ring by the average angle of its parents to keep edges short
@@ -1145,7 +1162,7 @@ function renderMap() {
   const attacked = attackedSystems(), fleetBy = fleetBySys(), notifSov = cfg.showSov ? notifSovEvents() : new Map();
   const svg = $("#map"), pos = layout(), whBySys = whMap(), sovBySys = sovMap(), fightBySys = fightMap();
   const maxJ = Math.max(1, ...[...state.systems.values()].map(s => s.jumps || 0));
-  let h = `<defs><marker id="harrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker><radialGradient id="ratGlow"><stop offset="0%" stop-color="#57c47a" stop-opacity=".55"/><stop offset="100%" stop-color="#57c47a" stop-opacity="0"/></radialGradient></defs>`;
+  let h = `<defs><marker id="harrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker>${NODE_DEFS}<radialGradient id="ratGlow"><stop offset="0%" stop-color="#57c47a" stop-opacity=".55"/><stop offset="100%" stop-color="#57c47a" stop-opacity="0"/></radialGradient></defs>`;
   // ratting: green glow behind each system, sized by NPC kills in the last hour
   const maxR = Math.max(1, ...[...state.systems.values()].map(s => s.npc_kills || 0));
   if (cfg.showRats) for (const s of state.systems.values()) if (s.npc_kills) {
@@ -1173,15 +1190,26 @@ function renderMap() {
     const p = pos.get(s.id);
     const r = (s.id === state.origin ? 9 : 5) + 9 * Math.sqrt((s.jumps || 0) / maxJ);
     const tip = `${s.name} (${fmtSec(s.sec)}) · ${s.dist}j · kills 1h ${s.k1} / 24h ${s.k24} · jumps ${s.jumps}`;
-    h += `<g data-id="${s.id}"><title>${esc(tip)}</title><circle class="node${state.sel === s.id ? " sel" : ""}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${r.toFixed(1)}" fill="${heat(s)}"/>`;
-    const below = p.y >= 300;
-    if (s.intelAge != null && s.intelAge < 15 && !s.intelClear && !s.intelMoved) {
-      h += `<circle class="intelring" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${(r + 4).toFixed(1)}"/>`;
-      if (s.intelAge < 3) h += `<circle class="intelring live" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${(r + 4).toFixed(1)}"/>`;
+    const x = p.x.toFixed(1), y = p.y.toFixed(1), hk = heat(s);
+    const intel = s.intelAge != null && s.intelAge < 15 && !s.intelClear && !s.intelMoved;
+    const ext = s.here?.length ? r + 10.5 : intel ? r + 7 : r + 3.5; // outermost ring, so labels sit clear of it
+    // labels go outward from the centre, but flip to the other side rather than run off the top or bottom
+    let below = p.y >= 300; if (!below && p.y - ext - 26 < 0) below = true; else if (below && p.y + ext + 26 > 600) below = false;
+    h += `<g data-id="${s.id}" class="sysg${s.id === state.origin ? " origin" : ""}"><title>${esc(tip)}</title>`;
+    if (hk === "hot") h += `<circle class="hotglow" cx="${x}" cy="${y}" r="${(r + 4).toFixed(1)}" filter="url(#ndGlow)"/>`;
+    h += `<circle class="secring" cx="${x}" cy="${y}" r="${(r + 2.6).toFixed(1)}" stroke="${secColor(s.sec)}"/>`;
+    h += `<circle class="node${state.sel === s.id ? " sel" : ""}" cx="${x}" cy="${y}" r="${r.toFixed(1)}" fill="url(#nd-${hk})"/>`;
+    if (intel) {
+      h += `<circle class="intelring" cx="${x}" cy="${y}" r="${(r + 6).toFixed(1)}"/>`;
+      if (s.intelAge < 3) h += `<circle class="intelring live" cx="${x}" cy="${y}" r="${(r + 6).toFixed(1)}"/>`;
     }
     if (s.here?.length) {
-      h += `<circle class="youring" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${(r + 8).toFixed(1)}"/>`;
-      h += `<text class="youlbl" x="${p.x.toFixed(1)}" y="${(p.y + (below ? -r - 12 : r + 20)).toFixed(1)}" text-anchor="middle">${esc(s.here.length > 1 ? s.here.length + " of you" : "YOU")}</text>`;
+      h += `<circle class="youring" cx="${x}" cy="${y}" r="${(r + 9.5).toFixed(1)}"/>`;
+      h += `<text class="youlbl" x="${x}" y="${(p.y + (below ? -ext - 5 : ext + 11)).toFixed(1)}" text-anchor="middle">${esc(s.here.length > 1 ? s.here.length + " of you" : "YOU")}</text>`;
+    }
+    if (s.k1) { // kills in the last hour, as a badge on the star
+      const t = String(s.k1), w = 7 + 5.6 * t.length, bx = p.x + r * 0.7, by = p.y - r * 0.7 - 5;
+      h += `<g class="kbadge"><rect x="${(bx - 2).toFixed(1)}" y="${by.toFixed(1)}" width="${w.toFixed(1)}" height="11" rx="5.5"/><text x="${(bx - 2 + w / 2).toFixed(1)}" y="${(by + 8.4).toFixed(1)}" text-anchor="middle">${t}</text></g>`;
     }
     const cnt = s.intelCount != null && s.countAge < 15 && !s.intelMoved ? ` (${s.intelCount})` : "";
     let tags = "";
@@ -1198,8 +1226,11 @@ function renderMap() {
     }
     const fl = fleetBy.get(s.id); if (fl) tags += `<tspan class="tag fleet"> F${fl.length}</tspan>`;
     const whs = whBySys.get(s.id); if (whs) tags += `<tspan class="tag wh"> ${whs.map(w => w.out_system_name === "Thera" ? "TH" : "TU").join(" ")}</tspan>`;
-    if (cfg.showRats && s.npc_kills) h += `<text class="ratlbl" x="${p.x.toFixed(1)}" y="${(p.y + (below ? r + 21 : -r - 14)).toFixed(1)}" text-anchor="middle">${s.npc_kills} rats/h</text>`;
-    h += `<text x="${p.x.toFixed(1)}" y="${(p.y + (below ? r + 11 : -r - 4)).toFixed(1)}" text-anchor="middle" font-weight="${s.id === state.origin ? 600 : 400}">${esc(s.name)}${s.k1 ? " ·" + s.k1 : ""}${cnt}${tags}</text></g>`;
+    // keep the label inside the map at the left and right edges
+    const fit = n => Math.min(600 - 3 - n * 3.2, Math.max(3 + n * 3.2, p.x)).toFixed(1);
+    const lx = fit(s.name.length + 4 + cnt.length + tags.replace(/<[^>]+>/g, "").length);
+    if (cfg.showRats && s.npc_kills) h += `<text class="ratlbl" x="${fit(String(s.npc_kills).length + 7)}" y="${(p.y + (below ? ext + 21 : -ext - 14)).toFixed(1)}" text-anchor="middle">${s.npc_kills} rats/h</text>`;
+    h += `<text class="sysname" x="${lx}" y="${(p.y + (below ? ext + 11 : -ext - 4)).toFixed(1)}" text-anchor="middle">${esc(s.name)}<tspan class="seclbl" fill="${secColor(s.sec)}"> ${fmtSec(s.sec)}</tspan>${cnt}${tags}</text></g>`;
   }
   svg.innerHTML = h;
   renderSelbar();
@@ -2122,7 +2153,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.29";
+const APP_VERSION = "2.30";
 let watchGen = 0;
 function watchNames() { return (cfg.watch || "").split(",").map(x => x.trim()).filter(Boolean); }
 async function loadWatch() {
