@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.39
+  OnGrid (formerly Local Intel), version 2.40
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -669,7 +669,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.39</span>
+    <span class="ver" id="aboutVer">Version 2.40</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -714,7 +714,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <p>From the top: the summary numbers, with Thera/Turnur connections and sov fights side by side below them (each box lights up when there's something in range, and a sov fight under way pulses red); the gate map with the systems table and intel beside it; watched systems; then <b>Alerts and settings</b>, <b>Character notifications</b> and <b>Kills</b>. Each of the last three has a <b>–</b> button that collapses it into a small button in a row above them. Press the small button to open it again. The page remembers which are open. A collapsed Character notifications button shows how many attacks arrived in the last hour.</p>
 
     <h3>Moving and resizing boxes</h3>
-    <p>On a window at least 900 pixels wide, every box can be moved and resized straight away. Drag a box by its title to move it. Drag its left, right or bottom edge, or a bottom corner, to resize it; the pointer changes and the box gets a dashed outline when you're on an edge. Boxes snap to a small grid. The map grows and shrinks with its box.</p>
+    <p>On a window at least 900 pixels wide, every box can be moved and resized straight away. Drag a box by its title to move it. Drag any edge or corner (top, bottom, left, right, or diagonally from any corner) to resize it; the pointer changes and the box gets a dashed outline when you're on an edge. Boxes snap to a small grid. The map grows and shrinks with its box.</p>
     <p>To reorder boxes, drag one by its title until the pointer is over another box. The other box gets a blue outline and slides into the spot you're dragging from. Let go and the two have swapped places, each taking the other's position and size. This works left and right as well as up and down.</p>
     <p>If you move or resize a box over others without the pointer on one, they shrink to make room, on whichever side keeps them biggest, and show an orange outline while you drag. If there's no room beside it, a box moves below instead. Drag away again before letting go and they spring back.</p>
     <p><b>Lock boxes</b> at the top locks every box in place and size, so nothing moves by accident. Press <b>Unlock boxes</b> to move them again. Your layout and the lock are saved and included in <b>Copy my settings</b>. <b>Standard layout</b> puts everything back. Narrower windows and phones always use the standard layout.</p>
@@ -852,6 +852,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.40</b> Boxes resize from every side and every corner, including the top edge and the top corners.</li>
       <li><b>2.39</b> The character picker for Intel and location moved to Alerts and settings.</li>
       <li><b>2.38</b> When several groups end up in the same system, their labels on the map stack in a column instead of overlapping.</li>
       <li><b>2.37</b> Intel and location: choose which of your characters are listed above the intel reports.</li>
@@ -2177,7 +2178,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.39";
+const APP_VERSION = "2.40";
 let watchGen = 0;
 function watchNames() { return (cfg.watch || "").split(",").map(x => x.trim()).filter(Boolean); }
 async function loadWatch() {
@@ -3680,15 +3681,18 @@ $("#lockBtn").addEventListener("click", () => {
 });
 $("#layoutReset").addEventListener("click", () => { boxLayout = { free: false, boxes: {}, locked: locked() }; saveLayout(); location.reload(); });
 
-// which edge of a box the pointer is on (a 7-pixel band inside the left, right and bottom edges), for resizing
+// which edge of a box the pointer is on (a 7-pixel band inside each edge, a bit wider at the corners), for resizing
 const EDGE = 7;
 function edgeAt(el, x, y) {
   const r = el.getBoundingClientRect();
   if (y < r.top || y > r.bottom || x < r.left || x > r.right) return "";
-  const s = y > r.bottom - EDGE, w = x < r.left + EDGE, e = x > r.right - EDGE;
-  return (s ? "s" : "") + (e ? "e" : w ? "w" : "");
+  const C = 14, n = y < r.top + EDGE, s = y > r.bottom - EDGE, w = x < r.left + EDGE, e = x > r.right - EDGE;
+  const nc = y < r.top + C, sc = y > r.bottom - C, wc = x < r.left + C, ec = x > r.right - C; // corners are easier to grab
+  const v = n || ((w || e) && nc) ? "n" : s || ((w || e) && sc) ? "s" : "";
+  const hz = e || (v && ec) ? "e" : w || (v && wc) ? "w" : "";
+  return v + hz;
 }
-const EDGE_CURSOR = { s: "ns-resize", e: "ew-resize", w: "ew-resize", se: "nwse-resize", sw: "nesw-resize" };
+const EDGE_CURSOR = { n: "ns-resize", s: "ns-resize", e: "ew-resize", w: "ew-resize", se: "nwse-resize", nw: "nwse-resize", sw: "nesw-resize", ne: "nesw-resize" };
 let hoverEl = null;
 document.addEventListener("pointermove", e => {
   if (e.buttons || locked() || !freeAllowed() || SCAN_ONLY) return;
@@ -3759,6 +3763,7 @@ document.addEventListener("pointerdown", e => {
       if (rsz.includes("e")) box.w = Math.max(MIN_W, Math.min(boardW - box.x, snap(start.bw + dx)));
       if (rsz.includes("w")) { const nx = Math.max(0, Math.min(start.bx + start.bw - MIN_W, snap(start.bx + dx))); box.w = start.bw + start.bx - nx; box.x = nx; }
       if (rsz.includes("s")) box.h = Math.max(MIN_H, snap(start.bh + dy));
+      if (rsz.includes("n")) { const ny = Math.max(0, Math.min(start.by + start.bh - MIN_H, snap(start.by + dy))); box.h = start.bh + start.by - ny; box.y = ny; }
     } else { box.x = Math.max(0, Math.min(boardW - box.w, snap(start.bx + dx))); box.y = Math.max(0, snap(start.by + dy)); }
     placeBox(el, box);
     // moving with the pointer over another box: the two swap places (the other box slides into this one's old spot)
