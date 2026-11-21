@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.32
+  OnGrid (formerly Local Intel), version 2.33
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -645,7 +645,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.32</span>
+    <span class="ver" id="aboutVer">Version 2.33</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -823,6 +823,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.33</b> System dots on the map are shaded like small stars. Nothing else on the map changed.</li>
       <li><b>2.32</b> The map is back to its original look (plain colored dots, as before 2.30).</li>
       <li><b>2.31</b> Map text sized for the screen (undone in 2.32).</li>
       <li><b>2.30</b> New look for systems on the map (undone in 2.32).</li>
@@ -1107,11 +1108,14 @@ function computeCounts() {
 
 /* ---------- render ---------- */
 function heat(s) {
-  if (s.k1 > 0) return "var(--hot)";
-  if (s.k6 > 0) return "var(--warm)";
-  if (s.jumps > 0) return "var(--cool)";
-  return "#2a3542";
+  if (s.k1 > 0) return "hot";
+  if (s.k6 > 0) return "warm";
+  if (s.jumps > 0) return "cool";
+  return "idle";
 }
+// each system dot is shaded like a small star: lit from the top left, darker at the edge
+const NODE_DEFS = Object.entries({ hot: "var(--hot)", warm: "var(--warm)", cool: "var(--cool)", idle: "#2a3542" }).map(([k, c]) =>
+  `<radialGradient id="nd-${k}" cx="50%" cy="50%" fx="34%" fy="30%" r="62%"><stop offset="0" style="stop-color:color-mix(in srgb, ${c} 40%, #fff)"/><stop offset=".5" style="stop-color:${c}"/><stop offset="1" style="stop-color:color-mix(in srgb, ${c} 50%, #000)"/></radialGradient>`).join("");
 
 function layout() {
   // rings by distance; order each ring by the average angle of its parents to keep edges short
@@ -1148,7 +1152,7 @@ function renderMap() {
   const attacked = attackedSystems(), fleetBy = fleetBySys(), notifSov = cfg.showSov ? notifSovEvents() : new Map();
   const svg = $("#map"), pos = layout(), whBySys = whMap(), sovBySys = sovMap(), fightBySys = fightMap();
   const maxJ = Math.max(1, ...[...state.systems.values()].map(s => s.jumps || 0));
-  let h = `<defs><marker id="harrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker><radialGradient id="ratGlow"><stop offset="0%" stop-color="#57c47a" stop-opacity=".55"/><stop offset="100%" stop-color="#57c47a" stop-opacity="0"/></radialGradient></defs>`;
+  let h = `<defs><marker id="harrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker>${NODE_DEFS}<radialGradient id="ratGlow"><stop offset="0%" stop-color="#57c47a" stop-opacity=".55"/><stop offset="100%" stop-color="#57c47a" stop-opacity="0"/></radialGradient></defs>`;
   // ratting: green glow behind each system, sized by NPC kills in the last hour
   const maxR = Math.max(1, ...[...state.systems.values()].map(s => s.npc_kills || 0));
   if (cfg.showRats) for (const s of state.systems.values()) if (s.npc_kills) {
@@ -1176,7 +1180,7 @@ function renderMap() {
     const p = pos.get(s.id);
     const r = (s.id === state.origin ? 9 : 5) + 9 * Math.sqrt((s.jumps || 0) / maxJ);
     const tip = `${s.name} (${fmtSec(s.sec)}) · ${s.dist}j · kills 1h ${s.k1} / 24h ${s.k24} · jumps ${s.jumps}`;
-    h += `<g data-id="${s.id}"><title>${esc(tip)}</title><circle class="node${state.sel === s.id ? " sel" : ""}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${r.toFixed(1)}" fill="${heat(s)}"/>`;
+    h += `<g data-id="${s.id}"><title>${esc(tip)}</title><circle class="node${state.sel === s.id ? " sel" : ""}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${r.toFixed(1)}" fill="url(#nd-${heat(s)})"/>`;
     const below = p.y >= 300;
     if (s.intelAge != null && s.intelAge < 15 && !s.intelClear && !s.intelMoved) {
       h += `<circle class="intelring" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${(r + 4).toFixed(1)}"/>`;
@@ -2125,7 +2129,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.32";
+const APP_VERSION = "2.33";
 let watchGen = 0;
 function watchNames() { return (cfg.watch || "").split(",").map(x => x.trim()).filter(Boolean); }
 async function loadWatch() {
