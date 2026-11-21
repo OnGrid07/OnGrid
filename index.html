@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.34
+  OnGrid (formerly Local Intel), version 2.35
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -273,6 +273,8 @@ tr:hover td { background: #141d27; }
 .wrap.canmove .movable:hover > .rsz { opacity: 1; background: linear-gradient(135deg, transparent 55%, var(--accent) 55%); }
 .wrap.canmove .movable.edgehot { outline: 1px dashed var(--accent); outline-offset: -1px; }
 #board > .fbox.squeezed { outline: 1px dashed var(--warm); outline-offset: -1px; }
+#board > .fbox.swaptarget { outline: 2px solid var(--accent); outline-offset: -2px; }
+@media (prefers-reduced-motion: no-preference) { #board.moving > .fbox:not(.dragging) { transition: left .18s ease, top .18s ease, width .18s ease, height .18s ease; } }
 #lockBtn[aria-pressed="true"] { color: var(--warm); border-color: var(--warm); }
 #board > .fbox.dragging { box-shadow: 0 10px 34px rgba(0,0,0,.55); }
 .wrap.freelayout #dock { margin-bottom: 0; }
@@ -650,7 +652,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.34</span>
+    <span class="ver" id="aboutVer">Version 2.35</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -696,7 +698,8 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Moving and resizing boxes</h3>
     <p>On a window at least 900 pixels wide, every box can be moved and resized straight away. Drag a box by its title to move it. Drag its left, right or bottom edge, or a bottom corner, to resize it; the pointer changes and the box gets a dashed outline when you're on an edge. Boxes snap to a small grid. The map grows and shrinks with its box.</p>
-    <p>If you move or resize a box over others, they shrink to make room, on whichever side keeps them biggest, and show an orange outline while you drag. If there's no room beside it, a box moves below instead. Drag away again before letting go and they spring back.</p>
+    <p>To reorder boxes, drag one by its title until the pointer is over another box. The other box gets a blue outline and slides into the spot you're dragging from. Let go and the two have swapped places, each taking the other's position and size. This works left and right as well as up and down.</p>
+    <p>If you move or resize a box over others without the pointer on one, they shrink to make room, on whichever side keeps them biggest, and show an orange outline while you drag. If there's no room beside it, a box moves below instead. Drag away again before letting go and they spring back.</p>
     <p><b>Lock boxes</b> at the top locks every box in place and size, so nothing moves by accident. Press <b>Unlock boxes</b> to move them again. Your layout and the lock are saved and included in <b>Copy my settings</b>. <b>Standard layout</b> puts everything back. Narrower windows and phones always use the standard layout.</p>
 
     <h3>Windows app</h3>
@@ -830,6 +833,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.35</b> Reorder boxes: drag a box by its title onto another and they swap places.</li>
       <li><b>2.34</b> Boxes can be moved and resized at any time: drag a title to move, any side or bottom corner to resize. Boxes you cover shrink to make room. The Arrange boxes button is gone; <b>Lock boxes</b> locks everything in place.</li>
       <li><b>2.33</b> System dots on the map are shaded like small stars. Nothing else on the map changed.</li>
       <li><b>2.32</b> The map is back to its original look (plain colored dots, as before 2.30).</li>
@@ -2137,7 +2141,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.34";
+const APP_VERSION = "2.35";
 let watchGen = 0;
 function watchNames() { return (cfg.watch || "").split(",").map(x => x.trim()).filter(Boolean); }
 async function loadWatch() {
@@ -3640,7 +3644,7 @@ document.addEventListener("pointerdown", e => {
   if (!rsz && !(head && head.closest(PANEL_SEL) === el && !control && !t.closest("form"))) return;
   if (rsz) e.preventDefault(); // stop text selection while resizing; a plain click on a title still works
   const sx = e.clientX, sy = e.clientY;
-  let box, start, snapshot, boardW, begun = false;
+  let box, start, snapshot, boardW, begun = false, swapTo = null;
   const begin = () => { // only once the pointer has really moved, so clicks never change the layout
     begun = true;
     if (!boxLayout.free) { boxLayout.free = true; enterFree(); saveLayout(); setLockUi(); }
@@ -3648,7 +3652,7 @@ document.addEventListener("pointerdown", e => {
     start = { x: sx, y: sy, bx: box.x, by: box.y, bw: box.w, bh: box.h };
     snapshot = {}; for (const id of FREE_IDS) if (boxLayout.boxes[id]) snapshot[id] = { ...boxLayout.boxes[id] };
     box.z = ++zTop; el.style.zIndex = box.z;
-    el.classList.add("dragging"); document.body.style.userSelect = "none";
+    el.classList.add("dragging"); document.body.style.userSelect = "none"; board().classList.add("moving");
     boardW = board().clientWidth;
   };
   const move = ev => {
@@ -3660,12 +3664,29 @@ document.addEventListener("pointerdown", e => {
       if (rsz.includes("w")) { const nx = Math.max(0, Math.min(start.bx + start.bw - MIN_W, snap(start.bx + dx))); box.w = start.bw + start.bx - nx; box.x = nx; }
       if (rsz.includes("s")) box.h = Math.max(MIN_H, snap(start.bh + dy));
     } else { box.x = Math.max(0, Math.min(boardW - box.w, snap(start.bx + dx))); box.y = Math.max(0, snap(start.by + dy)); }
-    placeBox(el, box); settle(el.id, snapshot); fitBoard();
+    placeBox(el, box);
+    // moving with the pointer over another box: the two swap places (the other box slides into this one's old spot)
+    const br = board().getBoundingClientRect(), px = ev.clientX - br.left, py = ev.clientY - br.top;
+    const tgt = rsz ? null : FREE_IDS.find(id => id !== el.id && snapshot[id] && shown(id) &&
+      px >= snapshot[id].x && px < snapshot[id].x + snapshot[id].w && py >= snapshot[id].y && py < snapshot[id].y + snapshot[id].h);
+    if (tgt !== swapTo) { if (swapTo) document.getElementById(swapTo)?.classList.remove("swaptarget"); swapTo = tgt || null; }
+    if (swapTo) {
+      for (const id of FREE_IDS) { if (id === el.id || !snapshot[id]) continue;
+        const o = snapshot[el.id], b2 = id === swapTo ? { ...snapshot[id], x: o.x, y: o.y, w: o.w, h: o.h } : { ...snapshot[id] };
+        boxLayout.boxes[id] = b2; const x = document.getElementById(id); placeBox(x, b2); x.classList.remove("squeezed"); }
+      document.getElementById(swapTo).classList.add("swaptarget");
+    } else settle(el.id, snapshot);
+    fitBoard();
   };
   const up = () => {
     document.removeEventListener("pointermove", move); if (!begun) return;
     el.classList.remove("dragging"); document.body.style.userSelect = "";
+    if (swapTo) { // drop into the other box's old spot, at its size
+      const t = snapshot[swapTo]; Object.assign(box, { x: t.x, y: t.y, w: t.w, h: t.h }); placeBox(el, box);
+      document.getElementById(swapTo).classList.remove("swaptarget"); fitBoard();
+    }
     document.querySelectorAll("#board > .fbox.squeezed").forEach(x => x.classList.remove("squeezed"));
+    setTimeout(() => board().classList.remove("moving"), 250);
     saveLayout(); renderMap();
   };
   document.addEventListener("pointermove", move);
