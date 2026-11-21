@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.36
+  OnGrid (formerly Local Intel), version 2.37
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -134,6 +134,9 @@ tr:hover td { background: #141d27; }
 .you { font: 600 10px var(--mono); color: var(--bg); background: var(--fg); border-radius: 3px; padding: 0 4px; margin-left: 6px; vertical-align: 1px; }
 #youStatus { font: 12px var(--mono); color: var(--fg); margin-bottom: 6px; }
 #youStatus:empty { display: none; }
+.youpick { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-bottom: 5px; }
+.youchip { font: 11px var(--mono); background: var(--bg); color: var(--muted); border: 1px dashed var(--line); border-radius: 10px; padding: 1px 8px; cursor: pointer; text-decoration: line-through; }
+.youchip.on { color: var(--fg); border: 1px solid var(--accent); text-decoration: none; }
 #map .intelring { fill: none; stroke: var(--intel); stroke-width: 2; }
 @media (prefers-reduced-motion: no-preference) { #map .intelring.live { animation: ping 1.6s ease-out infinite; transform-box: fill-box; transform-origin: center; } }
 @keyframes ping { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(2.2); } }
@@ -661,7 +664,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.36</span>
+    <span class="ver" id="aboutVer">Version 2.37</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -801,6 +804,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
       <li>Big-ship words (titan, super, dread, carrier, fax, lancer, rorq, dictor, hic, blops, caps, cyno) and ship names like "Sabre" get tagged.</li>
       <li>ESS words (ess, linking, main bank, reserve bank, bank) get an ESS tag.</li>
       <li><b>Show</b> lists all intel, or only messages about systems on the map or watched.</li>
+      <li>Above the intel, each of your characters is listed with where it is. The name buttons next to <b>Characters</b> choose which ones are listed: click a name to hide it (it's crossed out) and again to show it. This only changes the list; hidden characters still count for your location, alerts and the YOU ring on the map. The choice is saved.</li>
       <li>Your location comes from your EVE login (see below) or from your Local chat log, whichever saw your latest jump. Each source is named next to your system. With several characters, each one is shown. A character the EVE login reports as offline isn't shown.</li>
     </ul>
 
@@ -843,6 +847,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.37</b> Intel and location: choose which of your characters are listed above the intel reports.</li>
       <li><b>2.36</b> Hostile tracks are colored by group (alliance, or corp), with the group&#39;s ticker and count on the map, one line per group and route, and chips in the Hostile tracker to show one group at a time.</li>
       <li><b>2.35</b> Reorder boxes: drag a box by its title onto another and they swap places.</li>
       <li><b>2.34</b> Boxes can be moved and resized at any time: drag a title to move, any side or bottom corner to resize. Boxes you cover shrink to make room. The Arrange boxes button is gone; <b>Lock boxes</b> locks everything in place.</li>
@@ -1461,7 +1466,14 @@ function countCell(s) {
 function renderYou() {
   const el = $("#youStatus");
   const origin = state.systems.get(state.origin);
-  const rows = presences().map(p => {
+  // pick which of your characters are listed here (only the list: location, alerts and the map still use them all)
+  const hide = new Set((cfg.youHide || []).map(n => n.toLowerCase())), shown = n => !hide.has(n.toLowerCase());
+  const all = new Map();
+  for (const p of presences()) all.set(p.name.toLowerCase(), p.name);
+  for (const e of (state.esiLoc || new Map()).values()) all.set(e.name.toLowerCase(), e.name);
+  const pick = all.size ? `<div class="youpick"><span class="note">Characters</span>${[...all.values()].sort((a, b) => a.localeCompare(b)).map(n =>
+    `<button type="button" class="youchip${shown(n) ? " on" : ""}" data-you="${esc(n)}" aria-pressed="${shown(n)}" title="${shown(n) ? "Hide" : "Show"} ${esc(n)} here">${esc(n)}</button>`).join("")}</div>` : "";
+  const rows = presences().filter(p => shown(p.name)).map(p => {
     const s = [...state.systems.values()].find(x => x.name.toUpperCase() === p.system.toUpperCase());
     const where = s && origin ? `${s.dist} jump${s.dist === 1 ? "" : "s"} from ${esc(origin.name)}` : "outside this map";
     const e = [...(state.esiLoc || new Map()).values()].find(x => x.name.toLowerCase() === p.name.toLowerCase());
@@ -1469,13 +1481,19 @@ function renderYou() {
     const fat = e?.fatigue > Date.now() ? ` · <span class="chip flag" title="Jump fatigue ends ${fmtEve(e.fatigue)}">FATIGUE ${dur(e.fatigue - Date.now())}</span>` : "";
     return `<div>${esc(p.name)}: <b>${esc(p.system)}</b> · ${where}${ship}${fat}${cfg.follow ? " · following" : ""} <span class="note">from ${p.src}</span></div>`;
   });
-  for (const e of (state.esiLoc || new Map()).values()) if (e.online === false) rows.push(`<div>${esc(e.name)}: <span class="note">not logged in to EVE</span>${e.fatigue > Date.now() ? ` · <span class="chip flag">FATIGUE ${dur(e.fatigue - Date.now())}</span>` : ""}</div>`);
+  for (const e of (state.esiLoc || new Map()).values()) if (e.online === false && shown(e.name)) rows.push(`<div>${esc(e.name)}: <span class="note">not logged in to EVE</span>${e.fatigue > Date.now() ? ` · <span class="chip flag">FATIGUE ${dur(e.fatigue - Date.now())}</span>` : ""}</div>`);
   const f = state.fleet;
   if (f) rows.push(f.boss
     ? `<div title="${esc(f.members.map(m => `${nm(m.character_id)}: ${nm(m.solar_system_id)}, ${nm(m.ship_type_id)}`).join("\n"))}">Fleet: <b>${f.members.length}</b> members in ${new Set(f.members.map(m => m.solar_system_id)).size} systems <span class="note">(${esc(f.char)} is fleet boss; hover for the list)</span></div>`
     : `<div>Fleet: ${esc(f.char)} is in a fleet <span class="note">(only the fleet boss can see where members are)</span></div>`);
-  el.innerHTML = rows.join("");
+  el.innerHTML = pick + rows.join("");
 }
+$("#youStatus").addEventListener("click", e => {
+  const b = e.target.closest("[data-you]"); if (!b) return;
+  const n = b.dataset.you.toLowerCase(), hide = new Set((cfg.youHide || []).map(x => x.toLowerCase()));
+  hide.has(n) ? hide.delete(n) : hide.add(n);
+  cfg.youHide = [...hide]; saveCfg(); renderYou();
+});
 function intelCell(s) {
   if (s.intelAge == null) return `<span class="zero">–</span>`;
   const m = Math.floor(s.intelAge) + "m";
@@ -1568,7 +1586,7 @@ $("#intelChannels").addEventListener("input", () => ls.set("intelChannels", $("#
 $("#intelChannels").addEventListener("change", () => { ls.set("intelChannels", $("#intelChannels").value); if (intel.dir) startIntel(); });
 
 /* ---------- settings ---------- */
-const SETTINGS_DEFAULT = { alRange: "1", alFrom: "you", alSound: true, alDesktop: false, alSpeak: false, alKills: false, alBig: true, follow: false, locEsi: true, killCap: "1000", intelFilter: "all", showRats: true, showSov: true, alSov: true, watch: "", alWatch: true, alTimers: true, relaySend: false, relayRecv: false, relayEvery: "60", relayAll: false, relayPush: false, relayCode: "", ssoClient: "", stdEsi: true, shipAware: true, routeFlag: "shortest", avCamps: true, avKills: true, avIntel: true, alNotif: true, alNotifWarn: true, showWh: true, friends: "", enemies: "", hideFriendly: false };
+const SETTINGS_DEFAULT = { alRange: "1", alFrom: "you", alSound: true, alDesktop: false, alSpeak: false, alKills: false, alBig: true, follow: false, locEsi: true, killCap: "1000", intelFilter: "all", showRats: true, showSov: true, alSov: true, watch: "", alWatch: true, alTimers: true, relaySend: false, relayRecv: false, relayEvery: "60", relayAll: false, relayPush: false, relayCode: "", ssoClient: "", stdEsi: true, shipAware: true, routeFlag: "shortest", avCamps: true, avKills: true, avIntel: true, alNotif: true, alNotifWarn: true, showWh: true, friends: "", enemies: "", hideFriendly: false, youHide: [] };
 let cfg;
 try { cfg = { ...SETTINGS_DEFAULT, ...JSON.parse(ls.get("settings", "{}")) }; } catch { cfg = { ...SETTINGS_DEFAULT }; }
 if (ls.get("settings", null) == null && ls.get("intelAlert", null) != null) cfg.alRange = ls.get("intelAlert"); // older version's setting
@@ -2152,7 +2170,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.36";
+const APP_VERSION = "2.37";
 let watchGen = 0;
 function watchNames() { return (cfg.watch || "").split(",").map(x => x.trim()).filter(Boolean); }
 async function loadWatch() {
