@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.40
+  OnGrid (formerly Local Intel), version 2.41
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -191,12 +191,6 @@ tr:hover td { background: #141d27; }
 #map .hpath .hbase { stroke: var(--tc, var(--hot)); stroke-width: 3; opacity: .3; }
 #map .hpath .hflow { stroke: var(--tc, var(--accent)); stroke-width: 2.5; stroke-dasharray: 7 11; }
 #map .hpath .hlbl { fill: var(--tc); font-size: 10px; font-weight: 600; paint-order: stroke; stroke: var(--bg); stroke-width: 3px; stroke-linejoin: round; }
-.hgroups { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; }
-.hgroups:empty { display: none; }
-.hgchip { font: 12px var(--mono); background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 12px; padding: 3px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; }
-.hgchip i { width: 16px; height: 4px; border-radius: 2px; background: var(--tc); }
-.hgchip:hover { border-color: var(--tc); }
-.hgchip.on { border-color: var(--tc); background: #16212d; box-shadow: inset 0 0 0 1px var(--tc); }
 .hrow { border-left: 3px solid var(--tc, transparent); }
 #map .hpath.on .hbase { stroke-width: 5; opacity: .5; } #map .hpath.on .hflow { stroke-width: 3.5; }
 #map .hpath.dim { opacity: .15; }
@@ -530,7 +524,6 @@ footer { font: 11px var(--mono); color: var(--muted); }
   <section class="panel collapsible" id="hostilePanel" data-title="Hostile tracker">
     <div class="phead"><h2>Hostile tracker</h2></div>
     <div class="note">Pilots named in intel in the last hour, where they were reported, and whether they're getting closer to you. Click a pilot to highlight their path on the map. Friendly pilots are left out.</div>
-    <div id="hostileGroups" class="hgroups" aria-label="Groups on the map"></div>
     <div id="hostileList" class="hlist"></div>
   </section>
 
@@ -669,7 +662,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.40</span>
+    <span class="ver" id="aboutVer">Version 2.41</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -744,7 +737,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Hostile tracker</h3>
     <p>Lists every non-friendly pilot named in intel in the last hour: corp and alliance, the systems they were reported in (oldest first), where they were last seen and how long ago, and whether they're <b>closing in</b> on you or moving away. Their paths are drawn on the map for 30 minutes: a faint track with dashes flowing from where they were first reported toward where they were last seen, and an arrowhead on their latest system.</p>
-    <p>Each group has its own color: pilots are grouped by alliance, or by corp if they have no alliance, or on their own. The group's ticker (or name) and how many of them there are show at the end of its newest track (stacked in a column when several groups are in the same system), and pilots of one group who flew the same way share one thicker line. Tracks of different groups on the same gate are drawn slightly apart. The colored chips above the list name each group; click one to show only that group on the map, and click it again to show all. Each pilot's row has its group's color on the left. Click a pilot to highlight just their path; click again to show all.</p>
+    <p>Each group has its own color: pilots are grouped by alliance, or by corp if they have no alliance, or on their own. The group's ticker (or name) and how many of them there are show at the end of its newest track (stacked in a column when several groups are in the same system), and pilots of one group who flew the same way share one thicker line. Tracks of different groups on the same gate are drawn slightly apart. Each pilot's row has its group's color on the left. Click a pilot to highlight just their path; click again to show all.</p>
 
     <h3>Timers</h3>
     <p>Every upcoming timer from your characters' notifications in one list, soonest first: structures leaving reinforcement, sov command nodes, moon chunks ready and breaking, and other timed events. You can add your own with <b>Add timer</b>: write the time as "in 2h 30m", "1d 4h" or an EVE date like 2026.11.20 18:00. Timers under an hour show red, under 6 hours orange. With "Alert 60 and 15 minutes before each timer" on, you get an alert at both points.</p>
@@ -852,6 +845,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.41</b> The group chips are gone from the Hostile tracker; each pilot’s row still shows its group color.</li>
       <li><b>2.40</b> Boxes resize from every side and every corner, including the top edge and the top corners.</li>
       <li><b>2.39</b> The character picker for Intel and location moved to Alerts and settings.</li>
       <li><b>2.38</b> When several groups end up in the same system, their labels on the map stack in a column instead of overlapping.</li>
@@ -2178,7 +2172,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.40";
+const APP_VERSION = "2.41";
 let watchGen = 0;
 function watchNames() { return (cfg.watch || "").split(",").map(x => x.trim()).filter(Boolean); }
 async function loadWatch() {
@@ -2906,8 +2900,6 @@ function hostileTracks() {
 function renderHostiles() {
   const box = $("#hostileList"), list = hostileTracks(), groups = hostileGroups(list);
   if (state.selGroup && !groups.has(state.selGroup)) state.selGroup = null;
-  $("#hostileGroups").innerHTML = groups.size > 1 || [...groups.values()].some(g => g.tracks.length > 1) ? [...groups.values()].map(g =>
-    `<button type="button" class="hgchip${state.selGroup === g.key ? " on" : ""}" data-group="${g.key}" style="--tc:${g.color}" title="${esc(g.name)}: show only this group's tracks on the map"><i></i>${esc(g.label)}${g.label !== g.name && g.kind ? ` <span class="note">${esc(g.name.length > 22 ? g.name.slice(0, 21) + "…" : g.name)}</span>` : ""} · ${g.tracks.length}</button>`).join("") : "";
   if (!list.length) { box.innerHTML = `<div class="empty">${intel.dir || relay.on ? "No pilots named in intel in the last hour." : "Connect your chat logs (or receive intel from your PC) to track pilots named in intel."}</div>`; return; }
   const me = youNow();
   box.innerHTML = list.map(tr => {
@@ -2927,11 +2919,6 @@ $("#hostileList").addEventListener("click", e => {
   if (e.target.closest("a, button")) return;
   const row = e.target.closest("[data-pilot]"); if (!row) return;
   state.selPilot = state.selPilot === +row.dataset.pilot ? null : +row.dataset.pilot; state.selGroup = null;
-  renderHostiles(); renderMap();
-});
-$("#hostileGroups").addEventListener("click", e => {
-  const c = e.target.closest("[data-group]"); if (!c) return;
-  state.selGroup = state.selGroup === c.dataset.group ? null : c.dataset.group; state.selPilot = null;
   renderHostiles(); renderMap();
 });
 function hostilePathsSvg(pos) {
