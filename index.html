@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.35
+  OnGrid (formerly Local Intel), version 2.36
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -185,8 +185,16 @@ tr:hover td { background: #141d27; }
 @media (max-width: 700px) { .hrow { grid-template-columns: 1fr; } }
 /* hostile paths: a faint red track with blue dashes flowing from where they were first reported toward where they are now */
 #map .hpath polyline { fill: none; stroke-linecap: round; stroke-linejoin: round; }
-#map .hpath .hbase { stroke: var(--hot); stroke-width: 3; opacity: .35; }
-#map .hpath .hflow { stroke: var(--accent); stroke-width: 2.5; stroke-dasharray: 7 11; }
+#map .hpath .hbase { stroke: var(--tc, var(--hot)); stroke-width: 3; opacity: .3; }
+#map .hpath .hflow { stroke: var(--tc, var(--accent)); stroke-width: 2.5; stroke-dasharray: 7 11; }
+#map .hpath .hlbl { fill: var(--tc); font-size: 10px; font-weight: 600; paint-order: stroke; stroke: var(--bg); stroke-width: 3px; stroke-linejoin: round; }
+.hgroups { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; }
+.hgroups:empty { display: none; }
+.hgchip { font: 12px var(--mono); background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 12px; padding: 3px 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; }
+.hgchip i { width: 16px; height: 4px; border-radius: 2px; background: var(--tc); }
+.hgchip:hover { border-color: var(--tc); }
+.hgchip.on { border-color: var(--tc); background: #16212d; box-shadow: inset 0 0 0 1px var(--tc); }
+.hrow { border-left: 3px solid var(--tc, transparent); }
 #map .hpath.on .hbase { stroke-width: 5; opacity: .5; } #map .hpath.on .hflow { stroke-width: 3.5; }
 #map .hpath.dim { opacity: .15; }
 @media (prefers-reduced-motion: no-preference) { #map .hpath .hflow { animation: hflow 1s linear infinite; } }
@@ -519,6 +527,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
   <section class="panel collapsible" id="hostilePanel" data-title="Hostile tracker">
     <div class="phead"><h2>Hostile tracker</h2></div>
     <div class="note">Pilots named in intel in the last hour, where they were reported, and whether they're getting closer to you. Click a pilot to highlight their path on the map. Friendly pilots are left out.</div>
+    <div id="hostileGroups" class="hgroups" aria-label="Groups on the map"></div>
     <div id="hostileList" class="hlist"></div>
   </section>
 
@@ -652,7 +661,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.35</span>
+    <span class="ver" id="aboutVer">Version 2.36</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -726,7 +735,8 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <p>Paste a new scan any time to replace the old one; nothing is saved or sent anywhere except the look-ups to EVE and zKillboard.</p>
 
     <h3>Hostile tracker</h3>
-    <p>Lists every non-friendly pilot named in intel in the last hour: corp and alliance, the systems they were reported in (oldest first), where they were last seen and how long ago, and whether they're <b>closing in</b> on you or moving away. Their paths are drawn on the map for 30 minutes: a faint red track with blue dashes flowing from where they were first reported toward where they were last seen, and a blue arrowhead on their latest system. Click a pilot to highlight their path; click again to show all.</p>
+    <p>Lists every non-friendly pilot named in intel in the last hour: corp and alliance, the systems they were reported in (oldest first), where they were last seen and how long ago, and whether they're <b>closing in</b> on you or moving away. Their paths are drawn on the map for 30 minutes: a faint track with dashes flowing from where they were first reported toward where they were last seen, and an arrowhead on their latest system.</p>
+    <p>Each group has its own color: pilots are grouped by alliance, or by corp if they have no alliance, or on their own. The group's ticker (or name) and how many of them there are show at the end of its newest track, and pilots of one group who flew the same way share one thicker line. Tracks of different groups on the same gate are drawn slightly apart. The colored chips above the list name each group; click one to show only that group on the map, and click it again to show all. Each pilot's row has its group's color on the left. Click a pilot to highlight just their path; click again to show all.</p>
 
     <h3>Timers</h3>
     <p>Every upcoming timer from your characters' notifications in one list, soonest first: structures leaving reinforcement, sov command nodes, moon chunks ready and breaking, and other timed events. You can add your own with <b>Add timer</b>: write the time as "in 2h 30m", "1d 4h" or an EVE date like 2026.11.20 18:00. Timers under an hour show red, under 6 hours orange. With "Alert 60 and 15 minutes before each timer" on, you get an alert at both points.</p>
@@ -833,6 +843,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.36</b> Hostile tracks are colored by group (alliance, or corp), with the group&#39;s ticker and count on the map, one line per group and route, and chips in the Hostile tracker to show one group at a time.</li>
       <li><b>2.35</b> Reorder boxes: drag a box by its title onto another and they swap places.</li>
       <li><b>2.34</b> Boxes can be moved and resized at any time: drag a title to move, any side or bottom corner to resize. Boxes you cover shrink to make room. The Arrange boxes button is gone; <b>Lock boxes</b> locks everything in place.</li>
       <li><b>2.33</b> System dots on the map are shaded like small stars. Nothing else on the map changed.</li>
@@ -1164,7 +1175,7 @@ function renderMap() {
   const attacked = attackedSystems(), fleetBy = fleetBySys(), notifSov = cfg.showSov ? notifSovEvents() : new Map();
   const svg = $("#map"), pos = layout(), whBySys = whMap(), sovBySys = sovMap(), fightBySys = fightMap();
   const maxJ = Math.max(1, ...[...state.systems.values()].map(s => s.jumps || 0));
-  let h = `<defs><marker id="harrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker>${NODE_DEFS}<radialGradient id="ratGlow"><stop offset="0%" stop-color="#57c47a" stop-opacity=".55"/><stop offset="100%" stop-color="#57c47a" stop-opacity="0"/></radialGradient></defs>`;
+  let h = `<defs>${TRACK_COLORS.map((c, i) => `<marker id="harrow${i}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="${c}"/></marker>`).join("")}${NODE_DEFS}<radialGradient id="ratGlow"><stop offset="0%" stop-color="#57c47a" stop-opacity=".55"/><stop offset="100%" stop-color="#57c47a" stop-opacity="0"/></radialGradient></defs>`;
   // ratting: green glow behind each system, sized by NPC kills in the last hour
   const maxR = Math.max(1, ...[...state.systems.values()].map(s => s.npc_kills || 0));
   if (cfg.showRats) for (const s of state.systems.values()) if (s.npc_kills) {
@@ -2141,7 +2152,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.35";
+const APP_VERSION = "2.36";
 let watchGen = 0;
 function watchNames() { return (cfg.watch || "").split(",").map(x => x.trim()).filter(Boolean); }
 async function loadWatch() {
@@ -2825,7 +2836,32 @@ $("#timerList").addEventListener("click", e => {
 });
 
 /* ---------- 2. hostile tracker: pilots named in intel, where they were seen, which way they're moving ---------- */
-state.selPilot = null;
+state.selPilot = null; state.selGroup = null;
+// each group (alliance, or corp, or a lone pilot) gets its own track color while it's active, so they don't jump around
+const TRACK_COLORS = ["#4fd1e0", "#ff6ad5", "#b6e35a", "#ffd166", "#9d8cff", "#ff8a65", "#3ddc97", "#6fb7ff", "#ff9ecb", "#e8eef3"];
+const groupSlots = new Map();
+function trackGroupOf(id) {
+  const i = pil.info.get(id) || {};
+  return i.alliance ? { key: "a" + i.alliance, id: i.alliance, kind: "alliances" } : i.corp ? { key: "c" + i.corp, id: i.corp, kind: "corporations" } : { key: "p" + id, id, kind: null };
+}
+function hostileGroups(tracks = hostileTracks()) {
+  const groups = new Map();
+  for (const tr of tracks) { // tracks come newest first, so groups do too
+    const g0 = trackGroupOf(tr.id), g = groups.get(g0.key) || groups.set(g0.key, { ...g0, tracks: [] }).get(g0.key);
+    g.tracks.push(tr); tr.group = g.key;
+  }
+  for (const k of [...groupSlots.keys()]) if (!groups.has(k)) groupSlots.delete(k); // free the colors of groups that went quiet
+  for (const g of groups.values()) {
+    if (!groupSlots.has(g.key)) { const used = new Set(groupSlots.values()); let k = 0; while (used.has(k)) k++; groupSlots.set(g.key, k); }
+    g.slot = groupSlots.get(g.key); g.color = TRACK_COLORS[g.slot % TRACK_COLORS.length];
+    let tk = ""; try { tk = g.kind ? tickers[g.id] || "" : ""; } catch {}
+    g.name = g.kind ? nm(g.id) : nm(g.tracks[0].id);
+    g.label = tk ? `[${tk}]` : g.name.length > 16 ? g.name.slice(0, 15) + "…" : g.name;
+  }
+  try { const need = [...groups.values()].filter(g => g.kind && tickers[g.id] == null).map(g => ({ id: g.id, kind: g.kind }));
+    if (need.length) loadTickers(need, () => { renderHostiles(); renderMap(); }); } catch {}
+  return groups;
+}
 function hostileTracks() {
   const now = Date.now(), tracks = new Map();
   for (const r of [...intel.reports].sort((a, b) => a.t - b.t)) {
@@ -2842,7 +2878,10 @@ function hostileTracks() {
   return [...tracks.values()].sort((a, b) => b.seen[b.seen.length - 1].t - a.seen[a.seen.length - 1].t);
 }
 function renderHostiles() {
-  const box = $("#hostileList"), list = hostileTracks();
+  const box = $("#hostileList"), list = hostileTracks(), groups = hostileGroups(list);
+  if (state.selGroup && !groups.has(state.selGroup)) state.selGroup = null;
+  $("#hostileGroups").innerHTML = groups.size > 1 || [...groups.values()].some(g => g.tracks.length > 1) ? [...groups.values()].map(g =>
+    `<button type="button" class="hgchip${state.selGroup === g.key ? " on" : ""}" data-group="${g.key}" style="--tc:${g.color}" title="${esc(g.name)}: show only this group's tracks on the map"><i></i>${esc(g.label)}${g.label !== g.name && g.kind ? ` <span class="note">${esc(g.name.length > 22 ? g.name.slice(0, 21) + "…" : g.name)}</span>` : ""} · ${g.tracks.length}</button>`).join("") : "";
   if (!list.length) { box.innerHTML = `<div class="empty">${intel.dir || relay.on ? "No pilots named in intel in the last hour." : "Connect your chat logs (or receive intel from your PC) to track pilots named in intel."}</div>`; return; }
   const me = youNow();
   box.innerHTML = list.map(tr => {
@@ -2851,7 +2890,7 @@ function renderHostiles() {
     const trend = dl != null && dp != null ? (dl < dp ? `<span class="closing">closing in</span>` : dl > dp ? `<span class="note">moving away</span>` : "") : "";
     const org = [i.corp ? nm(i.corp) : "", i.alliance ? nm(i.alliance) : ""].filter(Boolean).join(" · ");
     const hostile = state.enemies.has(tr.id) || state.enemies.has(i.corp) || state.enemies.has(i.alliance);
-    return `<div class="hrow${state.selPilot === tr.id ? " sel" : ""}" data-pilot="${tr.id}">
+    return `<div class="hrow${state.selPilot === tr.id ? " sel" : ""}" data-pilot="${tr.id}" style="--tc:${groups.get(tr.group)?.color || "transparent"}">
       <span class="hname"><a href="https://zkillboard.com/character/${tr.id}/" target="_blank" rel="noopener">${esc(nm(tr.id))}</a>${hostile ? `<span class="chip red">HOSTILE</span>` : ""}<button type="button" class="mini" data-act="info" data-id="${tr.id}" data-name="${esc(nm(tr.id))}">in EVE</button><span class="note">${esc(org)}</span></span>
       <span class="hpath">${tr.seen.map(x => esc(nm(x.sys)) || "?").join(" → ")}</span>
       <span class="hlast"><b>${esc(nm(last.sys))}</b> ${ago(last.t)}${dl != null ? ` · ${dl}j from you` : ""} ${trend}</span>
@@ -2861,20 +2900,43 @@ function renderHostiles() {
 $("#hostileList").addEventListener("click", e => {
   if (e.target.closest("a, button")) return;
   const row = e.target.closest("[data-pilot]"); if (!row) return;
-  state.selPilot = state.selPilot === +row.dataset.pilot ? null : +row.dataset.pilot;
+  state.selPilot = state.selPilot === +row.dataset.pilot ? null : +row.dataset.pilot; state.selGroup = null;
+  renderHostiles(); renderMap();
+});
+$("#hostileGroups").addEventListener("click", e => {
+  const c = e.target.closest("[data-group]"); if (!c) return;
+  state.selGroup = state.selGroup === c.dataset.group ? null : c.dataset.group; state.selPilot = null;
   renderHostiles(); renderMap();
 });
 function hostilePathsSvg(pos) {
+  // one track per group and route: pilots of the same group who flew the same way share a line (with a count),
+  // each group in its own color and nudged a little to one side so groups on the same gate don't hide each other
   let h = "";
-  for (const tr of hostileTracks()) {
-    if (Date.now() - tr.seen[tr.seen.length - 1].t > 30 * 60e3 && state.selPilot !== tr.id) continue;
-    const pts = tr.seen.map(x => pos.get(x.sys)).filter(Boolean);
-    if (pts.length < 2) continue;
-    const cls = state.selPilot == null ? "hpath" : state.selPilot === tr.id ? "hpath on" : "hpath dim";
-    // points run oldest → newest, so the moving blue dash and the arrowhead show the direction travelled
-    const pp = pts.map(p => p.x.toFixed(1) + "," + p.y.toFixed(1)).join(" ");
-    h += `<g class="${cls}"><title>${esc(nm(tr.id))}: ${esc(tr.seen.map(x => nm(x.sys)).join(" → "))}</title>
-      <polyline class="hbase" points="${pp}"/><polyline class="hflow" points="${pp}" marker-end="url(#harrow)"/></g>`;
+  const tracks = hostileTracks(), groups = hostileGroups(tracks), now = Date.now();
+  for (const g of [...groups.values()].reverse()) { // oldest first, so the newest group is drawn on top
+    const routes = new Map();
+    for (const tr of g.tracks) {
+      if (now - tr.seen[tr.seen.length - 1].t > 30 * 60e3 && state.selPilot !== tr.id) continue;
+      const pts = tr.seen.map(x => pos.get(x.sys)).filter(Boolean); if (pts.length < 2) continue;
+      const key = tr.seen.map(x => x.sys).join(">");
+      const r = routes.get(key) || routes.set(key, { pts, seen: tr.seen, ids: [] }).get(key); r.ids.push(tr.id);
+    }
+    if (!routes.size) continue;
+    const a = g.slot * 2.4, off = groups.size > 1 ? 3 : 0, dx = (Math.cos(a) * off).toFixed(1), dy = (Math.sin(a) * off).toFixed(1);
+    let labelled = false;
+    for (const r of routes.values()) {
+      const on = state.selPilot != null ? r.ids.includes(state.selPilot) : state.selGroup != null ? state.selGroup === g.key : null;
+      const cls = on == null ? "hpath" : on ? "hpath on" : "hpath dim";
+      const pp = r.pts.map(p => p.x.toFixed(1) + "," + p.y.toFixed(1)).join(" "), end = r.pts[r.pts.length - 1];
+      const who = r.ids.length > 1 ? `${r.ids.length} pilots (${r.ids.map(nm).join(", ")})` : nm(r.ids[0]);
+      // points run oldest to newest, so the moving dashes and the arrowhead show the direction travelled
+      h += `<g class="${cls}" style="--tc:${g.color}" transform="translate(${dx} ${dy})"><title>${esc(g.name)}: ${esc(who)}: ${esc(r.seen.map(x => nm(x.sys)).join(" → "))}</title>
+        <polyline class="hbase" points="${pp}" style="stroke-width:${Math.min(8, 3 + r.ids.length - 1)}"/><polyline class="hflow" points="${pp}" marker-end="url(#harrow${g.slot % TRACK_COLORS.length})"/>`;
+      if (!labelled) { labelled = true; // one label per group, at the end of its newest track
+        const n = g.tracks.length;
+        h += `<text class="hlbl" x="${(end.x + 15).toFixed(1)}" y="${(end.y - 13).toFixed(1)}">${esc(g.label)}${n > 1 ? " ×" + n : ""}</text>`; }
+      h += `</g>`;
+    }
   }
   return h;
 }
@@ -3274,13 +3336,13 @@ analyzeLocal(); analyzeDscan();
 /* ---------- scan results: Ships, Ship Classes, Alliances and Corporations side by side ---------- */
 const tickers = (() => { try { return JSON.parse(ls.get("tickers", "{}")) || {}; } catch { return {}; } })();
 const tickPending = new Set();
-async function loadTickers(list) {
+async function loadTickers(list, after) {
   const need = list.filter(x => x.id && tickers[x.id] == null && !tickPending.has(x.id));
   if (!need.length) return;
   need.forEach(x => tickPending.add(x.id));
   await pool(need, 6, async x => { try { tickers[x.id] = (await getJSON(`${ESI}/${x.kind}/${x.id}/?${DS}`)).ticker || ""; } catch { tickers[x.id] = ""; } tickPending.delete(x.id); });
   ls.set("tickers", JSON.stringify(tickers));
-  renderScan();
+  if (after) after(); else renderScan();
 }
 function agoLong(t) {
   const s = Math.max(0, Math.round((Date.now() - t) / 1000));
