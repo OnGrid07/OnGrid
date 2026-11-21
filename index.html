@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.33
+  OnGrid (formerly Local Intel), version 2.34
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -259,16 +259,21 @@ tr:hover td { background: #141d27; }
 .drow b { font-variant-numeric: tabular-nums; }
 /* free layout: boxes placed anywhere on a board, moved by their title and resized by their corner */
 #board { position: relative; min-height: 200px; }
-#board > .fbox { position: absolute; margin: 0; display: flex; flex-direction: column; overflow: hidden; }
+#board > .fbox, .wrap.canmove #board > .fbox { position: absolute; margin: 0; display: flex; flex-direction: column; overflow: hidden; }
 #board > .fbox > * { flex-shrink: 0; }
 #board > .fbox > .tablebox, #board > .fbox > .feed, #board > .fbox > .hlist, #board > .fbox > .tlist, #board > .fbox > .setgrid,
 #board > .fbox > .watchgrid, #board > .fbox > .routelist, #board > .fbox > .scangrid { flex: 1 1 auto; min-height: 0; overflow: auto; }
 #board #mapPanel > svg { flex: 1 1 0; min-height: 120px; }
 #board thead th { position: sticky; top: 0; background: var(--panel); z-index: 1; }
 .fbox > .rsz { display: none; }
-.arranging #board > .fbox { outline: 1px dashed var(--accent); outline-offset: -1px; }
-.arranging #board > .fbox > h2, .arranging #board > .fbox .phead, .arranging #board > .fbox .watchbar { cursor: move; user-select: none; }
-.arranging .fbox > .rsz { display: block; position: absolute; right: 0; bottom: 0; width: 18px; height: 18px; cursor: nwse-resize; background: linear-gradient(135deg, transparent 50%, var(--accent) 50%); border-bottom-right-radius: 6px; z-index: 3; }
+/* unlocked (the default on wide windows): drag a title to move, drag an edge or corner to resize */
+.wrap.canmove .movable > h2, .wrap.canmove .movable .phead, .wrap.canmove .movable .watchbar { cursor: move; user-select: none; }
+.wrap.canmove .movable { position: relative; }
+.wrap.canmove .movable > .rsz { display: block; position: absolute; right: 0; bottom: 0; width: 14px; height: 14px; cursor: nwse-resize; background: linear-gradient(135deg, transparent 55%, var(--muted) 55%); border-bottom-right-radius: 6px; z-index: 3; opacity: .35; transition: opacity .15s; }
+.wrap.canmove .movable:hover > .rsz { opacity: 1; background: linear-gradient(135deg, transparent 55%, var(--accent) 55%); }
+.wrap.canmove .movable.edgehot { outline: 1px dashed var(--accent); outline-offset: -1px; }
+#board > .fbox.squeezed { outline: 1px dashed var(--warm); outline-offset: -1px; }
+#lockBtn[aria-pressed="true"] { color: var(--warm); border-color: var(--warm); }
 #board > .fbox.dragging { box-shadow: 0 10px 34px rgba(0,0,0,.55); }
 .wrap.freelayout #dock { margin-bottom: 0; }
 #savedNote { margin-left: auto; margin-right: 8px; transition: color .3s; }
@@ -401,7 +406,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
       <select id="radius"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select>
       <button type="submit">Load</button>
       <button type="button" id="refresh">Refresh</button>
-      <button type="button" id="arrangeBtn" title="Move and resize the boxes">Arrange boxes</button>
+      <button type="button" id="lockBtn" aria-pressed="false" title="Lock the boxes so they can't be moved or resized by accident">Lock boxes</button>
       <button type="button" id="layoutReset" hidden title="Put every box back in the normal layout">Standard layout</button>
       <button type="button" id="aboutBtn">About</button>
     </form>
@@ -645,7 +650,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.33</span>
+    <span class="ver" id="aboutVer">Version 2.34</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -689,8 +694,10 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <h3>Layout</h3>
     <p>From the top: the summary numbers, with Thera/Turnur connections and sov fights side by side below them (each box lights up when there's something in range, and a sov fight under way pulses red); the gate map with the systems table and intel beside it; watched systems; then <b>Alerts and settings</b>, <b>Character notifications</b> and <b>Kills</b>. Each of the last three has a <b>–</b> button that collapses it into a small button in a row above them. Press the small button to open it again. The page remembers which are open. A collapsed Character notifications button shows how many attacks arrived in the last hour.</p>
 
-    <h3>Arranging boxes</h3>
-    <p>Press <b>Arrange boxes</b> at the top. Every box gets a dashed outline: drag a box by its title to move it, and drag the blue corner at its bottom right to resize it. Boxes snap to a small grid and can overlap; the one you touched last comes to the front. The map grows and shrinks with its box. Press <b>Done arranging</b> to lock them in place. Your layout is saved and included in <b>Copy my settings</b>. <b>Standard layout</b> puts everything back. Windows narrower than 900 pixels, and phones, always use the standard layout.</p>
+    <h3>Moving and resizing boxes</h3>
+    <p>On a window at least 900 pixels wide, every box can be moved and resized straight away. Drag a box by its title to move it. Drag its left, right or bottom edge, or a bottom corner, to resize it; the pointer changes and the box gets a dashed outline when you're on an edge. Boxes snap to a small grid. The map grows and shrinks with its box.</p>
+    <p>If you move or resize a box over others, they shrink to make room, on whichever side keeps them biggest, and show an orange outline while you drag. If there's no room beside it, a box moves below instead. Drag away again before letting go and they spring back.</p>
+    <p><b>Lock boxes</b> at the top locks every box in place and size, so nothing moves by accident. Press <b>Unlock boxes</b> to move them again. Your layout and the lock are saved and included in <b>Copy my settings</b>. <b>Standard layout</b> puts everything back. Narrower windows and phones always use the standard layout.</p>
 
     <h3>Windows app</h3>
     <p><b>OnGrid for Windows</b> is this page in its own app window. Download <code>OnGrid-Setup-….exe</code> from <a href="https://github.com/OnGrid07/OnGrid/releases/latest" target="_blank" rel="noopener">the releases page</a> and run it; it installs in a few seconds and adds a Start menu shortcut.</p>
@@ -823,6 +830,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.34</b> Boxes can be moved and resized at any time: drag a title to move, any side or bottom corner to resize. Boxes you cover shrink to make room. The Arrange boxes button is gone; <b>Lock boxes</b> locks everything in place.</li>
       <li><b>2.33</b> System dots on the map are shaded like small stars. Nothing else on the map changed.</li>
       <li><b>2.32</b> The map is back to its original look (plain colored dots, as before 2.30).</li>
       <li><b>2.31</b> Map text sized for the screen (undone in 2.32).</li>
@@ -2129,7 +2137,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.33";
+const APP_VERSION = "2.34";
 let watchGen = 0;
 function watchNames() { return (cfg.watch || "").split(",").map(x => x.trim()).filter(Boolean); }
 async function loadWatch() {
@@ -3500,7 +3508,7 @@ const FREE_IDS = ["mapPanel", "sysPanel", "intelPanel", "watchPanel", "scanPanel
 const SNAP = 8, MIN_W = 240, MIN_H = 140;
 let boxLayout = (() => { try { return JSON.parse(ls.get("layout", "null")) || { free: false, boxes: {} }; } catch { return { free: false, boxes: {} }; } })();
 const saveLayout = () => ls.set("layout", JSON.stringify(boxLayout));
-let arranging = false, zTop = 10;
+let zTop = 10;
 const freeAllowed = () => window.innerWidth >= 900; // phones and narrow windows keep the normal stacked boxLayout
 const snap = v => Math.round(v / SNAP) * SNAP;
 function board() {
@@ -3555,44 +3563,120 @@ function applyFree() {
   }
   fitBoard(); renderMap?.();
 }
-function setArranging(on) {
-  arranging = on;
-  document.querySelector(".wrap").classList.toggle("arranging", on);
-  $("#arrangeBtn").textContent = on ? "Done arranging" : "Arrange boxes";
+const PANEL_SEL = FREE_IDS.map(i => "#" + i).join(",");
+const locked = () => !!boxLayout.locked;
+function setLockUi() {
+  const can = !locked() && freeAllowed() && !SCAN_ONLY;
+  document.querySelector(".wrap").classList.toggle("canmove", can);
+  for (const id of FREE_IDS) { const el = document.getElementById(id); if (!el) continue; el.classList.add("movable");
+    if (!el.querySelector(":scope > .rsz")) { const h = document.createElement("div"); h.className = "rsz"; h.title = "Drag to resize"; el.appendChild(h); } }
+  const btn = $("#lockBtn"); btn.textContent = locked() ? "Unlock boxes" : "Lock boxes"; btn.setAttribute("aria-pressed", String(locked()));
+  btn.title = locked() ? "Let the boxes be moved and resized again" : "Lock the boxes so they can't be moved or resized by accident";
   $("#layoutReset").hidden = !boxLayout.free;
 }
-$("#arrangeBtn").addEventListener("click", () => {
-  if (!freeAllowed()) return toast("Moving boxes needs a window at least 900 pixels wide.", true);
-  if (!boxLayout.free) { boxLayout.free = true; enterFree(); saveLayout(); toast("Drag a box by its title to move it, and its bottom-right corner to resize it. Press Done arranging when you're finished."); }
-  setArranging(!arranging);
+$("#lockBtn").addEventListener("click", () => {
+  boxLayout.locked = !locked(); saveLayout(); setLockUi();
+  toast(locked() ? "Boxes locked in place. Press Unlock boxes to move or resize them again." : "Boxes unlocked: drag a title to move a box, drag an edge or corner to resize it.");
 });
-$("#layoutReset").addEventListener("click", () => { boxLayout = { free: false, boxes: {} }; saveLayout(); location.reload(); });
-// dragging: by the title bar to move, by the corner to resize; snaps to an 8-pixel grid; the page grows to fit
+$("#layoutReset").addEventListener("click", () => { boxLayout = { free: false, boxes: {}, locked: locked() }; saveLayout(); location.reload(); });
+
+// which edge of a box the pointer is on (a 7-pixel band inside the left, right and bottom edges), for resizing
+const EDGE = 7;
+function edgeAt(el, x, y) {
+  const r = el.getBoundingClientRect();
+  if (y < r.top || y > r.bottom || x < r.left || x > r.right) return "";
+  const s = y > r.bottom - EDGE, w = x < r.left + EDGE, e = x > r.right - EDGE;
+  return (s ? "s" : "") + (e ? "e" : w ? "w" : "");
+}
+const EDGE_CURSOR = { s: "ns-resize", e: "ew-resize", w: "ew-resize", se: "nwse-resize", sw: "nesw-resize" };
+let hoverEl = null;
+document.addEventListener("pointermove", e => {
+  if (e.buttons || locked() || !freeAllowed() || SCAN_ONLY) return;
+  const el = e.target.closest?.(PANEL_SEL), ed = el ? edgeAt(el, e.clientX, e.clientY) : "";
+  if (hoverEl && hoverEl !== el) { hoverEl.style.cursor = ""; hoverEl.classList.remove("edgehot"); }
+  hoverEl = el; if (!el) return;
+  el.style.cursor = ed ? EDGE_CURSOR[ed] : ""; el.classList.toggle("edgehot", !!ed);
+});
+
+// when a box is moved or resized over others, they shrink to make room (on whichever side keeps them biggest),
+// or step below it if there's no room; they spring back while you're still dragging if you move away again
+const overlaps = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+function makeRoom(a, b) {
+  if (!overlaps(a, b)) return { ...b, squeezed: false };
+  const G = SNAP, ax2 = a.x + a.w, ay2 = a.y + a.h, bx2 = b.x + b.w, by2 = b.y + b.h;
+  const opts = [
+    { x: b.x, y: b.y, w: a.x - G - b.x, h: b.h },
+    { x: ax2 + G, y: b.y, w: bx2 - ax2 - G, h: b.h },
+    { x: b.x, y: b.y, w: b.w, h: a.y - G - b.y },
+    { x: b.x, y: ay2 + G, w: b.w, h: by2 - ay2 - G }
+  ].filter(o => o.w >= MIN_W && o.h >= MIN_H).sort((p, q) => q.w * q.h - p.w * p.h);
+  return opts.length ? { ...b, ...opts[0], squeezed: true } : { ...b, y: ay2 + G, squeezed: true };
+}
+const shown = id => { const el = document.getElementById(id); return el && !el.hidden && el.offsetParent !== null; };
+function settle(activeId, snapshot) {
+  const a = boxLayout.boxes[activeId], placed = [activeId];
+  for (const id of FREE_IDS) {
+    if (id === activeId || !snapshot[id] || !shown(id)) continue;
+    let b = { ...snapshot[id] };
+    for (const pid of placed) b = makeRoom(boxLayout.boxes[pid], b); // fit around the dragged box and anything already moved
+    for (const pid of placed) if (overlaps(boxLayout.boxes[pid], b)) b.y = boxLayout.boxes[pid].y + boxLayout.boxes[pid].h + SNAP;
+    const changed = b.x !== snapshot[id].x || b.y !== snapshot[id].y || b.w !== snapshot[id].w || b.h !== snapshot[id].h;
+    const { squeezed, ...box } = b; boxLayout.boxes[id] = box;
+    const el = document.getElementById(id); placeBox(el, box); el.classList.toggle("squeezed", changed);
+    if (changed) placed.push(id);
+  }
+}
+
+// dragging: a title bar moves the box, an edge or corner resizes it; snaps to an 8-pixel grid; the page grows to fit.
+// The first drag switches the page from the standard layout to free boxes, keeping everything where it was.
 document.addEventListener("pointerdown", e => {
-  if (!arranging) return;
-  const el = e.target.closest(".fbox"); if (!el) return;
-  const rsz = e.target.closest(".rsz");
-  const handle = rsz || e.target.closest(".phead, .watchbar, .fbox > h2");
-  if (!handle || (!rsz && e.target.closest("button, input, select, a, form"))) return;
-  e.preventDefault();
-  const box = boxLayout.boxes[el.id], start = { x: e.clientX, y: e.clientY, bx: box.x, by: box.y, bw: box.w, bh: box.h };
-  box.z = ++zTop; el.style.zIndex = box.z;
-  el.classList.add("dragging");
-  const move = ev => {
-    const dx = ev.clientX - start.x, dy = ev.clientY - start.y;
-    if (rsz) { box.w = Math.max(MIN_W, snap(start.bw + dx)); box.h = Math.max(MIN_H, snap(start.bh + dy)); }
-    else { box.x = Math.max(0, snap(start.bx + dx)); box.y = Math.max(0, snap(start.by + dy)); }
-    placeBox(el, box); fitBoard();
+  if (e.button !== 0 || locked() || !freeAllowed() || SCAN_ONLY) return;
+  const el = e.target.closest(PANEL_SEL); if (!el) return;
+  const t = e.target, control = t.closest("button, input, select, textarea, a, label, summary, option");
+  const onScrollbar = t !== el && (t.scrollHeight > t.clientHeight || t.scrollWidth > t.clientWidth) &&
+    (e.clientX > t.getBoundingClientRect().left + t.clientLeft + t.clientWidth || e.clientY > t.getBoundingClientRect().top + t.clientTop + t.clientHeight);
+  const rsz = t.closest(".rsz") ? "se" : control || onScrollbar ? "" : edgeAt(el, e.clientX, e.clientY);
+  const head = t.closest(".phead, .watchbar, h2");
+  if (!rsz && !(head && head.closest(PANEL_SEL) === el && !control && !t.closest("form"))) return;
+  if (rsz) e.preventDefault(); // stop text selection while resizing; a plain click on a title still works
+  const sx = e.clientX, sy = e.clientY;
+  let box, start, snapshot, boardW, begun = false;
+  const begin = () => { // only once the pointer has really moved, so clicks never change the layout
+    begun = true;
+    if (!boxLayout.free) { boxLayout.free = true; enterFree(); saveLayout(); setLockUi(); }
+    box = boxLayout.boxes[el.id];
+    start = { x: sx, y: sy, bx: box.x, by: box.y, bw: box.w, bh: box.h };
+    snapshot = {}; for (const id of FREE_IDS) if (boxLayout.boxes[id]) snapshot[id] = { ...boxLayout.boxes[id] };
+    box.z = ++zTop; el.style.zIndex = box.z;
+    el.classList.add("dragging"); document.body.style.userSelect = "none";
+    boardW = board().clientWidth;
   };
-  const up = () => { document.removeEventListener("pointermove", move); el.classList.remove("dragging"); saveLayout(); if (el.id === "mapPanel") renderMap(); };
+  const move = ev => {
+    if (!begun) { if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < 4) return; begin(); }
+    window.getSelection?.().removeAllRanges();
+    const dx = ev.clientX - start.x, dy = ev.clientY - start.y;
+    if (rsz) {
+      if (rsz.includes("e")) box.w = Math.max(MIN_W, Math.min(boardW - box.x, snap(start.bw + dx)));
+      if (rsz.includes("w")) { const nx = Math.max(0, Math.min(start.bx + start.bw - MIN_W, snap(start.bx + dx))); box.w = start.bw + start.bx - nx; box.x = nx; }
+      if (rsz.includes("s")) box.h = Math.max(MIN_H, snap(start.bh + dy));
+    } else { box.x = Math.max(0, Math.min(boardW - box.w, snap(start.bx + dx))); box.y = Math.max(0, snap(start.by + dy)); }
+    placeBox(el, box); settle(el.id, snapshot); fitBoard();
+  };
+  const up = () => {
+    document.removeEventListener("pointermove", move); if (!begun) return;
+    el.classList.remove("dragging"); document.body.style.userSelect = "";
+    document.querySelectorAll("#board > .fbox.squeezed").forEach(x => x.classList.remove("squeezed"));
+    saveLayout(); renderMap();
+  };
   document.addEventListener("pointermove", move);
   document.addEventListener("pointerup", up, { once: true });
 });
 window.addEventListener("resize", () => {
   if (boxLayout.free && !freeAllowed() && document.querySelector(".wrap").classList.contains("freelayout")) location.reload(); // narrow: go back to stacked
+  document.querySelector(".wrap").classList.toggle("canmove", !locked() && freeAllowed() && !SCAN_ONLY);
 });
-if (boxLayout.free && freeAllowed() && !SCAN_ONLY) setTimeout(() => { applyFree(); setArranging(false); }, 0);
-else $("#layoutReset").hidden = !boxLayout.free;
+if (boxLayout.free && freeAllowed() && !SCAN_ONLY) setTimeout(() => { applyFree(); setLockUi(); }, 0);
+else setLockUi();
 
 /* ---------- interaction ---------- */
 function select(id) { state.sel = state.sel === id ? null : id; renderMap(); renderTable(); renderFeed(); renderQuiet(); }
