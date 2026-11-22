@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.41
+  OnGrid (formerly Local Intel), version 2.42
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -80,6 +80,8 @@ h2 { font: 600 13px/1 var(--display); letter-spacing: .12em; text-transform: upp
 #map text { font-family: var(--mono); font-size: 10px; fill: var(--fg); pointer-events: none; }
 #map .ring { fill: none; stroke: var(--line); stroke-dasharray: 2 4; }
 #map .ringlbl { fill: var(--muted); font-size: 9px; }
+#map .regtint { opacity: .09; }
+#map .reglbl { fill: var(--muted); font: 600 9px var(--display); letter-spacing: .12em; opacity: .85; paint-order: stroke; stroke: var(--bg); stroke-width: 3px; stroke-linejoin: round; }
 #map .rat { fill: url(#ratGlow); pointer-events: none; }
 #map .ratlbl { fill: var(--ok); font-size: 9px; }
 #map .edge { stroke: #2c3b4b; stroke-width: 1; }
@@ -662,7 +664,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.41</span>
+    <span class="ver" id="aboutVer">Version 2.42</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -771,6 +773,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <ul>
       <li>Systems sit in rings by jumps from the center. Lines are stargates.</li>
       <li>Dot color: red is a kill in the last hour, orange a kill in the last 6 hours, blue is ship traffic only, grey is quiet. Bigger dots mean more ship jumps in the last hour.</li>
+      <li>When the map reaches into other regions, each region's systems are kept together in their own slice of the map. Other regions are shaded in a faint color with their name in it; your own region is unshaded and its name is grey. Hover a shaded area to see which region it is.</li>
       <li>Green glow is ratting: NPC kills in the last hour. The label shows rats per hour.</li>
       <li>A purple ring is a system named in intel in the last 15 minutes. It pulses for the first 3 minutes. A number in brackets is the reported pilot count. When every pilot named in a system's latest report has since been sighted in another system, that ring goes away and the systems table shows "moved", so the rings follow the hostiles. Reports that don't name pilots (like "5 nv") keep their ring for the full 15 minutes.</li>
       <li>A dashed ring and YOU mark where your character is.</li>
@@ -845,6 +848,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.42</b> Systems in other regions are grouped into their own slice of the map, shaded and named, so region borders are easy to see.</li>
       <li><b>2.41</b> The group chips are gone from the Hostile tracker; each pilot’s row still shows its group color.</li>
       <li><b>2.40</b> Boxes resize from every side and every corner, including the top edge and the top corners.</li>
       <li><b>2.39</b> The character picker for Intel and location moved to Alerts and settings.</li>
@@ -1025,6 +1029,12 @@ async function buildNeighborhood(originName, radius) {
     });
     frontier = next;
   }
+  // region of every system (constellation → region, cached), so the map can group systems by region
+  const cons = [...new Set([...systems.values()].map(x => x.constellation))];
+  const conReg = new Map();
+  await pool(cons, 4, async c => { let r = cache.get("con:" + c); if (!r) { try { r = (await getJSON(`${ESI}/universe/constellations/${c}/?${DS}`)).region_id; cache.set("con:" + c, r); } catch {} } conReg.set(c, r); });
+  for (const x of systems.values()) x.regionId = conReg.get(x.constellation) || null;
+  await resolveNames([...new Set(conReg.values())].filter(Boolean));
   // region / constellation names for header
   const o = systems.get(hit.id);
   try {
@@ -1149,6 +1159,22 @@ const NODE_DEFS = Object.entries({ hot: "var(--hot)", warm: "var(--warm)", cool:
 
 function layout() {
   // rings by distance; order each ring by the average angle of its parents to keep edges short
+  const pos = layoutPass(null);
+  // systems in other regions: a second pass keeps each region's systems together in their own slice of the map
+  const regs = new Set([...state.systems.values()].map(s => s.regionId).filter(Boolean));
+  if (regs.size < 2) { state.regionView = null; return pos; }
+  const TAU = 2 * Math.PI, wrap = a => ((a % TAU) + TAU) % TAU, mean = as => Math.atan2(as.reduce((t, a) => t + Math.sin(a), 0), as.reduce((t, a) => t + Math.cos(a), 0));
+  const angs = new Map();
+  for (const s of state.systems.values()) if (s.dist > 0 && s.regionId) (angs.get(s.regionId) || angs.set(s.regionId, []).get(s.regionId)).push(pos.get(s.id).a);
+  const center = new Map([...angs].map(([r, as]) => [r, mean(as)]));
+  const home = state.systems.get(state.origin)?.regionId, cut = (center.get(home) ?? 0) + Math.PI; // the home region's slice is never split
+  for (const s of state.systems.values()) s._a1 = pos.get(s.id).a;
+  const key = s => [wrap((center.get(s.regionId) ?? 0) - cut), wrap(s._a - cut)];
+  const pos2 = layoutPass(key);
+  state.regionView = { center, home };
+  return pos2;
+}
+function layoutPass(key) {
   const byD = [];
   for (const s of state.systems.values()) (byD[s.dist] ||= []).push(s);
   const pos = new Map();
@@ -1158,16 +1184,18 @@ function layout() {
     ring.forEach(s => {
       const ps = s.neighbors.filter(n => pos.has(n) && state.systems.get(n).dist === d - 1).map(n => pos.get(n).a);
       s._a = ps.length ? Math.atan2(ps.reduce((a, b) => a + Math.sin(b), 0), ps.reduce((a, b) => a + Math.cos(b), 0)) : 0;
+      if (key && d === 1) s._a = s._a1; // the first ring has one parent (the centre): keep where the first pass put it
     });
-    ring.sort((a, b) => a._a - b._a);
+    if (key) ring.sort((a, b) => { const x = key(a), y = key(b); return x[0] - y[0] || x[1] - y[1]; });
+    else ring.sort((a, b) => a._a - b._a);
     const off = d === 1 ? -Math.PI / 2 : ring[0]._a;
     ring.forEach((s, i) => {
-      const a = d === 1 ? off + (i / ring.length) * 2 * Math.PI : s._a;
+      const a = d === 1 && !key ? off + (i / ring.length) * 2 * Math.PI : s._a;
       pos.set(s.id, { a, x: 0, y: 0 });
     });
     // spread evenly while keeping order, anchored near parent angles
     const n = ring.length, sp = 2 * Math.PI / n;
-    if (d > 1) {
+    if (d > 1 || key) {
       let base = ring.reduce((acc, s, i) => acc + Math.sin(s._a - i * sp), 0);
       let baseC = ring.reduce((acc, s, i) => acc + Math.cos(s._a - i * sp), 0);
       const start = Math.atan2(base, baseC);
@@ -1175,7 +1203,35 @@ function layout() {
     }
     ring.forEach(s => { const p = pos.get(s.id); p.x = C + Math.cos(p.a) * step * d; p.y = C + Math.sin(p.a) * step * d; });
   });
+  if (key) state.regionRings = byD; // rings in their final order, for the region dividers
   return pos;
+}
+// each other region's slice of the map gets a faint tint of its own color, with the region's name in the gap between rings
+const REGION_TINTS = ["#e6c84a", "#d65cff", "#4fd1e0", "#ff8a65", "#9d8cff", "#b6e35a", "#ff6ad5", "#6fb7ff"];
+function regionSvg(pos) {
+  if (!state.regionView || !state.regionRings) return "";
+  const C = 300, step = 270 / Math.max(1, state.radius), TAU = 2 * Math.PI, home = state.regionView.home;
+  const others = [...state.regionView.center.keys()].filter(r => r !== home).sort((a, b) => nm(a).localeCompare(nm(b)));
+  const tint = new Map(others.map((r, i) => [r, REGION_TINTS[i % REGION_TINTS.length]]));
+  const pt = (a, r) => `${(C + Math.cos(a) * r).toFixed(1)},${(C + Math.sin(a) * r).toFixed(1)}`;
+  let h = "";
+  state.regionRings.forEach((ring, d) => {
+    if (!d || !ring) return;
+    const half = Math.PI / ring.length, r1 = step * (d - 0.5), r2 = Math.min(298, step * (d + 0.5));
+    for (const s of ring) {
+      const c = tint.get(s.regionId); if (!c) continue;
+      const a = pos.get(s.id).a, a1 = a - half, a2 = a + half, big = 2 * half > Math.PI ? 1 : 0;
+      h += `<path class="regtint" fill="${c}" d="M${pt(a1, r1)} L${pt(a1, r2)} A${r2.toFixed(1)},${r2.toFixed(1)} 0 ${big} 1 ${pt(a2, r2)} L${pt(a2, r1)} A${r1.toFixed(1)},${r1.toFixed(1)} 0 ${big} 0 ${pt(a1, r1)} Z"><title>${esc(nm(s.regionId))}</title></path>`;
+    }
+  });
+  // names: at the region's middle angle, in the gap just inside its outermost ring (between rings there are no systems)
+  const byReg = new Map();
+  for (const s of state.systems.values()) if (s.dist > 0 && s.regionId) { const g = byReg.get(s.regionId) || byReg.set(s.regionId, { as: [], dmax: 0 }).get(s.regionId); g.as.push(pos.get(s.id).a); g.dmax = Math.max(g.dmax, s.dist); }
+  for (const [r, g] of byReg) {
+    const a = Math.atan2(g.as.reduce((t, x) => t + Math.sin(x), 0), g.as.reduce((t, x) => t + Math.cos(x), 0)), R = step * (g.dmax - 0.5);
+    h += `<text class="reglbl" x="${(C + Math.cos(a) * R).toFixed(1)}" y="${(C + Math.sin(a) * R + 3).toFixed(1)}" text-anchor="middle"${tint.get(r) ? ` style="fill:${tint.get(r)}"` : ""}>${esc(nm(r)).toUpperCase()}</text>`;
+  }
+  return h;
 }
 
 function renderMap() {
@@ -1193,6 +1249,7 @@ function renderMap() {
     const r = 270 / state.radius * d;
     h += `<circle class="ring" cx="300" cy="300" r="${r}"/><text class="ringlbl" x="${300 + 4}" y="${300 - r - 4}">${d}j</text>`;
   }
+  h += regionSvg(pos);
   const seen = new Set();
   for (const s of state.systems.values()) for (const n of s.neighbors) {
     if (!state.systems.has(n)) continue;
@@ -2172,7 +2229,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.41";
+const APP_VERSION = "2.42";
 let watchGen = 0;
 function watchNames() { return (cfg.watch || "").split(",").map(x => x.trim()).filter(Boolean); }
 async function loadWatch() {
