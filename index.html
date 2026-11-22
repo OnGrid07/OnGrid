@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.42
+  OnGrid (formerly Local Intel), version 2.43
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -290,6 +290,29 @@ tr:hover td { background: #141d27; }
 .bkbtns button { font: 12px var(--mono); background: var(--bg); color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 4px 9px; cursor: pointer; }
 .bkbtns button:hover { background: var(--accent); color: var(--bg); }
 #bkText { font: 11px var(--mono); background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: 5px 7px; width: 100%; resize: vertical; }
+/* travel map */
+.tripbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: -2px 0 8px; padding: 6px 10px; border: 1px solid rgba(79,179,217,.35); background: rgba(79,179,217,.08); border-radius: 6px; font: 12px var(--mono); }
+.tripbar .tsum { margin-right: auto; }
+.tripbar .tsum b { color: var(--fg); }
+.tripbar .tdanger { color: var(--hot); }
+.tripbar button { font: 12px var(--mono); background: var(--bg); color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 3px 9px; cursor: pointer; }
+.tripbar button.on { background: var(--accent); color: var(--bg); }
+#mapPanel.tripon > #map, #mapPanel.tripon > .legend, #mapPanel.tripon > .selbar, #mapPanel.tripon > .selquiet { display: none !important; }
+#tripMap { width: 100%; height: auto; display: block; }
+#tripMap text { font-family: var(--mono); font-size: 10px; fill: var(--fg); pointer-events: none; paint-order: stroke; stroke: var(--panel); stroke-width: 3px; stroke-linejoin: round; }
+#tripMap .tline { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; }
+#tripMap .tline.done { stroke: var(--line); }
+#tripMap .tnode { stroke: #05080b; stroke-width: 1.5; }
+#tripMap .past { opacity: .35; }
+#tripMap .tsec { font-size: 9px; }
+#tripMap .tdgr { fill: var(--hot); stroke: none; opacity: .28; }
+#tripMap .tchip { font-size: 9px; font-weight: 700; }
+#tripMap .tchip.k { fill: var(--hot); } #tripMap .tchip.i { fill: var(--intel); } #tripMap .tchip.c { fill: var(--hot); }
+#tripMap .tyou { fill: none; stroke: var(--fg); stroke-width: 1.5; stroke-dasharray: 3 3; }
+#tripMap .tyoulbl, #tripMap .tdest { font-weight: 700; font-size: 9px; }
+#tripMap .tdest { fill: var(--accent); }
+#tripMap .tnext { fill: none; stroke: var(--accent); stroke-width: 1.5; }
+#tripMap .tkey { fill: var(--muted); font-size: 9px; }
 .selbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: -2px 0 8px; font: 12px var(--mono); }
 .selbar b { font: 600 14px var(--display); }
 .selbar button, .routeform button, .routeacts button, .mini { font: 12px var(--mono); background: var(--bg); color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 3px 9px; cursor: pointer; }
@@ -434,9 +457,11 @@ footer { font: 11px var(--mono); color: var(--muted); }
   <div class="grid">
     <section class="panel" id="mapPanel">
       <h2>Gate map</h2>
+      <div class="tripbar" id="tripBar" hidden></div>
       <div class="selbar" id="selbar" hidden></div>
       <div class="selquiet" id="selQuiet"></div>
       <svg id="map" viewBox="0 0 600 600" role="img" aria-label="Systems arranged in rings by jump distance"></svg>
+      <svg id="tripMap" viewBox="0 0 600 300" role="img" aria-label="Your route to the destination" hidden></svg>
       <div class="legend">
         <span><i style="background:var(--hot)"></i>kill in last hour</span>
         <span><i style="background:var(--warm)"></i>kill in last 6 h</span>
@@ -664,7 +689,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.42</span>
+    <span class="ver" id="aboutVer">Version 2.43</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -707,6 +732,17 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Layout</h3>
     <p>From the top: the summary numbers, with Thera/Turnur connections and sov fights side by side below them (each box lights up when there's something in range, and a sov fight under way pulses red); the gate map with the systems table and intel beside it; watched systems; then <b>Alerts and settings</b>, <b>Character notifications</b> and <b>Kills</b>. Each of the last three has a <b>–</b> button that collapses it into a small button in a row above them. Press the small button to open it again. The page remembers which are open. A collapsed Character notifications button shows how many attacks arrived in the last hour.</p>
+
+    <h3>Travel map</h3>
+    <p>When you set a destination from this page (<b>Set destination</b> on a system, a timer's <b>Destination</b> button, or the Route planner), a trip bar appears at the top of the Gate map. It shows the destination, jumps left, the next system and how many systems ahead have something reported. <b>Travel map</b> switches the Gate map to your route; <b>Area map</b> switches back.</p>
+    <ul>
+      <li>The route is drawn step by step, in rows, start to destination. Each system shows its name and security status, colored like EVE. The dashed ring is you, the blue ring your next jump, and systems you've passed fade.</li>
+      <li>Above a system: <b>✕</b> kills there in the last hour (EVE's own numbers, so this works anywhere, not only on the area map), <b>INTEL</b> with the reported pilot count and minutes since it was reported, and <b>CAMP</b> for gate camps the page has spotted. Dangerous systems glow red. Hover a system for the details.</li>
+      <li>It follows you: as you jump the route moves along; if you leave the route it finds a new one from where you are; when you arrive the trip ends.</li>
+      <li>Intel about a system still ahead on your route alerts you, however far away it is.</li>
+      <li><b>Safer route</b> (shown when something is reported ahead) finds a route around the dangerous systems. <b>Send to autopilot</b> puts the route from where you are into your autopilot. <b>End trip</b> clears it. The trip is remembered if you reload.</li>
+      <li>EVE doesn't tell other programs about a destination you set inside the game, so set it from this page to get the travel map.</li>
+    </ul>
 
     <h3>Moving and resizing boxes</h3>
     <p>On a window at least 900 pixels wide, every box can be moved and resized straight away. Drag a box by its title to move it. Drag any edge or corner (top, bottom, left, right, or diagonally from any corner) to resize it; the pointer changes and the box gets a dashed outline when you're on an edge. Boxes snap to a small grid. The map grows and shrinks with its box.</p>
@@ -848,6 +884,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.43</b> Travel map: set a destination from the page to see your route step by step, with kills, intel and camps on it, alerts for danger ahead, re-routing when you leave it, a safer-route button, and Send to autopilot.</li>
       <li><b>2.42</b> Systems in other regions are grouped into their own slice of the map, shaded and named, so region borders are easy to see.</li>
       <li><b>2.41</b> The group chips are gone from the Hostile tracker; each pilot’s row still shows its group color.</li>
       <li><b>2.40</b> Boxes resize from every side and every corner, including the top edge and the top corners.</li>
@@ -1296,7 +1333,7 @@ function renderMap() {
     h += `<text x="${p.x.toFixed(1)}" y="${(p.y + (below ? r + 11 : -r - 4)).toFixed(1)}" text-anchor="middle" font-weight="${s.id === state.origin ? 600 : 400}">${esc(s.name)}${s.k1 ? " ·" + s.k1 : ""}${cnt}${tags}</text></g>`;
   }
   svg.innerHTML = h;
-  renderSelbar();
+  renderSelbar(); renderTrip();
 }
 
 function renderTable() {
@@ -1737,6 +1774,7 @@ document.addEventListener("visibilitychange", () => {
 
 async function maybeAlert(r) {
   if (isClear(r.msg)) return;
+  if (tripAlert(r)) return;
   const wHits = matchWatch(r.msg);
   if (wHits.length && cfg.alWatch) {
     const w = state.watch.get(wHits[0]), n0 = wHits.length === 1 ? parseCount(r.msg) : null;
@@ -2229,7 +2267,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.42";
+const APP_VERSION = "2.43";
 let watchGen = 0;
 function watchNames() { return (cfg.watch || "").split(",").map(x => x.trim()).filter(Boolean); }
 async function loadWatch() {
@@ -2635,6 +2673,7 @@ async function setDestination(id, name, add) {
   try {
     await esiCall(c, "POST", "/ui/autopilot/waypoint/", { add_to_beginning: false, clear_other_waypoints: !add, destination_id: id });
     toast(`${add ? "Waypoint added" : "Destination set"}: ${name} (${c.name})`);
+    if (!add) startTrip(id, name);
   } catch (e) { toast(`Couldn't set the ${add ? "waypoint" : "destination"}: ${e.message}. Is ${c.name} logged in to EVE?`, true); }
 }
 async function openInfo(id, label) {
@@ -2719,7 +2758,7 @@ async function findRoute() {
       return `<li><span class="rn">${i}</span><b>${esc(nm(id))}</b>${sc != null ? `<span class="sec" style="color:${secColor(sc)}">${fmtSec(sc)}</span>` : ""}${d ? [...d].map(w => `<span class="chip camp">${esc(w.toUpperCase())}</span>`).join("") : ""}</li>`;
     }).join("");
     $("#routeActions").hidden = false;
-    renderMap();
+    startTrip(to.id, to.name, route, !!safe && safe.length > plain.length);
   } catch (e) { say2("Couldn't get a route from EVE right now: " + e.message, true); }
 }
 async function sendRoute() {
@@ -2738,7 +2777,135 @@ async function sendRoute() {
 }
 $("#routeForm").addEventListener("submit", e => { e.preventDefault(); findRoute(); });
 $("#routeSend").addEventListener("click", sendRoute);
-$("#routeClear").addEventListener("click", () => { state.route = null; $("#routeList").innerHTML = ""; $("#routeNote").textContent = ""; $("#routeActions").hidden = true; renderMap(); });
+$("#routeClear").addEventListener("click", () => { endTrip(true); state.route = null; $("#routeList").innerHTML = ""; $("#routeNote").textContent = ""; $("#routeActions").hidden = true; renderMap(); });
+
+/* 2b. travel map: when a destination is set (from this page), the route to it as a simple step-by-step map.
+   It follows you as you jump, finds a new route if you leave it, warns about danger ahead, and ends when you arrive. */
+state.trip = (() => { try { return JSON.parse(ls.get("trip", "null")); } catch { return null; } })();
+if (state.trip?.route) state.route = state.trip.route;
+const saveTrip = () => ls.set("trip", JSON.stringify(state.trip));
+let tripBusy = false;
+async function startTrip(dest, destName, route, safer) {
+  const prev = state.trip;
+  state.trip = { dest, destName, route: route || null, safer: !!safer, view: prev?.dest === dest ? prev.view : true, sec: {} };
+  if (!route) await tripReroute(); else await tripPrepare();
+  saveTrip(); renderTrip(); renderMap();
+}
+function endTrip(quiet) {
+  if (!state.trip) return;
+  state.trip = null; state.route = null; saveTrip(); renderTrip(); renderMap();
+  if (!quiet) toast("Trip ended.");
+}
+async function tripPrepare() { // names and security of every system on the route
+  const t = state.trip; if (!t?.route) return;
+  await resolveNames(t.route);
+  const sec = await secsOf(t.route); for (const id of t.route) { const v = sec(id); if (v != null) t.sec[id] = v; }
+  state.route = t.route;
+}
+function tripHere() { // where you are on the route: index, or -1 if you're somewhere else, or null if unknown
+  const me = youNow(), t = state.trip; if (!me || !t?.route) return null;
+  const i = t.route.findIndex(id => (nm(id) || "").toUpperCase() === me.system.toUpperCase());
+  return { me, i };
+}
+async function tripReroute(avoidDanger) {
+  const t = state.trip; if (!t || tripBusy) return; tripBusy = true;
+  try {
+    const me = youNow(); const from = me ? await idOf(me.system) : null;
+    if (!from) { t.route = t.route || null; return; }
+    const avoid = avoidDanger ? [...new Set([...dangerSystems().keys(), ...(t.route || []).filter(id => tripDanger(id).any)])].filter(id => id !== from.id && id !== t.dest) : [];
+    const r = await routeIds(from.id, t.dest, cfg.routeFlag || "shortest", avoid) || (avoid.length ? await routeIds(from.id, t.dest, cfg.routeFlag || "shortest", []) : null);
+    if (r) { t.route = r; t.safer = !!avoidDanger; t.offAt = null; await tripPrepare(); }
+    else toast(`There's no gate route to ${t.destName}.`, true);
+  } catch (e) { toast("Couldn't get a route from EVE: " + e.message, true); }
+  finally { tripBusy = false; saveTrip(); renderTrip(); renderMap(); }
+}
+function matchTrip(msg) { // intel that names a system on the route (full names, or a unique start of a name with a dash or digit)
+  const R = state.trip?.route; if (!R) return [];
+  const out = new Set();
+  for (const tk of msg.toUpperCase().split(/[^A-Z0-9-]+/)) {
+    if (!tk) continue;
+    const ex = R.find(id => (nm(id) || "").toUpperCase() === tk); if (ex) { out.add(ex); continue; }
+    if (tk.length >= 3 && /[-0-9]/.test(tk)) { const c = R.filter(id => (nm(id) || "").toUpperCase().startsWith(tk)); if (c.length === 1) out.add(c[0]); }
+  }
+  return [...out];
+}
+function tripDanger(id) { // kills in the last hour (EVE's own numbers, any system), intel in the last 15 minutes, gate camps
+  const k = state.hourly?.km?.get(id), kills = k ? (k.ship_kills || 0) + (k.pod_kills || 0) : 0, now = Date.now();
+  let intelN = 0, intelAge = null, pilots = null;
+  for (const r of intel.reports) if (now - r.t < 15 * 60e3 && !isClear(r.msg) && matchTrip(r.msg).includes(id)) {
+    intelN++; const a = (now - r.t) / 60e3; if (intelAge == null || a < intelAge) { intelAge = a; const n = parseCount(r.msg); pilots = n; }
+  }
+  const camp = state.camps?.has(id) || false;
+  return { kills, intelN, intelAge, pilots, camp, any: kills > 0 || intelN > 0 || camp };
+}
+function renderTrip() {
+  const bar = $("#tripBar"), t = state.trip, panel = $("#mapPanel"), svg = $("#tripMap");
+  if (!t) { bar.hidden = true; panel.classList.remove("tripon"); svg.toggleAttribute("hidden", true); return; }
+  const here = tripHere(), R = t.route || [];
+  if (!R.length && youNow() && !tripBusy && t.offAt !== youNow().system) { t.offAt = youNow().system; tripReroute(t.safer); } // location just became known
+  // follow the trip: arrived, moved along it, or left it (then find a new route from where you are)
+  if (here && R.length) {
+    if (here.me.system.toUpperCase() === (t.destName || "").toUpperCase()) { toast(`Arrived in ${t.destName}. Trip ended.`); endTrip(true); return; }
+    if (here.i < 0 && t.offAt !== here.me.system && !tripBusy) { t.offAt = here.me.system; tripReroute(t.safer); }
+  }
+  const at = here && here.i >= 0 ? here.i : null, ahead = at == null ? R.slice(1) : R.slice(at + 1);
+  const risky = ahead.filter(id => tripDanger(id).any), left = at == null ? R.length - 1 : R.length - 1 - at, next = ahead[0];
+  bar.hidden = false;
+  bar.innerHTML = `<span class="tsum">Trip to <b>${esc(t.destName)}</b>${R.length ? ` · ${left} jump${left === 1 ? "" : "s"} left` : youNow() ? " · finding a route…" : " · waiting for your location (EVE login or chat logs)"}${next ? ` · next <b>${esc(nm(next))}</b>${t.sec[next] != null ? ` <span style="color:${secColor(t.sec[next])}">${fmtSec(t.sec[next])}</span>` : ""}` : ""}${risky.length ? ` · <span class="tdanger">${risky.length} dangerous system${risky.length === 1 ? "" : "s"} ahead</span>` : R.length ? " · nothing reported ahead" : ""}${t.safer ? ` <span class="note">(safer route)</span>` : ""}${at == null && R.length ? ` <span class="note">· your location isn't on the route yet</span>` : ""}</span>
+    <button type="button" id="tripView" class="${t.view ? "on" : ""}" aria-pressed="${!!t.view}">${t.view ? "Area map" : "Travel map"}</button>
+    ${risky.length ? `<button type="button" id="tripSafer" title="Find a route that avoids the dangerous systems">Safer route</button>` : ""}
+    <button type="button" id="tripSend" title="Put this route in your autopilot">Send to autopilot</button>
+    <button type="button" id="tripEnd">End trip</button>`;
+  panel.classList.toggle("tripon", !!t.view); svg.toggleAttribute("hidden", !t.view); // (SVG elements have no .hidden property)
+  if (!t.view || !R.length) { if (t.view) svg.innerHTML = ""; return; }
+  // the route as a snake: rows of systems, left to right then right to left
+  const n = R.length, per = n <= 7 ? n : n <= 18 ? 6 : n <= 40 ? 8 : 10, rows = Math.ceil(n / per), xs = 600 / per, ys = 92, H = rows * ys + 34;
+  svg.setAttribute("viewBox", `0 0 600 ${H}`);
+  const P = R.map((id, i) => { const r = Math.floor(i / per), c = i % per, col = r % 2 ? per - 1 - c : c; return { id, x: xs * (col + 0.5), y: 52 + r * ys }; });
+  // straight along a row; at the end of a row, a curve out to the side and back, so it doesn't cross the labels below
+  const path = a => a.map((p, i) => { if (!i) return `M${p.x.toFixed(1)},${p.y}`; const q = a[i - 1];
+    if (q.y === p.y) return `L${p.x.toFixed(1)},${p.y}`; const bx = (q.x + (q.x > 300 ? 1 : -1) * Math.min(44, xs * 0.45)).toFixed(1);
+    return `C${bx},${q.y} ${bx},${p.y} ${p.x.toFixed(1)},${p.y}`; }).join(" ");
+  let h = "";
+  if (at != null && at > 0) h += `<path class="tline done" d="${path(P.slice(0, at + 1))}"/>`;
+  h += `<path class="tline" d="${path(P.slice(at ?? 0))}"/>`;
+  P.forEach((p, i) => {
+    const id = p.id, d = tripDanger(id), sc = t.sec[id], past = at != null && i < at, isDest = i === n - 1;
+    const tip = `${nm(id)}${sc != null ? " (" + fmtSec(sc) + ")" : ""} · ${i === 0 && at == null ? "start" : at != null ? (i - at > 0 ? (i - at) + " jumps ahead" : i === at ? "you are here" : "passed") : i + " jumps"}` +
+      `${d.kills ? ` · ${d.kills} kills in the last hour` : ""}${d.intelN ? ` · in intel ${Math.floor(d.intelAge)}m ago${d.pilots ? ", " + d.pilots + " pilots" : ""}` : ""}${d.camp ? " · gate camp" : ""}`;
+    h += `<g class="${past ? "past" : ""}"><title>${esc(tip)}</title>`;
+    if (d.any && !past) h += `<circle class="tdgr" cx="${p.x.toFixed(1)}" cy="${p.y}" r="17"/>`;
+    h += `<circle class="tnode" cx="${p.x.toFixed(1)}" cy="${p.y}" r="${isDest ? 9 : 7}" fill="${sc != null ? secColor(sc) : "#3a4858"}"/>`;
+    if (at === i) h += `<circle class="tyou" cx="${p.x.toFixed(1)}" cy="${p.y}" r="13"/>`;
+    else if (at != null && i === at + 1) h += `<circle class="tnext" cx="${p.x.toFixed(1)}" cy="${p.y}" r="12"/>`;
+    // danger above the system, name and security below
+    const chips = [d.camp ? `<tspan class="tchip c">CAMP </tspan>` : "", d.kills ? `<tspan class="tchip k">✕${d.kills} </tspan>` : "", d.intelN ? `<tspan class="tchip i">INTEL${d.pilots ? " " + d.pilots : ""} ${Math.floor(d.intelAge)}m</tspan>` : ""].join("");
+    const top = at === i ? `<tspan class="tyoulbl">YOU </tspan>` : isDest ? `<tspan class="tdest">DEST </tspan>` : "";
+    if (top || (chips && !past)) h += `<text x="${p.x.toFixed(1)}" y="${p.y - 20}" text-anchor="middle">${top}${past ? "" : chips}</text>`;
+    h += `<text x="${p.x.toFixed(1)}" y="${p.y + 24}" text-anchor="middle" font-weight="${isDest ? 700 : 400}">${esc(nm(id))}</text>`;
+    if (sc != null) h += `<text class="tsec" x="${p.x.toFixed(1)}" y="${p.y + 35}" text-anchor="middle" style="fill:${secColor(sc)}">${fmtSec(sc)}</text>`;
+    h += `</g>`;
+  });
+  h += `<text class="tkey" x="300" y="${H - 8}" text-anchor="middle"><tspan class="tchip k">✕</tspan> kills last hour · <tspan class="tchip i">INTEL</tspan> pilots, mins ago · <tspan class="tchip c">CAMP</tspan> gate camp · blue ring: next jump</text>`;
+  svg.innerHTML = h;
+}
+$("#tripBar").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b || !state.trip) return;
+  if (b.id === "tripView") { state.trip.view = !state.trip.view; saveTrip(); renderTrip(); }
+  if (b.id === "tripEnd") endTrip();
+  if (b.id === "tripSafer") tripReroute(true);
+  if (b.id === "tripSend") { const h = tripHere(), R = state.trip.route || []; state.route = h && h.i > 0 ? R.slice(h.i) : R; sendRoute().finally(() => { state.route = R; }); }
+});
+// intel about a system still ahead on your route: alert, however far away it is
+function tripAlert(r) {
+  const t = state.trip; if (!t?.route || isClear(r.msg)) return false;
+  const h = tripHere(), at = h && h.i >= 0 ? h.i : 0;
+  const hit = matchTrip(r.msg).map(id => ({ id, d: t.route.indexOf(id) - at })).filter(x => x.d > 0).sort((a, b) => a.d - b.d)[0];
+  if (!hit) return false;
+  const n = parseCount(r.msg), name = nm(hit.id);
+  fireAlert("t" + r.t + r.msg, `Hostiles on your route: ${name}, ${hit.d} jump${hit.d === 1 ? "" : "s"} ahead${n ? ", " + n + " pilots" : ""}`, `${r.who}: ${r.msg}`, `On your route, ${say(name)}, ${hit.d} jump${hit.d === 1 ? "" : "s"} ahead`);
+  return true;
+}
 
 /* 3. standings from EVE contacts (personal, corp, alliance) */
 state.esiFriends = new Set(); state.esiEnemies = new Set(); state.manFriends ||= new Set(); state.manEnemies ||= new Set();
