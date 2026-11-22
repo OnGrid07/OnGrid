@@ -11,6 +11,8 @@ const fs = require("fs");
 
 const SITE = process.env.LOCALINTEL_SITE || "https://ongrid07.github.io/OnGrid/"; // the override is only for testing
 const SITE_ORIGIN = new URL(SITE).origin;
+// always ask for the live page, never a stored copy, so every window runs the newest version
+const FRESH = { extraHeaders: "Cache-Control: no-cache\nPragma: no-cache\n" };
 const LOGIN_HOST = "login.eveonline.com";
 const ICON = path.join(__dirname, "icon.png");
 
@@ -49,7 +51,7 @@ function createWindow(visible = true) {
     alwaysOnTop: prefs.alwaysOnTop, autoHideMenuBar: true,
     webPreferences: { backgroundThrottling: false, contextIsolation: true, sandbox: true } // keep timers and alerts running when hidden
   });
-  win.loadURL(SITE);
+  win.loadURL(SITE, FRESH);
   guard(win);
 
   // no internet or the site is down: show a page that retries
@@ -104,7 +106,7 @@ function openBox(id, quiet) { // quiet: reopened after a restart, so don't take 
   });
   if (quiet) bw.once("ready-to-show", () => bw.showInactive());
   const url = new URL(SITE); url.searchParams.set("box", id);
-  bw.loadURL(url.toString()); guard(bw);
+  bw.loadURL(url.toString(), FRESH); guard(bw);
   bw.webContents.on("did-fail-load", (e, code, desc, u, isMain) => { if (isMain && code !== -3) bw.loadFile(path.join(__dirname, "offline.html"), { query: { site: url.toString(), reason: desc } }); });
   bw.on("close", () => { prefs.boxBounds = { ...(prefs.boxBounds || {}), [id]: bw.getBounds() }; savePrefs(); });
   bw.on("closed", () => { boxWins.delete(id); sendOpenIds(); });
@@ -199,7 +201,7 @@ function trayMenu() {
     { label: "Keep running when closed", type: "checkbox", checked: prefs.closeToTray, click: i => { prefs.closeToTray = i.checked; savePrefs(); } },
     { label: "Start with Windows", type: "checkbox", checked: app.getLoginItemSettings().openAtLogin, click: i => app.setLoginItemSettings({ openAtLogin: i.checked }) },
     { type: "separator" },
-    { label: "Reload page", click: () => { win.loadURL(SITE); for (const w of boxWins.values()) if (!w.isDestroyed()) w.reload(); } },
+    { label: "Reload page", click: () => { win.webContents.reloadIgnoringCache(); for (const w of boxWins.values()) if (!w.isDestroyed()) w.webContents.reloadIgnoringCache(); } },
     { type: "separator" },
     ...updateItems(),
     { type: "separator" },
