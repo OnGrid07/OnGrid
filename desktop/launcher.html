@@ -6,17 +6,18 @@
 <title>OnGrid</title>
 <style>
   /* OnGrid launcher: a gate ring. Each symbol on the ring opens one box in its own window; the centre opens the full page.
-     The window is transparent and has no frame: drag the ring to move it. */
+     The window is transparent and has no frame: drag the ring anywhere (even on a symbol) to move it; a click without moving opens. */
   :root { color-scheme: dark; --accent: #4fb3d9; --fg: #d6e1ea; --muted: #7d8fa0; }
   html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; user-select: none; font-family: "Segoe UI", system-ui, sans-serif; }
-  .gate { position: absolute; inset: 10px; border-radius: 50%; -webkit-app-region: drag; }
+  .gate { position: absolute; inset: 10px; border-radius: 50%; cursor: grab; }
+  body.dragging, body.dragging * { cursor: grabbing !important; }
   .gate svg.ring { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-  .sym { position: absolute; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; border: 0; padding: 0; background: transparent; cursor: pointer; -webkit-app-region: no-drag; display: grid; place-items: center; transition: transform .15s, filter .15s; }
+  .sym { position: absolute; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; border: 0; padding: 0; background: transparent; cursor: pointer; display: grid; place-items: center; transition: transform .15s, filter .15s; }
   .sym svg { width: 26px; height: 26px; fill: none; stroke: #e8eef3; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 2px rgba(0,0,0,.9)); }
   .sym:hover, .sym:focus-visible { transform: scale(1.22); filter: drop-shadow(0 0 6px var(--accent)); outline: none; }
   .sym:hover svg, .sym:focus-visible svg { stroke: #fff; }
   .sym.open::after { content: ""; position: absolute; bottom: 1px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px var(--accent); }
-  .core { position: absolute; left: 50%; top: 50%; width: 66.5%; height: 66.5%; transform: translate(-50%, -50%); border-radius: 50%; border: 0; cursor: pointer; -webkit-app-region: no-drag;
+  .core { position: absolute; left: 50%; top: 50%; width: 66.5%; height: 66.5%; transform: translate(-50%, -50%); border-radius: 50%; border: 0; cursor: pointer;
     background: radial-gradient(circle at 50% 50%, rgba(79,179,217,.55) 0%, rgba(40,110,160,.45) 35%, rgba(12,30,48,.75) 68%, rgba(8,14,22,.92) 100%); box-shadow: inset 0 0 40px rgba(79,179,217,.35); overflow: hidden; }
   .core::before, .core::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(160,220,245,.35); animation: ripple 4s ease-out infinite; }
   .core::after { animation-delay: 2s; }
@@ -26,7 +27,7 @@
   .label { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; color: var(--fg); text-shadow: 0 0 8px #000, 0 0 3px #000; }
   .label b { display: block; font: 600 22px "Segoe UI", system-ui, sans-serif; letter-spacing: .06em; }
   .label span { display: block; font-size: 12px; color: #bfe6f6; margin-top: 2px; min-height: 1.2em; }
-  .hide { position: absolute; left: 50%; bottom: 4px; transform: translateX(-50%); -webkit-app-region: no-drag; font: 11px "Segoe UI", sans-serif; color: var(--muted); background: rgba(11,15,20,.85); border: 1px solid #1f2a36; border-radius: 10px; padding: 1px 9px; cursor: pointer; }
+  .hide { position: absolute; left: 50%; bottom: 4px; transform: translateX(-50%); font: 11px "Segoe UI", sans-serif; color: var(--muted); background: rgba(11,15,20,.85); border: 1px solid #1f2a36; border-radius: 10px; padding: 1px 9px; cursor: pointer; }
   .hide:hover { color: var(--fg); border-color: var(--accent); }
 </style>
 </head>
@@ -89,7 +90,27 @@
   const place = () => { const s = box.clientWidth / 400; document.querySelectorAll(".sym").forEach((b, i) => { const [x, y] = at(ang(i), R); b.style.left = x * s + "px"; b.style.top = y * s + "px"; }); };
   document.getElementById("syms").innerHTML = ITEMS.map(([id, name, icon]) => `<button class="sym" data-id="${id}" title="${name}" aria-label="${name}"><svg viewBox="0 0 24 24">${icon}</svg></button>`).join("");
   place(); addEventListener("resize", place);
-  const api = window.ongrid || { open: () => {}, full: () => {}, quit: () => {}, hide: () => {}, onOpen: () => {} };
+  const api = window.ongrid || { open: () => {}, full: () => {}, quit: () => {}, hide: () => {}, onOpen: () => {}, dragStart: () => {}, dragMove: () => {}, dragEnd: () => {} };
+  // moving the ring: press anywhere on it and drag. It only counts as a drag after 4 pixels, so clicks still work.
+  let drag = null;
+  document.getElementById("gate").addEventListener("pointerdown", e => {
+    if (e.button !== 0) return;
+    drag = { x: e.screenX, y: e.screenY, moved: false, id: e.pointerId };
+  });
+  document.getElementById("gate").addEventListener("pointermove", e => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const dx = e.screenX - drag.x, dy = e.screenY - drag.y;
+    if (!drag.moved) { if (Math.hypot(dx, dy) < 4) return; drag.moved = true; document.body.classList.add("dragging"); document.getElementById("gate").setPointerCapture(e.pointerId); api.dragStart(); } // capture only once it's really a drag, so plain clicks reach the symbols
+    api.dragMove(Math.round(dx), Math.round(dy));
+  });
+  const endDrag = e => {
+    if (!drag) return; const moved = drag.moved; drag = null; document.body.classList.remove("dragging");
+    if (moved) { api.dragEnd(); quietUntil = Date.now() + 250; } // the drag isn't also a click
+  };
+  let quietUntil = 0;
+  addEventListener("click", ev => { if (Date.now() < quietUntil) { ev.stopPropagation(); ev.preventDefault(); } }, true);
+  document.getElementById("gate").addEventListener("pointerup", endDrag);
+  document.getElementById("gate").addEventListener("pointercancel", endDrag);
   document.getElementById("syms").addEventListener("click", e => { const b = e.target.closest(".sym"); if (!b) return; b.dataset.id === "quit" ? api.quit() : api.open(b.dataset.id); });
   document.getElementById("syms").addEventListener("mouseover", e => { const b = e.target.closest(".sym"); if (b) what.textContent = b.title; });
   document.getElementById("syms").addEventListener("mouseout", () => what.textContent = "Open everything");

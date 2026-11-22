@@ -73,16 +73,17 @@ let launcher = null;
 const boxWins = new Map(); // box id -> its window
 const BOX_SIZE = { mapPanel: [760, 820], sysPanel: [900, 600], intelPanel: [620, 700], watchPanel: [900, 420], scanPanel: [900, 760], hostilePanel: [760, 520],
   timerPanel: [640, 560], routePanel: [560, 640], notifPanel: [640, 640], killPanel: [700, 720], settings: [980, 820], about: [760, 820] };
-function createLauncher() {
+function createLauncher(quiet) {
   const size = 460, p = prefs.launcherPos;
   const onScreen = p && screen.getAllDisplays().some(d => p.x >= d.workArea.x - 100 && p.y >= d.workArea.y - 100 && p.x < d.workArea.x + d.workArea.width && p.y < d.workArea.y + d.workArea.height);
   launcher = new BrowserWindow({
     width: size, height: size, x: onScreen ? p.x : undefined, y: onScreen ? p.y : undefined,
     frame: false, transparent: true, resizable: false, maximizable: false, fullscreenable: false, hasShadow: false,
-    alwaysOnTop: prefs.alwaysOnTop, title: "OnGrid", icon: ICON, backgroundColor: "#00000000",
+    alwaysOnTop: prefs.alwaysOnTop, title: "OnGrid", icon: ICON, backgroundColor: "#00000000", show: !quiet,
     webPreferences: { preload: path.join(__dirname, "launcher-preload.js"), contextIsolation: true, sandbox: true }
   });
   launcher.loadFile(path.join(__dirname, "launcher.html"));
+  if (quiet) launcher.once("ready-to-show", () => launcher.showInactive());
   launcher.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   launcher.webContents.on("will-navigate", e => e.preventDefault());
   launcher.webContents.on("did-finish-load", sendOpenIds);
@@ -91,16 +92,17 @@ function createLauncher() {
 }
 function showLauncher() { if (!launcher) createLauncher(); launcher.show(); launcher.focus(); }
 function sendOpenIds() { if (launcher && !launcher.isDestroyed()) launcher.webContents.send("launcher:open-ids", [...boxWins.keys()]); }
-function openBox(id) {
+function openBox(id, quiet) { // quiet: reopened after a restart, so don't take the focus away from the game
   if (!BOX_SIZE[id]) return;
   const open = boxWins.get(id);
   if (open && !open.isDestroyed()) { if (open.isMinimized()) open.restore(); open.show(); open.focus(); return; }
   const b = prefs.boxBounds?.[id], [w, h] = BOX_SIZE[id];
   const bw = new BrowserWindow({
     width: b?.width || w, height: b?.height || h, x: b?.x, y: b?.y, minWidth: 360, minHeight: 260,
-    title: "OnGrid", icon: ICON, backgroundColor: "#0b0f14", autoHideMenuBar: true, alwaysOnTop: prefs.alwaysOnTop,
+    title: "OnGrid", icon: ICON, backgroundColor: "#0b0f14", autoHideMenuBar: true, alwaysOnTop: prefs.alwaysOnTop, show: !quiet,
     webPreferences: { backgroundThrottling: false, contextIsolation: true, sandbox: true }
   });
+  if (quiet) bw.once("ready-to-show", () => bw.showInactive());
   const url = new URL(SITE); url.searchParams.set("box", id);
   bw.loadURL(url.toString()); guard(bw);
   bw.webContents.on("did-fail-load", (e, code, desc, u, isMain) => { if (isMain && code !== -3) bw.loadFile(path.join(__dirname, "offline.html"), { query: { site: url.toString(), reason: desc } }); });
@@ -111,6 +113,14 @@ function openBox(id) {
 ipcMain.on("launcher:open", (e, id) => { if (e.sender === launcher?.webContents) openBox(id); });
 ipcMain.on("launcher:full", e => { if (e.sender === launcher?.webContents) show(); });
 ipcMain.on("launcher:hide", e => { if (e.sender === launcher?.webContents) { launcher.hide(); if (!prefs.toldLauncher) { prefs.toldLauncher = true; savePrefs(); notify("The launcher is in the tray", "Click the tray icon to bring it back."); } } });
+// moving the ring (the window has no frame): the launcher sends how far the pointer has moved since the drag began
+let dragFrom = null;
+ipcMain.on("launcher:drag", (e, what, dx, dy) => {
+  if (!launcher || e.sender !== launcher.webContents) return;
+  if (what === "start") { const [x, y] = launcher.getPosition(); dragFrom = { x, y }; }
+  else if (what === "move" && dragFrom && Number.isFinite(dx) && Number.isFinite(dy)) launcher.setPosition(Math.round(dragFrom.x + dx), Math.round(dragFrom.y + dy));
+  else if (what === "end") { dragFrom = null; const [x, y] = launcher.getPosition(); prefs.launcherPos = { x, y }; savePrefs(); }
+});
 ipcMain.on("launcher:quit", e => { if (e.sender === launcher?.webContents) { quitting = true; app.quit(); } });
 
 function notify(title, body, onClick) {
@@ -142,23 +152,34 @@ function setupUpdates() {
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
   autoUpdater.on("checking-for-update", () => { update.state = "checking"; refreshTray(); });
-  autoUpdater.on("update-not-available", () => { update.state = "current"; refreshTray(); });
-  autoUpdater.on("update-available", i => { update = { state: "downloading", version: i.version, error: null }; refreshTray(); });
+  autoUpdater.on("update-not-available", () => { update.state = "current"; refreshTray(); if (manualCheck) { manualCheck = false; notify("OnGrid is up to date", `You have the newest version, ${app.getVersion()}.`); } });
+  autoUpdater.on("update-available", i => { update = { state: "downloading", version: i.version, error: null }; refreshTray(); if (manualCheck) { manualCheck = false; notify("OnGrid update found", `Downloading version ${i.version}; it installs by itself when it's ready.`); } });
   autoUpdater.on("update-downloaded", i => {
     update = { state: "ready", version: i.version, error: null }; refreshTray();
-    notify("OnGrid update ready", `Version ${i.version} installs next time the app starts. Click to restart now.`, () => { quitting = true; autoUpdater.quitAndInstall(); });
+    notify("OnGrid update ready", `Version ${i.version} installs by itself in a minute or two, when you're not clicking in OnGrid. Click to restart now.`, installNow);
+    // OnGrid usually runs in the tray and is never quit, so don't wait for a quit: install once no OnGrid window has
+    // been in front for a minute, then start again (the install is silent and takes a few seconds)
+    let idle = 0;
+    clearInterval(installTimer);
+    installTimer = setInterval(() => { idle = BrowserWindow.getFocusedWindow() ? 0 : idle + 1; if (idle >= 2) installNow(); }, 30e3);
   });
-  autoUpdater.on("error", e => { update.state = "error"; update.error = String(e?.message || e).slice(0, 120); refreshTray(); });
+  autoUpdater.on("error", e => { if (manualCheck) { manualCheck = false; notify("OnGrid couldn't check for updates", String(e?.message || e).slice(0, 160)); } update.state = "error"; update.error = String(e?.message || e).slice(0, 120); refreshTray(); });
   const check = () => autoUpdater.checkForUpdates().catch(() => {});
-  setTimeout(check, 10e3); setInterval(check, 4 * 36e5);
+  setTimeout(check, 10e3); setInterval(check, 36e5);
+}
+let installTimer = null, manualCheck = false;
+function installNow() { // silent install, then OnGrid starts again with the same box windows open
+  clearInterval(installTimer); quitting = true;
+  prefs.reopen = { boxes: [...boxWins.keys()], launcher: !!launcher?.isVisible(), at: Date.now() }; savePrefs();
+  autoUpdater.quitAndInstall(true, true);
 }
 function newer(a, b) { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; }
 function updateItems() {
   const v = app.getVersion();
-  if (update.state === "ready") return [{ label: `Restart to update to ${update.version}`, click: () => { quitting = true; autoUpdater.quitAndInstall(); } }];
+  if (update.state === "ready") return [{ label: `Restart to update to ${update.version}`, click: installNow }];
   if (update.state === "portable") return [{ label: `Download version ${update.version}…`, click: () => shell.openExternal(RELEASES) }];
   const status = { checking: "Checking for updates…", downloading: `Downloading ${update.version}…`, current: `Up to date (${v})`, error: "Update check failed" }[update.state] || `Version ${v}`;
-  return [{ label: status, enabled: false }, ...(isPortable || !app.isPackaged ? [] : [{ label: "Check for updates", click: () => autoUpdater.checkForUpdates().catch(() => {}) }])];
+  return [{ label: status, enabled: false }, ...(isPortable || !app.isPackaged ? [] : [{ label: "Check for updates", click: () => { manualCheck = true; autoUpdater.checkForUpdates().catch(() => {}); } }])];
 }
 function refreshTray() { if (tray) tray.setContextMenu(trayMenu()); }
 
@@ -193,8 +214,12 @@ app.whenReady().then(() => {
   const ses = session.defaultSession;
   ses.setPermissionRequestHandler((wc, permission, cb, details) => cb(isOurs(details?.requestingUrl || wc.getURL())));
   ses.setPermissionCheckHandler((wc, permission, origin) => isOurs(origin || wc?.getURL() || ""));
-  createWindow(!prefs.launcher); // with the launcher, the full page still runs (hidden) so alerts and the tray keep working
-  if (prefs.launcher) createLauncher();
+  // after an update restart: put back the launcher and box windows that were open, without stealing focus from the game
+  const again = prefs.reopen && Date.now() - prefs.reopen.at < 10 * 60e3 ? prefs.reopen : null;
+  if (prefs.reopen) { delete prefs.reopen; savePrefs(); }
+  createWindow(!prefs.launcher && !again); // with the launcher, the full page still runs (hidden) so alerts and the tray keep working
+  if (prefs.launcher && (!again || again.launcher)) createLauncher(!!again);
+  if (again) for (const id of again.boxes || []) openBox(id, true);
   buildTray();
   setupUpdates();
 });
