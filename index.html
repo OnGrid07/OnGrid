@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.55
+  OnGrid (formerly Local Intel), version 2.56
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -727,7 +727,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.55</span>
+    <span class="ver" id="aboutVer">Version 2.56</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -815,7 +815,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <p>Paste a new scan any time to replace the old one; nothing is saved or sent anywhere except the look-ups to EVE and zKillboard.</p>
 
     <h3>Hostile tracker</h3>
-    <p>Lists every non-friendly pilot named in intel in the last hour: corp and alliance, the systems they were reported in (oldest first), where they were last seen and how long ago, and whether they're <b>closing in</b> on you or moving away. Their paths are drawn on the map for 30 minutes: a faint track with dashes flowing from where they were first reported toward where they were last seen, and an arrowhead on their latest system.</p>
+    <p>Lists every non-friendly pilot named in intel in the last hour: corp and alliance, the systems they were reported in (oldest first), where they were last seen and how long ago, and whether they're <b>closing in</b> on you or moving away. Their paths are drawn on the map for 30 minutes: a faint track with dashes flowing from where they were first reported toward where they were last seen, and an arrowhead on their latest system. Tracks follow the gates: when intel skips systems, the line goes through the systems in between. If two sightings can't be joined by gates on the map, or are too many jumps apart for the time between the reports (a wormhole, a jump bridge or a wrong report), the track simply breaks there rather than drawing a line straight across.</p>
     <p>Each group has its own color: pilots are grouped by alliance, or by corp if they have no alliance, or on their own. The group's ticker (or name) and how many of them there are show at the end of its newest track (stacked in a column when several groups are in the same system), and pilots of one group who flew the same way share one thicker line. Tracks of different groups on the same gate are drawn slightly apart. Each pilot's row has its group's color on the left. Click a pilot to highlight just their path; click again to show all.</p>
 
     <h3>Timers</h3>
@@ -925,6 +925,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.56</b> Hostile tracks follow the gates through the systems in between, and break instead of drawing impossible lines between systems that aren’t connected (or are too far apart for the time between reports).</li>
       <li><b>2.55</b> The Windows app’s Gate map window has a Jumps picker in its title row to change the map’s size.</li>
       <li><b>2.54</b> Share link works for big fights: a scan with thousands of pilots in Local is saved in pieces and put back together when the link is opened.</li>
       <li><b>2.53</b> Local &amp; D-scan starts with only the D-scan box; after pasting a D-scan, + Add Local opens the Local box.</li>
@@ -2346,7 +2347,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.55";
+const APP_VERSION = "2.56";
 // a window left open (an app box window, a pinned tab) would keep running an old copy of the page after an update:
 // every 10 minutes, look at the live page's version; if it's newer, reload while the window isn't being looked at,
 // or show a small bar with a Reload button
@@ -3305,6 +3306,37 @@ $("#hostileList").addEventListener("click", e => {
   state.selPilot = state.selPilot === +row.dataset.pilot ? null : +row.dataset.pilot; state.selGroup = null;
   renderHostiles(); renderMap();
 });
+// shortest gate route between two systems on the map, at most `max` jumps (null if there isn't one)
+function gatePath(a, b, max) {
+  if (a === b) return [a];
+  const prev = new Map([[a, null]]); let front = [a];
+  for (let d = 0; d < max && front.length; d++) {
+    const next = [];
+    for (const id of front) for (const n of state.systems.get(id)?.neighbors || []) {
+      if (prev.has(n) || !state.systems.has(n)) continue; prev.set(n, id);
+      if (n === b) { const path = [b]; let c = id; while (c != null) { path.unshift(c); c = prev.get(c); } return path; }
+      next.push(n);
+    }
+    front = next;
+  }
+  return null;
+}
+// a pilot's sightings turned into lines that follow the gates: between two sightings the track goes through the systems
+// in between; if no gate route fits (not connected on the map, or too many jumps for the time between the reports:
+// a wormhole, a bridge, or a wrong report) the track breaks there instead of drawing a line that can't happen
+function trackSegments(seen) {
+  const segs = []; let cur = null, prev = null;
+  for (const x of seen) {
+    if (!state.systems.has(x.sys)) { cur = null; prev = null; continue; }
+    if (!cur) { cur = [x.sys]; segs.push(cur); prev = x; continue; }
+    if (x.sys === prev.sys) { prev = x; continue; }
+    const max = Math.min(15, 1 + Math.floor(Math.max(0, x.t - prev.t) / 25e3)); // about 25 seconds a jump at the quickest
+    const path = gatePath(prev.sys, x.sys, max);
+    if (path) cur.push(...path.slice(1)); else { cur = [x.sys]; segs.push(cur); }
+    prev = x;
+  }
+  return segs.filter(sg => sg.length > 1);
+}
 function hostilePathsSvg(pos) {
   // one track per group and route: pilots of the same group who flew the same way share a line (with a count),
   // each group in its own color and nudged a little to one side so groups on the same gate don't hide each other
@@ -3315,9 +3347,9 @@ function hostilePathsSvg(pos) {
     const routes = new Map();
     for (const tr of g.tracks) {
       if (now - tr.seen[tr.seen.length - 1].t > 30 * 60e3 && state.selPilot !== tr.id) continue;
-      const pts = tr.seen.map(x => pos.get(x.sys)).filter(Boolean); if (pts.length < 2) continue;
-      const key = tr.seen.map(x => x.sys).join(">");
-      const r = routes.get(key) || routes.set(key, { pts, seen: tr.seen, ids: [] }).get(key); r.ids.push(tr.id);
+      const segs = trackSegments(tr.seen).map(sg => sg.map(id => pos.get(id)).filter(Boolean)).filter(sg => sg.length > 1); if (!segs.length) continue;
+      const key = trackSegments(tr.seen).map(sg => sg.join(">")).join("|");
+      const r = routes.get(key) || routes.set(key, { segs, seen: tr.seen, ids: [] }).get(key); r.ids.push(tr.id);
     }
     if (!routes.size) continue;
     const a = g.slot * 2.4, off = groups.size > 1 ? 3 : 0, dx = (Math.cos(a) * off).toFixed(1), dy = (Math.sin(a) * off).toFixed(1);
@@ -3325,13 +3357,14 @@ function hostilePathsSvg(pos) {
     for (const r of routes.values()) {
       const on = state.selPilot != null ? r.ids.includes(state.selPilot) : state.selGroup != null ? state.selGroup === g.key : null;
       const cls = on == null ? "hpath" : on ? "hpath on" : "hpath dim";
-      const pp = r.pts.map(p => p.x.toFixed(1) + "," + p.y.toFixed(1)).join(" "), end = r.pts[r.pts.length - 1];
+      const last = r.segs[r.segs.length - 1], end = last[last.length - 1];
       const who = r.ids.length > 1 ? `${r.ids.length} pilots (${r.ids.map(nm).join(", ")})` : nm(r.ids[0]);
       // points run oldest to newest, so the moving dashes and the arrowhead show the direction travelled
       h += `<g class="${cls}" style="--tc:${g.color}" transform="translate(${dx} ${dy})"><title>${esc(g.name)}: ${esc(who)}: ${esc(r.seen.map(x => nm(x.sys)).join(" → "))}</title>
-        <polyline class="hbase" points="${pp}" style="stroke-width:${Math.min(8, 3 + r.ids.length - 1)}"/><polyline class="hflow" points="${pp}" marker-end="url(#harrow${g.slot % TRACK_COLORS.length})"/>`;
+${r.segs.map((sg, i) => { const pp = sg.map(p => p.x.toFixed(1) + "," + p.y.toFixed(1)).join(" ");
+        return `<polyline class="hbase" points="${pp}" style="stroke-width:${Math.min(8, 3 + r.ids.length - 1)}"/><polyline class="hflow" points="${pp}"${i === r.segs.length - 1 ? ` marker-end="url(#harrow${g.slot % TRACK_COLORS.length})"` : ""}/>`; }).join("")}`;
       if (!labelled) { labelled = true; // one label per group, at the end of its newest track (drawn after all the lines)
-        const n = g.tracks.length, k = r.seen[r.seen.length - 1].sys;
+        const n = g.tracks.length, k = `${end.x},${end.y}`;
         (labels.get(k) || labels.set(k, { end, list: [] }).get(k)).list.push({ cls, color: g.color, text: `${g.label}${n > 1 ? " ×" + n : ""}` }); }
       h += `</g>`;
     }
