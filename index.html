@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.49
+  OnGrid (formerly Local Intel), version 2.50
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -717,7 +717,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.49</span>
+    <span class="ver" id="aboutVer">Version 2.50</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -782,7 +782,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <h3>Windows app</h3>
     <p><b>OnGrid for Windows</b> is this page in its own app window. Download <code>OnGrid-Setup-….exe</code> from <a href="https://github.com/OnGrid07/OnGrid/releases/latest" target="_blank" rel="noopener">the releases page</a> and run it; it installs in a few seconds and adds a Start menu shortcut.</p>
     <ul>
-      <li><b>The launcher</b> (app 1.3 and later): the app opens to a round gate ring. Each symbol on the ring opens one box in its own window: Gate map, Intel and location, Local and D-scan, Hostile tracker, Watched systems, Systems, Kills, Character notifications, Timers, Route planner, Alerts and settings, and About; the power symbol quits. Hover a symbol to see its name in the middle. A small blue dot under a symbol means its window is open; clicking the symbol again closes that window. Click the middle of the ring to open the full OnGrid window. Drag the ring from anywhere, even from a symbol, to move it (it remembers where you put it), and press <b>hide</b> (or Esc) to tuck it into the tray. Each box window remembers its size and place. Every window shows the same intel, rings, tracks and alerts: the window that reads your chat logs (or the phone relay) shares them with the others. The Gate map window also has the System, Jumps, Load and Refresh controls, presets and the summary from the top of the page. To start with the full window instead, untick <b>Open to the launcher</b> in the tray menu.</li>
+      <li><b>The launcher</b> (app 1.3 and later): the app opens to a round gate ring. Each symbol on the ring opens one box in its own window: Gate map, Intel and location, Local and D-scan, Hostile tracker, Watched systems, Systems, Kills, Character notifications, Timers, Route planner, Alerts and settings, and About; the power symbol quits. Hover a symbol to see its name in the middle. A small blue dot under a symbol means its window is open; clicking the symbol again closes that window. Click the middle of the ring to open the full OnGrid window. Drag the ring from anywhere, even from a symbol, to move it (it remembers where you put it), and press <b>hide</b> (or Esc) to tuck it into the tray. Each box window remembers its size and place. Every window shows the same intel, rings, tracks and alerts: the window that reads your chat logs (or the phone relay) shares them with the others. To start with the full window instead, untick <b>Open to the launcher</b> in the tray menu.</li>
       <li>It keeps running in the system tray, and alerts and Windows notifications keep working while it's minimized or behind the game. Closing the window hides it to the tray; quit from the tray icon.</li>
       <li>Right-click the tray icon for <b>Always on top</b>, <b>Keep running when closed</b> and <b>Start with Windows</b>.</li>
       <li>It remembers your chat logs folder, so there's no permission prompt each time.</li>
@@ -914,7 +914,8 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
-      <li><b>2.49</b> Intel is shared between windows: the window reading your chat logs passes intel and your location to all other OnGrid windows and tabs, so the Windows app’s box windows show the pulsing intel rings, hostile tracks and YOU ring too. Windows also share the EVE login safely (they take turns renewing it, so it can’t get logged out by two at once), and logging in from a box window brings you back to that box. The app’s Gate map window now has the controls, presets and summary from the top of the page.</li>
+      <li><b>2.50</b> The Windows app’s Gate map window shows only the Gate map again.</li>
+      <li><b>2.49</b> Intel is shared between windows: the window reading your chat logs passes intel and your location to all other OnGrid windows and tabs, so the Windows app’s box windows show the pulsing intel rings, hostile tracks and YOU ring too. Windows also share the EVE login safely (they take turns renewing it, so it can’t get logged out by two at once), and logging in from a box window brings you back to that box.</li>
       <li><b>2.48</b> Windows app 1.3.2: clicking a symbol on the launcher ring whose window is open closes that window.</li>
       <li><b>2.47</b> The travel map is shown in the Route planner instead of replacing the Gate map. A Destination box in the Gate map’s title row plans a route to any system without making the map smaller. Windows keep in step when a trip starts or ends.</li>
       <li><b>2.46</b> Windows app 1.3.1: drag the launcher ring from anywhere to move it; updates now install by themselves while you’re not using OnGrid (it used to wait until you quit, which rarely happens), checking every hour, and reopen your windows afterwards.</li>
@@ -2329,7 +2330,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.49";
+const APP_VERSION = "2.50";
 let watchGen = 0;
 function watchNames() { return (cfg.watch || "").split(",").map(x => x.trim()).filter(Boolean); }
 async function loadWatch() {
@@ -3849,9 +3850,6 @@ if (BOX_ONLY) {
   if (BOX_ONLY === "about") setTimeout(() => { const d = $("#about"); d.showModal ? d.showModal() : d.setAttribute("open", ""); d.addEventListener("cancel", e => e.preventDefault()); $("#aboutClose").hidden = true; document.title = BOX_TITLE = "About · OnGrid"; }, 0);
   else {
     const el = document.getElementById(BOX_ONLY);
-    // the Gate map window also gets what sits above the map on the website: System, Jumps, Load, Refresh, About,
-    // the presets, the status line and the summary with Thera/Turnur and sov fights
-    if (BOX_ONLY === "mapPanel") for (const sel of ["header", ".presetbar", "#status", "#summary"]) { const x = document.querySelector(".wrap > " + sel); if (x) host.appendChild(x); }
     host.appendChild(el); el.hidden = false;
     document.title = BOX_TITLE = `${el.dataset.title || el.querySelector("h2")?.textContent || "OnGrid"} · OnGrid`;
   }
