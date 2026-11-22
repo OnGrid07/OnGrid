@@ -1,7 +1,7 @@
 {
   "name": "local-intel-desktop",
   "productName": "OnGrid",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "description": "OnGrid for EVE Online as a Windows app: tray, always on top, notifications in the background.",
   "main": "main.js",
   "author": "OnGrid07",

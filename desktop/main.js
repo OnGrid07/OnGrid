@@ -110,7 +110,12 @@ function openBox(id, quiet) { // quiet: reopened after a restart, so don't take 
   bw.on("closed", () => { boxWins.delete(id); sendOpenIds(); });
   boxWins.set(id, bw); sendOpenIds();
 }
-ipcMain.on("launcher:open", (e, id) => { if (e.sender === launcher?.webContents) openBox(id); });
+// a symbol on the ring opens its box, or closes it if its window is already open
+ipcMain.on("launcher:open", (e, id) => {
+  if (e.sender !== launcher?.webContents) return;
+  const w = boxWins.get(id);
+  if (w && !w.isDestroyed()) w.close(); else openBox(id);
+});
 ipcMain.on("launcher:full", e => { if (e.sender === launcher?.webContents) show(); });
 ipcMain.on("launcher:hide", e => { if (e.sender === launcher?.webContents) { launcher.hide(); if (!prefs.toldLauncher) { prefs.toldLauncher = true; savePrefs(); notify("The launcher is in the tray", "Click the tray icon to bring it back."); } } });
 // moving the ring (the window has no frame): the launcher sends how far the pointer has moved since the drag began
