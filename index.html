@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.44
+  OnGrid (formerly Local Intel), version 2.45
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -278,6 +278,18 @@ tr:hover td { background: #141d27; }
 #board #mapPanel > svg { flex: 1 1 0; min-height: 120px; }
 #board thead th { position: sticky; top: 0; background: var(--panel); z-index: 1; }
 .fbox > .rsz { display: none; }
+/* one box in its own window (?box=<id>, used by the Windows app's launcher) */
+html.boxonly body { overflow: hidden; }
+html.boxonly .wrap > :not(#boxHost) { display: none !important; }
+html.boxonly .wrap { max-width: none; padding: 8px; margin: 0; }
+#boxHost { position: fixed; inset: 8px; z-index: 1; }
+#boxHost > .panel { height: 100%; box-sizing: border-box; margin: 0; display: flex; flex-direction: column; overflow: hidden; }
+#boxHost > .panel > * { flex-shrink: 0; }
+#boxHost > .panel > .tablebox, #boxHost > .panel > .feed, #boxHost > .panel > .hlist, #boxHost > .panel > .tlist, #boxHost > .panel > .setgrid,
+#boxHost > .panel > .watchgrid, #boxHost > .panel > .routelist, #boxHost > .panel > .scangrid { flex: 1 1 auto; min-height: 0; overflow: auto; }
+#boxHost #mapPanel > svg { flex: 1 1 0; min-height: 120px; }
+#boxHost thead th { position: sticky; top: 0; background: var(--panel); z-index: 1; }
+#boxHost .pmin, #boxHost > .panel > .rsz { display: none !important; }
 /* unlocked (the default on wide windows): drag a title to move, drag an edge or corner to resize */
 .wrap.canmove .movable > h2, .wrap.canmove .movable .phead, .wrap.canmove .movable .watchbar { cursor: move; user-select: none; }
 .wrap.canmove .movable { position: relative; }
@@ -694,7 +706,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.44</span>
+    <span class="ver" id="aboutVer">Version 2.45</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -758,6 +770,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <h3>Windows app</h3>
     <p><b>OnGrid for Windows</b> is this page in its own app window. Download <code>OnGrid-Setup-….exe</code> from <a href="https://github.com/OnGrid07/OnGrid/releases/latest" target="_blank" rel="noopener">the releases page</a> and run it; it installs in a few seconds and adds a Start menu shortcut.</p>
     <ul>
+      <li><b>The launcher</b> (app 1.3 and later): the app opens to a round gate ring. Each symbol on the ring opens one box in its own window: Gate map, Intel and location, Local and D-scan, Hostile tracker, Watched systems, Systems, Kills, Character notifications, Timers, Route planner, Alerts and settings, and About; the power symbol quits. Hover a symbol to see its name in the middle. A small blue dot under a symbol means its window is open; clicking it again brings that window to the front. Click the middle of the ring to open the full OnGrid window. Drag the ring to move it, and press <b>hide</b> (or Esc) to tuck it into the tray. Each box window remembers its size and place. To start with the full window instead, untick <b>Open to the launcher</b> in the tray menu.</li>
       <li>It keeps running in the system tray, and alerts and Windows notifications keep working while it's minimized or behind the game. Closing the window hides it to the tray; quit from the tray icon.</li>
       <li>Right-click the tray icon for <b>Always on top</b>, <b>Keep running when closed</b> and <b>Start with Windows</b>.</li>
       <li>It remembers your chat logs folder, so there's no permission prompt each time.</li>
@@ -889,6 +902,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.45</b> Windows app 1.3: opens to a gate-ring launcher; each symbol opens one box in its own window, the middle opens the full page. The page can show a single box on its own for this.</li>
       <li><b>2.44</b> Gate camps on the travel map get a pulsing red ring, as well as the CAMP tag.</li>
       <li><b>2.43</b> Travel map: set a destination from the page to see your route step by step, with kills, intel and camps on it, alerts for danger ahead, re-routing when you leave it, a safer-route button, and Send to autopilot.</li>
       <li><b>2.42</b> Systems in other regions are grouped into their own slice of the map, shaded and named, so region borders are easy to see.</li>
@@ -2273,7 +2287,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.44";
+const APP_VERSION = "2.45";
 let watchGen = 0;
 function watchNames() { return (cfg.watch || "").split(",").map(x => x.trim()).filter(Boolean); }
 async function loadWatch() {
@@ -3726,6 +3740,19 @@ document.addEventListener("click", e => {
    Scans too big for a Discord message are kept on the ntfy.sh relay under a random name for 12 hours. */
 // Opening a share link shows only the scan results: no map, intel or location tracking is started.
 const SCAN_ONLY = /^#(scan|s)=/.test(location.hash);
+// ?box=<id>: this window shows one box on its own, full size (the Windows app opens these from its launcher). The page still
+// runs everything else in the background, so the box has live data. ?box=about shows the About text.
+const BOX_ONLY = (() => { const b = new URLSearchParams(location.search).get("box"); return b && (b === "about" || document.querySelector(`.wrap section.panel[id="${CSS.escape(b)}"]`)) ? b : null; })();
+let BOX_TITLE = null;
+if (BOX_ONLY) {
+  document.documentElement.classList.add("boxonly");
+  const host = document.createElement("div"); host.id = "boxHost"; document.querySelector(".wrap").appendChild(host);
+  if (BOX_ONLY === "about") setTimeout(() => { const d = $("#about"); d.showModal ? d.showModal() : d.setAttribute("open", ""); d.addEventListener("cancel", e => e.preventDefault()); $("#aboutClose").hidden = true; document.title = BOX_TITLE = "About · OnGrid"; }, 0);
+  else {
+    const el = document.getElementById(BOX_ONLY); host.appendChild(el); el.hidden = false;
+    document.title = BOX_TITLE = `${el.dataset.title || el.querySelector("h2")?.textContent || "OnGrid"} · OnGrid`;
+  }
+}
 if (SCAN_ONLY) {
   document.documentElement.classList.add("scanonly");
   state.pinned = true;
@@ -3793,7 +3820,7 @@ setTimeout(openSharedScan, 0);
 /* ---------- sections that collapse into small buttons ---------- */
 const panelState = (() => { try { return JSON.parse(ls.get("panels", "{}")) || {}; } catch { return {}; } })();
 const collapsibles = () => [...document.querySelectorAll(".collapsible")];
-function isClosed(el) { return panelState[el.id] != null ? panelState[el.id] === "closed" : el.dataset.start === "closed"; }
+function isClosed(el) { if (el.id === BOX_ONLY) return false; return panelState[el.id] != null ? panelState[el.id] === "closed" : el.dataset.start === "closed"; }
 function renderDock() {
   $("#dock").innerHTML = collapsibles().filter(isClosed).map(el => {
     const cnt = el.id === "notifPanel" && state.notifs ? [...state.notifs.values()].filter(x => Date.now() - x.t < 36e5 && notifKind(x.type) === "attack").length
@@ -3885,7 +3912,7 @@ function applyFree() {
 const PANEL_SEL = FREE_IDS.map(i => "#" + i).join(",");
 const locked = () => !!boxLayout.locked;
 function setLockUi() {
-  const can = !locked() && freeAllowed() && !SCAN_ONLY;
+  const can = !locked() && freeAllowed() && !SCAN_ONLY && !BOX_ONLY;
   document.querySelector(".wrap").classList.toggle("canmove", can);
   for (const id of FREE_IDS) { const el = document.getElementById(id); if (!el) continue; el.classList.add("movable");
     if (!el.querySelector(":scope > .rsz")) { const h = document.createElement("div"); h.className = "rsz"; h.title = "Drag to resize"; el.appendChild(h); } }
@@ -3913,7 +3940,7 @@ function edgeAt(el, x, y) {
 const EDGE_CURSOR = { n: "ns-resize", s: "ns-resize", e: "ew-resize", w: "ew-resize", se: "nwse-resize", nw: "nwse-resize", sw: "nesw-resize", ne: "nesw-resize" };
 let hoverEl = null;
 document.addEventListener("pointermove", e => {
-  if (e.buttons || locked() || !freeAllowed() || SCAN_ONLY) return;
+  if (e.buttons || locked() || !freeAllowed() || SCAN_ONLY || BOX_ONLY) return;
   const el = e.target.closest?.(PANEL_SEL), ed = el ? edgeAt(el, e.clientX, e.clientY) : "";
   if (hoverEl && hoverEl !== el) { hoverEl.style.cursor = ""; hoverEl.classList.remove("edgehot"); }
   hoverEl = el; if (!el) return;
@@ -3952,7 +3979,7 @@ function settle(activeId, snapshot) {
 // dragging: a title bar moves the box, an edge or corner resizes it; snaps to an 8-pixel grid; the page grows to fit.
 // The first drag switches the page from the standard layout to free boxes, keeping everything where it was.
 document.addEventListener("pointerdown", e => {
-  if (e.button !== 0 || locked() || !freeAllowed() || SCAN_ONLY) return;
+  if (e.button !== 0 || locked() || !freeAllowed() || SCAN_ONLY || BOX_ONLY) return;
   const el = e.target.closest(PANEL_SEL); if (!el) return;
   const t = e.target, control = t.closest("button, input, select, textarea, a, label, summary, option");
   const onScrollbar = t !== el && (t.scrollHeight > t.clientHeight || t.scrollWidth > t.clientWidth) &&
@@ -4013,9 +4040,9 @@ document.addEventListener("pointerdown", e => {
 });
 window.addEventListener("resize", () => {
   if (boxLayout.free && !freeAllowed() && document.querySelector(".wrap").classList.contains("freelayout")) location.reload(); // narrow: go back to stacked
-  document.querySelector(".wrap").classList.toggle("canmove", !locked() && freeAllowed() && !SCAN_ONLY);
+  document.querySelector(".wrap").classList.toggle("canmove", !locked() && freeAllowed() && !SCAN_ONLY && !BOX_ONLY);
 });
-if (boxLayout.free && freeAllowed() && !SCAN_ONLY) setTimeout(() => { applyFree(); setLockUi(); }, 0);
+if (boxLayout.free && freeAllowed() && !SCAN_ONLY && !BOX_ONLY) setTimeout(() => { applyFree(); setLockUi(); }, 0);
 else setLockUi();
 
 /* ---------- interaction ---------- */
@@ -4051,7 +4078,7 @@ async function start(origin, radius) {
     state.campKeys = new Set(); state.sovPrimed = false; bfsMemo.key = null;
     const o = state.systems.get(state.origin);
     state.target = o.name.toUpperCase();
-    document.title = state.baseTitle = `${o.name} · OnGrid`;
+    document.title = state.baseTitle = BOX_TITLE ? `${BOX_TITLE.replace(/ · OnGrid$/, "")} · ${o.name}` : `${o.name} · OnGrid`;
     $("#title").innerHTML = `${esc(o.name)}<span class="brandtag">OnGrid</span><small>${esc(o.region || "")}${o.constellationName ? " · " + esc(o.constellationName) : ""} · ${radius}-jump radius · ${state.systems.size} systems${state.pinned ? ` · <span class="pinned-note">this tab stays on ${esc(o.name)}</span>` : ""}</small>`;
     setStatus("Loading hourly stats…");
     await loadHourly(); if (gen !== state.gen) return; renderAll();
