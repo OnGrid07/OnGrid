@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.43
+  OnGrid (formerly Local Intel), version 2.44
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -140,6 +140,11 @@ tr:hover td { background: #141d27; }
 .youchip { font: 12px var(--mono); background: var(--bg); color: var(--muted); border: 1px dashed var(--line); border-radius: 10px; padding: 1px 8px; cursor: pointer; text-decoration: line-through; }
 .youchip.on { color: var(--fg); border: 1px solid var(--accent); text-decoration: none; }
 #map .intelring { fill: none; stroke: var(--intel); stroke-width: 2; }
+/* gate camp on the travel map: a red ring with a second ring pulsing out of it */
+#tripMap .campring { fill: none; stroke: var(--hot); stroke-width: 2.5; }
+#tripMap .campring.pulse { stroke-width: 2; opacity: 0; }
+@media (prefers-reduced-motion: no-preference) { #tripMap .campring.pulse { animation: camppulse 1.3s ease-out infinite; transform-box: fill-box; transform-origin: center; } }
+@keyframes camppulse { 0% { opacity: .9; transform: scale(1); } 100% { opacity: 0; transform: scale(2); } }
 @media (prefers-reduced-motion: no-preference) { #map .intelring.live { animation: ping 1.6s ease-out infinite; transform-box: fill-box; transform-origin: center; } }
 @keyframes ping { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(2.2); } }
 .settings-unused { cursor: pointer; font: 600 13px var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); list-style: none; }
@@ -689,7 +694,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.43</span>
+    <span class="ver" id="aboutVer">Version 2.44</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -737,7 +742,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <p>When you set a destination from this page (<b>Set destination</b> on a system, a timer's <b>Destination</b> button, or the Route planner), a trip bar appears at the top of the Gate map. It shows the destination, jumps left, the next system and how many systems ahead have something reported. <b>Travel map</b> switches the Gate map to your route; <b>Area map</b> switches back.</p>
     <ul>
       <li>The route is drawn step by step, in rows, start to destination. Each system shows its name and security status, colored like EVE. The dashed ring is you, the blue ring your next jump, and systems you've passed fade.</li>
-      <li>Above a system: <b>✕</b> kills there in the last hour (EVE's own numbers, so this works anywhere, not only on the area map), <b>INTEL</b> with the reported pilot count and minutes since it was reported, and <b>CAMP</b> for gate camps the page has spotted. Dangerous systems glow red. Hover a system for the details.</li>
+      <li>Above a system: <b>✕</b> kills there in the last hour (EVE's own numbers, so this works anywhere, not only on the area map), <b>INTEL</b> with the reported pilot count and minutes since it was reported, and <b>CAMP</b> for gate camps the page has spotted, with a pulsing red ring around the system. Dangerous systems glow red. Hover a system for the details.</li>
       <li>It follows you: as you jump the route moves along; if you leave the route it finds a new one from where you are; when you arrive the trip ends.</li>
       <li>Intel about a system still ahead on your route alerts you, however far away it is.</li>
       <li><b>Safer route</b> (shown when something is reported ahead) finds a route around the dangerous systems. <b>Send to autopilot</b> puts the route from where you are into your autopilot. <b>End trip</b> clears it. The trip is remembered if you reload.</li>
@@ -884,6 +889,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.44</b> Gate camps on the travel map get a pulsing red ring, as well as the CAMP tag.</li>
       <li><b>2.43</b> Travel map: set a destination from the page to see your route step by step, with kills, intel and camps on it, alerts for danger ahead, re-routing when you leave it, a safer-route button, and Send to autopilot.</li>
       <li><b>2.42</b> Systems in other regions are grouped into their own slice of the map, shaded and named, so region borders are easy to see.</li>
       <li><b>2.41</b> The group chips are gone from the Hostile tracker; each pilot’s row still shows its group color.</li>
@@ -2267,7 +2273,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.43";
+const APP_VERSION = "2.44";
 let watchGen = 0;
 function watchNames() { return (cfg.watch || "").split(",").map(x => x.trim()).filter(Boolean); }
 async function loadWatch() {
@@ -2876,6 +2882,7 @@ function renderTrip() {
     h += `<g class="${past ? "past" : ""}"><title>${esc(tip)}</title>`;
     if (d.any && !past) h += `<circle class="tdgr" cx="${p.x.toFixed(1)}" cy="${p.y}" r="17"/>`;
     h += `<circle class="tnode" cx="${p.x.toFixed(1)}" cy="${p.y}" r="${isDest ? 9 : 7}" fill="${sc != null ? secColor(sc) : "#3a4858"}"/>`;
+    if (d.camp && !past) h += `<circle class="campring" cx="${p.x.toFixed(1)}" cy="${p.y}" r="${isDest ? 14 : 12}"/><circle class="campring pulse" cx="${p.x.toFixed(1)}" cy="${p.y}" r="${isDest ? 14 : 12}"/>`;
     if (at === i) h += `<circle class="tyou" cx="${p.x.toFixed(1)}" cy="${p.y}" r="13"/>`;
     else if (at != null && i === at + 1) h += `<circle class="tnext" cx="${p.x.toFixed(1)}" cy="${p.y}" r="12"/>`;
     // danger above the system, name and security below
@@ -2886,7 +2893,7 @@ function renderTrip() {
     if (sc != null) h += `<text class="tsec" x="${p.x.toFixed(1)}" y="${p.y + 35}" text-anchor="middle" style="fill:${secColor(sc)}">${fmtSec(sc)}</text>`;
     h += `</g>`;
   });
-  h += `<text class="tkey" x="300" y="${H - 8}" text-anchor="middle"><tspan class="tchip k">✕</tspan> kills last hour · <tspan class="tchip i">INTEL</tspan> pilots, mins ago · <tspan class="tchip c">CAMP</tspan> gate camp · blue ring: next jump</text>`;
+  h += `<text class="tkey" x="300" y="${H - 8}" text-anchor="middle"><tspan class="tchip k">✕</tspan> kills last hour · <tspan class="tchip i">INTEL</tspan> pilots, mins ago · <tspan class="tchip c">CAMP</tspan> gate camp (pulsing ring) · blue ring: next jump</text>`;
   svg.innerHTML = h;
 }
 $("#tripBar").addEventListener("click", e => {
