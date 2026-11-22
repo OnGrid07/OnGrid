@@ -127,6 +127,8 @@
         #mini g[data-id] text, #mini .ratlbl, #mini .ringlbl, #mini .reglbl, #mini .rat { display: none; }
         #mini g[data-id]:has(.intelring) text:not(.ratlbl), #mini g[data-id]:has(.youring) text:not(.ratlbl) { display: inline; }
         #mini .tag.sov, #mini .tag.ess { display: none; }
+        #mini [data-d="4"], #mini [data-d="5"], #mini [data-d="6"], #mini [data-d="7"], #mini [data-d="8"], #mini [data-d="9"], #mini [data-d="10"] { display: none; }
+        #mini .ringlbl { display: none; }
         #mini .node { stroke-width: 3; } #mini .edge { stroke-width: 2; } #mini .intelring { stroke-width: 4; } #mini .youring { stroke-width: 3; }`; }
     const clean = String(d.svg).replace(/<script[\s\S]*?<\/script>/gi, "").replace(/\son\w+\s*=\s*("[^"]*"|'[^']*')/gi, "");
     let box = root.querySelector(".mini svg");

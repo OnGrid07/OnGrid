@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.60
+  OnGrid (formerly Local Intel), version 2.61
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -740,7 +740,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.60</span>
+    <span class="ver" id="aboutVer">Version 2.61</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -806,7 +806,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <p><b>OnGrid for Windows</b> is this page in its own app window. Download <code>OnGrid-Setup-….exe</code> from <a href="https://github.com/OnGrid07/OnGrid/releases/latest" target="_blank" rel="noopener">the releases page</a> and run it; it installs in a few seconds and adds a Start menu shortcut.</p>
     <ul>
       <li><b>The launcher</b> (app 1.3 and later): the app opens to a round gate ring. Each symbol on the ring opens one box in its own window: Gate map, Intel and location, Local and D-scan, Hostile tracker, Watched systems, Systems, Kills, Character notifications, Timers, Route planner, Alerts and settings, and About; the power symbol quits. Hover a symbol to see its name in the middle. A small blue dot under a symbol means its window is open; clicking the symbol again closes that window. Click the middle of the ring to open the full OnGrid window. Drag the ring from anywhere, even from a symbol, to move it (it remembers where you put it), and press <b>hide</b> (or Esc) to tuck it into the tray. Each box window remembers its size and place. The Gate map window shows just the map. In its title row, the small <b>2j</b>-style picker changes how many jumps the map shows, and the <b>☰</b> button shows or hides System, Jumps, Load, presets and the summary above it. Every window shows the same intel, rings, tracks and alerts: the window that reads your chat logs (or the phone relay) shares them with the others. To start with the full window instead, untick <b>Open to the launcher</b> in the tray menu.</li>
-      <li><b>Overlays</b> (app 1.4 and later): two see-through windows that float on top of EVE when the game runs in windowed or fixed-window mode. They are separate windows and never touch the game client. The <b>alert banner</b> flashes at the top of the screen whenever OnGrid alerts you (hostiles in range, watched systems, big ships, camps, sov, timers) and fades after about nine seconds; several at once show a +count. The <b>intel HUD</b> stays up and shows your system and its security, a danger rating (HIGH: a hostile reported within 1 jump in the last 5 minutes, or a camp next door; MEDIUM: hostiles within 3 jumps, kills where you are, camps or big ships nearby; LOW: quiet), the nearest reported hostile with jumps, pilots and minutes ago, how many systems within 3 jumps have hostiles reported, big ships, and kills where you are. The <b>travel HUD</b> appears only while a trip is on: destination and jumps left, then your system and the next five jumps with their security, kills in the last hour (✕), intel (with pilot count) and a pulsing ring on camps, plus a warning for the first camp ahead. The <b>mini map</b> is a small see-through copy of the gate map (small, medium or large) with the intel rings, hostile tracks and your YOU ring; to stay readable it only names systems with intel, kills, you or hostile groups. Clicks pass straight through all of them to EVE. Switch them in <b>Alerts and settings → Overlays over the game</b> (or the tray menu): turn each one on or off, <b>Move overlays</b> to drag them where you want (they get a yellow dashed outline; untick it to lock them again), <b>Overlay background</b> to make them lighter or more solid, and <b>Put overlays back in place</b>. <b>Test alert</b> in Alerts and settings shows the banner.</li>
+      <li><b>Overlays</b> (app 1.4 and later): two see-through windows that float on top of EVE when the game runs in windowed or fixed-window mode. They are separate windows and never touch the game client. The <b>alert banner</b> flashes at the top of the screen whenever OnGrid alerts you (hostiles in range, watched systems, big ships, camps, sov, timers) and fades after about nine seconds; several at once show a +count. The <b>intel HUD</b> stays up and shows your system and its security, a danger rating (HIGH: a hostile reported within 1 jump in the last 5 minutes, or a camp next door; MEDIUM: hostiles within 3 jumps, kills where you are, camps or big ships nearby; LOW: quiet), the nearest reported hostile with jumps, pilots and minutes ago, how many systems within 3 jumps have hostiles reported, big ships, and kills where you are. The <b>travel HUD</b> appears only while a trip is on: destination and jumps left, then your system and the next five jumps with their security, kills in the last hour (✕), intel (with pilot count) and a pulsing ring on camps, plus a warning for the first camp ahead. The <b>mini map</b> is a small see-through copy of the gate map (small, medium or large), showing at most 3 jumps even when the Gate map shows more, with the intel rings, hostile tracks and your YOU ring; to stay readable it only names systems with intel, kills, you or hostile groups. Clicks pass straight through all of them to EVE. Switch them in <b>Alerts and settings → Overlays over the game</b> (or the tray menu): turn each one on or off, <b>Move overlays</b> to drag them where you want (they get a yellow dashed outline; untick it to lock them again), <b>Overlay background</b> to make them lighter or more solid, and <b>Put overlays back in place</b>. <b>Test alert</b> in Alerts and settings shows the banner.</li>
       <li>It keeps running in the system tray, and alerts and Windows notifications keep working while it's minimized or behind the game. Closing the window hides it to the tray; quit from the tray icon.</li>
       <li>Right-click the tray icon for <b>Always on top</b>, <b>Keep running when closed</b> and <b>Start with Windows</b>.</li>
       <li>It remembers your chat logs folder, so there's no permission prompt each time.</li>
@@ -939,6 +939,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.61</b> Windows app 1.5.1: the mini map shows at most 3 jumps (zoomed in on them), and its size can be changed back and forth.</li>
       <li><b>2.60</b> The Gate map is laid out like the EVE star map: systems at their real positions (opened out a little so names fit), with region names. The ring layout is still available under Map layout in Alerts and settings.</li>
       <li><b>2.59</b> Windows app 1.5: two more overlays over the game, a travel HUD (during a trip) and a mini map, switched in Alerts and settings or the tray menu.</li>
       <li><b>2.58</b> Windows app 1.4.1: overlay switches in Alerts and settings (Overlays over the game): on and off, Move overlays, background, put back in place, and Show the banner. Unlocked overlays are fully interactive so they can always be dragged.</li>
@@ -1293,10 +1294,10 @@ function layout() {
 }
 // like EVE's star map seen from above: each system at its real position (x across, z up), scaled to fit, then nudged
 // apart just enough that dots and names don't sit on top of each other
-let geoMemo = { ref: null, pos: null, regions: null };
+const geoMemo = new WeakMap(); // systems map -> its layout
 function geoLayout() {
   state.geo = true; state.regionView = null; state.regionRings = null;
-  if (geoMemo.ref === state.systems) { state.geoRegions = geoMemo.regions; return geoMemo.pos; } // same map: positions don't change
+  const memo = geoMemo.get(state.systems); if (memo) { state.geoRegions = memo.regions; return memo.pos; } // same map: positions don't change
   const S = [...state.systems.values()];
   // real positions bunch up (whole constellations sit close together), so each axis is half real distance and half
   // rank order: clusters open up, but every system keeps its place left/right/above/below its neighbours
@@ -1328,7 +1329,7 @@ function geoLayout() {
   // region names over each region's systems when the map reaches into more than one
   const by = new Map(); for (const s of S) if (s.regionId) (by.get(s.regionId) || by.set(s.regionId, []).get(s.regionId)).push(pos.get(s.id));
   state.geoRegions = by.size > 1 ? [...by].map(([r, ps]) => ({ r, x: ps.reduce((t, p) => t + p.x, 0) / ps.length, y: ps.reduce((t, p) => t + p.y, 0) / ps.length })) : null;
-  geoMemo = { ref: state.systems, pos, regions: state.geoRegions };
+  geoMemo.set(state.systems, { pos, regions: state.geoRegions });
   return pos;
 }
 function layoutPass(key) {
@@ -1392,7 +1393,7 @@ function regionSvg(pos) {
   return h;
 }
 
-function renderMap() {
+function renderMap(asString) { // asString: just return the drawing (used for the mini map), don't touch the page
   const attacked = attackedSystems(), fleetBy = fleetBySys(), notifSov = cfg.showSov ? notifSovEvents() : new Map();
   const svg = $("#map"), pos = layout(), whBySys = whMap(), sovBySys = sovMap(), fightBySys = fightMap();
   const maxJ = Math.max(1, ...[...state.systems.values()].map(s => s.jumps || 0));
@@ -1405,7 +1406,7 @@ function renderMap() {
   }
   if (!state.geo) for (let d = 1; d <= state.radius; d++) {
     const r = 270 / state.radius * d;
-    h += `<circle class="ring" cx="300" cy="300" r="${r}"/><text class="ringlbl" x="${300 + 4}" y="${300 - r - 4}">${d}j</text>`;
+    h += `<circle class="ring" data-d="${d}" cx="300" cy="300" r="${r}"/><text class="ringlbl" x="${300 + 4}" y="${300 - r - 4}">${d}j</text>`;
   }
   h += regionSvg(pos);
   const seen = new Set();
@@ -1413,7 +1414,7 @@ function renderMap() {
     if (!state.systems.has(n)) continue;
     const key = s.id < n ? s.id + "-" + n : n + "-" + s.id; if (seen.has(key)) continue; seen.add(key);
     const a = pos.get(s.id), b = pos.get(n);
-    h += `<line class="edge" x1="${a.x.toFixed(1)}" y1="${a.y.toFixed(1)}" x2="${b.x.toFixed(1)}" y2="${b.y.toFixed(1)}"/>`;
+    h += `<line class="edge" data-d="${Math.max(s.dist, state.systems.get(n).dist)}" x1="${a.x.toFixed(1)}" y1="${a.y.toFixed(1)}" x2="${b.x.toFixed(1)}" y2="${b.y.toFixed(1)}"/>`;
   }
   h += hostilePathsSvg(pos);
   // planned route through systems on the map
@@ -1425,7 +1426,7 @@ function renderMap() {
     const p = pos.get(s.id);
     const r = (s.id === state.origin ? 9 : 5) + 9 * Math.sqrt((s.jumps || 0) / maxJ);
     const tip = `${s.name} (${fmtSec(s.sec)}) · ${s.dist}j · kills 1h ${s.k1} / 24h ${s.k24} · jumps ${s.jumps}`;
-    h += `<g data-id="${s.id}"><title>${esc(tip)}</title><circle class="node${state.sel === s.id ? " sel" : ""}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${r.toFixed(1)}" fill="url(#nd-${heat(s)})"/>`;
+    h += `<g data-id="${s.id}" data-d="${s.dist}"><title>${esc(tip)}</title><circle class="node${state.sel === s.id ? " sel" : ""}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${r.toFixed(1)}" fill="url(#nd-${heat(s)})"/>`;
     const below = p.y >= 300;
     if (s.intelAge != null && s.intelAge < 15 && !s.intelClear && !s.intelMoved) {
       h += `<circle class="intelring" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${(r + 4).toFixed(1)}"/>`;
@@ -1453,6 +1454,7 @@ function renderMap() {
     if (cfg.showRats && s.npc_kills) h += `<text class="ratlbl" x="${p.x.toFixed(1)}" y="${(p.y + (below ? r + 21 : -r - 14)).toFixed(1)}" text-anchor="middle">${s.npc_kills} rats/h</text>`;
     h += `<text x="${p.x.toFixed(1)}" y="${(p.y + (below ? r + 11 : -r - 4)).toFixed(1)}" text-anchor="middle" font-weight="${s.id === state.origin ? 600 : 400}">${esc(s.name)}${s.k1 ? " ·" + s.k1 : ""}${cnt}${tags}</text></g>`;
   }
+  if (asString) return h;
   svg.innerHTML = h;
   renderSelbar(); renderTrip();
 }
@@ -2074,7 +2076,7 @@ function tripOverlay() {
   return { dest: t.destName, left: R.length - 1 - at, onRoute: !!(h && h.i >= 0), you: step(R[at]), next: ahead.slice(0, 5).map(step), more: Math.max(0, ahead.length - 5),
     destStep: ahead.length > 5 ? step(R[R.length - 1]) : null, risky: risky.length, campAhead: firstCamp >= 0 ? { name: nm(ahead[firstCamp]), d: firstCamp + 1 } : null };
 }
-let mapCss = null, lastMini = "";
+let mapCss = null, lastMini = "", miniSub = { ref: null, map: null };
 function miniMapData() { // the gate map as it is drawn now, with its styles, for the mini map overlay
   if (!state.systems.size) return null;
   if (mapCss == null) {
@@ -2088,7 +2090,15 @@ function miniMapData() { // the gate map as it is drawn now, with its styles, fo
       } }
     mapCss = rules.join("\n");
   }
-  return { svg: $("#map").innerHTML, viewBox: $("#map").getAttribute("viewBox") || "0 0 600 600", css: mapCss };
+  // the mini map shows at most 3 jumps: when the Gate map shows more, it draws its own map of just those systems
+  if (state.radius > 3) {
+    const full = state.systems, R = state.radius;
+    if (miniSub.ref !== full) miniSub = { ref: full, map: new Map([...full].filter(([, x]) => x.dist <= 3)) };
+    state.systems = miniSub.map; state.radius = 3;
+    let h = ""; try { h = renderMap(true); } finally { state.systems = full; state.radius = R; layout(); }
+    return { svg: h, viewBox: "0 0 600 600", css: mapCss };
+  }
+  return { svg: $("#map").innerHTML, viewBox: "0 0 600 600", css: mapCss };
 }
 if (window.ongridApp?.hud && !/[?&]box=/.test(location.search)) setInterval(() => {
   try { window.ongridApp.hud(hudSummary()); } catch {}
@@ -2487,7 +2497,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.60";
+const APP_VERSION = "2.61";
 // a window left open (an app box window, a pinned tab) would keep running an old copy of the page after an update:
 // every 10 minutes, look at the live page's version; if it's newer, reload while the window isn't being looked at,
 // or show a small bar with a Reload button

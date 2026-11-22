@@ -261,7 +261,9 @@ ipcMain.on("ov:drag", (e, what, dx, dy) => {
   else if (what === "move" && ovDragFrom && Number.isFinite(dx) && Number.isFinite(dy)) ov.setPosition(Math.round(ovDragFrom.x + dx), Math.round(ovDragFrom.y + dy));
   else if (what === "end") { ovDragFrom = null; const [x, y] = ov.getPosition(); prefs.overlays[kind] = { ...prefs.overlays[kind], pos: { x, y } }; savePrefs(); }
 });
-ipcMain.on("ov:resize", (e, h) => { const [kind, ov] = ovOf(e); if (ov && kind !== "mini" && h > 20 && h < 600) { const [w] = OV_SIZE[kind]; ov.setSize(w, Math.round(h)); } });
+// Windows ignores size changes on windows that can't be resized, so allow it just while the app sets the size
+function sizeOverlay(ov, w, h) { const r = ov.isResizable(); ov.setResizable(true); const [x, y] = ov.getPosition(); ov.setBounds({ x, y, width: Math.round(w), height: Math.round(h) }); ov.setResizable(r); }
+ipcMain.on("ov:resize", (e, h) => { const [kind, ov] = ovOf(e); if (ov && kind !== "mini" && h > 20 && h < 600) { const [w] = OV_SIZE[kind]; sizeOverlay(ov, w, h); } });
 ipcMain.on("ov:hide", e => { const [kind, ov] = ovOf(e); if (ov && kind === "alert" && !prefs.overlayUnlocked) ov.hide(); });
 // one place that changes the overlay settings, used by the tray menu and by the page's Alerts and settings
 function setOverlays(o) {
@@ -271,7 +273,7 @@ function setOverlays(o) {
   }
   if (typeof o.unlocked === "boolean") { prefs.overlayUnlocked = o.unlocked; for (const k of Object.keys(overlays)) applyOverlayState(k); }
   if (Number.isFinite(o.opacity) && o.opacity >= 0.3 && o.opacity <= 1) { prefs.overlayOpacity = o.opacity; for (const w of Object.values(overlays)) ovMode(w); }
-  if ([240, 320, 420].includes(o.miniSize)) { prefs.miniSize = o.miniSize; const ov = overlays.mini; if (ov && !ov.isDestroyed()) { const [w, h] = OV_SIZE.mini; ov.setSize(w, h); } }
+  if ([240, 320, 420].includes(+o.miniSize)) { prefs.miniSize = +o.miniSize; const ov = overlays.mini; if (ov && !ov.isDestroyed()) { const [w, h] = OV_SIZE.mini; sizeOverlay(ov, w, h); } }
   if (o.reset) for (const k of OV_KINDS) { prefs.overlays[k] = { ...prefs.overlays[k], pos: null }; const ov = overlays[k]; if (ov && !ov.isDestroyed()) { const p = ovDefaultPos(k); ov.setPosition(p.x, p.y); } }
   savePrefs(); refreshTray(); sendOverlayState();
 }
