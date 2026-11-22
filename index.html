@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.54
+  OnGrid (formerly Local Intel), version 2.55
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -291,6 +291,8 @@ html.boxonly #lockBtn, html.boxonly #layoutReset { display: none !important; }
 #updBar { position: fixed; left: 12px; bottom: 12px; z-index: 60; font: 12px var(--mono); color: var(--fg); background: var(--panel); border: 1px solid var(--accent); border-radius: 6px; padding: 6px 8px 6px 12px; box-shadow: 0 6px 24px rgba(0,0,0,.5); }
 #updBar button { font: 12px var(--mono); margin-left: 8px; background: var(--accent); color: var(--bg); border: 0; border-radius: 4px; padding: 3px 10px; cursor: pointer; }
 #boxTop { flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; }
+#boxJumps { font: 12px var(--mono); height: 22px; padding: 0 4px; background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; cursor: pointer; }
+#boxJumps:hover, #boxJumps:focus { border-color: var(--accent); outline: none; }
 #topToggle { font: 13px var(--mono); height: 22px; width: 26px; padding: 0; background: var(--bg); color: var(--muted); border: 1px solid var(--line); border-radius: 4px; cursor: pointer; }
 #topToggle:hover, #topToggle.on { color: var(--accent); border-color: var(--accent); }
 #boxHost > .panel > * { flex-shrink: 0; }
@@ -725,7 +727,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.54</span>
+    <span class="ver" id="aboutVer">Version 2.55</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -790,7 +792,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <h3>Windows app</h3>
     <p><b>OnGrid for Windows</b> is this page in its own app window. Download <code>OnGrid-Setup-….exe</code> from <a href="https://github.com/OnGrid07/OnGrid/releases/latest" target="_blank" rel="noopener">the releases page</a> and run it; it installs in a few seconds and adds a Start menu shortcut.</p>
     <ul>
-      <li><b>The launcher</b> (app 1.3 and later): the app opens to a round gate ring. Each symbol on the ring opens one box in its own window: Gate map, Intel and location, Local and D-scan, Hostile tracker, Watched systems, Systems, Kills, Character notifications, Timers, Route planner, Alerts and settings, and About; the power symbol quits. Hover a symbol to see its name in the middle. A small blue dot under a symbol means its window is open; clicking the symbol again closes that window. Click the middle of the ring to open the full OnGrid window. Drag the ring from anywhere, even from a symbol, to move it (it remembers where you put it), and press <b>hide</b> (or Esc) to tuck it into the tray. Each box window remembers its size and place. The Gate map window shows just the map; the small <b>☰</b> button in its title row shows or hides System, Jumps, Load, presets and the summary above it. Every window shows the same intel, rings, tracks and alerts: the window that reads your chat logs (or the phone relay) shares them with the others. To start with the full window instead, untick <b>Open to the launcher</b> in the tray menu.</li>
+      <li><b>The launcher</b> (app 1.3 and later): the app opens to a round gate ring. Each symbol on the ring opens one box in its own window: Gate map, Intel and location, Local and D-scan, Hostile tracker, Watched systems, Systems, Kills, Character notifications, Timers, Route planner, Alerts and settings, and About; the power symbol quits. Hover a symbol to see its name in the middle. A small blue dot under a symbol means its window is open; clicking the symbol again closes that window. Click the middle of the ring to open the full OnGrid window. Drag the ring from anywhere, even from a symbol, to move it (it remembers where you put it), and press <b>hide</b> (or Esc) to tuck it into the tray. Each box window remembers its size and place. The Gate map window shows just the map. In its title row, the small <b>2j</b>-style picker changes how many jumps the map shows, and the <b>☰</b> button shows or hides System, Jumps, Load, presets and the summary above it. Every window shows the same intel, rings, tracks and alerts: the window that reads your chat logs (or the phone relay) shares them with the others. To start with the full window instead, untick <b>Open to the launcher</b> in the tray menu.</li>
       <li>It keeps running in the system tray, and alerts and Windows notifications keep working while it's minimized or behind the game. Closing the window hides it to the tray; quit from the tray icon.</li>
       <li>Right-click the tray icon for <b>Always on top</b>, <b>Keep running when closed</b> and <b>Start with Windows</b>.</li>
       <li>It remembers your chat logs folder, so there's no permission prompt each time.</li>
@@ -923,6 +925,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.55</b> The Windows app’s Gate map window has a Jumps picker in its title row to change the map’s size.</li>
       <li><b>2.54</b> Share link works for big fights: a scan with thousands of pilots in Local is saved in pieces and put back together when the link is opened.</li>
       <li><b>2.53</b> Local &amp; D-scan starts with only the D-scan box; after pasting a D-scan, + Add Local opens the Local box.</li>
       <li><b>2.52</b> Windows and tabs left open now pick up new versions by themselves: every 10 minutes the page checks for a newer version and reloads when you’re not looking at it, or shows a small Reload bar. Windows app 1.3.3 always loads the newest page instead of a stored copy.</li>
@@ -2343,7 +2346,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.54";
+const APP_VERSION = "2.55";
 // a window left open (an app box window, a pinned tab) would keep running an old copy of the page after an update:
 // every 10 minutes, look at the live page's version; if it's newer, reload while the window isn't being looked at,
 // or show a small bar with a Reload button
@@ -3906,7 +3909,14 @@ if (BOX_ONLY) {
       const b = document.createElement("button"); b.type = "button"; b.id = "topToggle"; b.textContent = "☰";
       const sync = () => { b.title = top.hidden ? "Show System, Jumps, presets and the summary" : "Hide the part above the map"; b.setAttribute("aria-pressed", String(!top.hidden)); b.classList.toggle("on", !top.hidden); };
       b.addEventListener("click", () => { top.hidden = !top.hidden; try { localStorage.setItem("boxTop", top.hidden ? "0" : "1"); } catch {} sync(); setTimeout(() => renderMap?.(), 0); });
-      sync(); document.getElementById("mapDest").prepend(b);
+      sync();
+      // a small Jumps picker beside it, so the map's size can be changed without opening the controls
+      const j = document.createElement("select"); j.id = "boxJumps"; j.title = "How many jumps the map shows"; j.setAttribute("aria-label", "Jumps shown on the map");
+      j.innerHTML = [...$("#radius").options].map(o => `<option value="${o.value}">${o.value}j</option>`).join("");
+      j.value = $("#radius").value;
+      j.addEventListener("change", () => { $("#radius").value = j.value; $("#radius").dispatchEvent(new Event("change")); });
+      $("#radius").addEventListener("change", () => { j.value = $("#radius").value; });
+      document.getElementById("mapDest").prepend(b, j);
     }
     host.appendChild(el); el.hidden = false;
     document.title = BOX_TITLE = `${el.dataset.title || el.querySelector("h2")?.textContent || "OnGrid"} · OnGrid`;
@@ -4249,6 +4259,7 @@ async function start(origin, radius) {
     if (gen !== state.gen) return; // a newer start (e.g. you jumped again) took over
     // killmails are kept across moves so following you around stays cheap
     state.origin = nb.origin; state.systems = nb.systems; state.radius = radius; state.sel = null;
+    if ($("#boxJumps")) $("#boxJumps").value = String(radius); // the app's map-window picker shows what's loaded
     state.campKeys = new Set(); state.sovPrimed = false; bfsMemo.key = null;
     const o = state.systems.get(state.origin);
     state.target = o.name.toUpperCase();
