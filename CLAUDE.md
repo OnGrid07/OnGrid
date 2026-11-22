@@ -54,6 +54,7 @@ OnGrid is an intel tool for EVE Online. Everything ships from this repo.
   - `FREE_IDS` lists the movable boxes.
   - Narrow windows and phones use the stacked layout.
 - **Map style:** the map uses the original look (plain shaded dots, kill count after the name). The owner rejected a bigger redesign, so ask before restyling it.
+- **Travel map** lives in the Route planner (`#tripMap`, `#tripBar`); the Gate map only gets the compact Destination box (`#mapDest`) in its title row. Nothing may make the Gate map smaller.
 - **Hostile tracks** are colored per group (alliance, else corp, else pilot), with stacked ticker labels on the map. There are no group chips in the Hostile tracker.
 
 ## Testing

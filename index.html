@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.46
+  OnGrid (formerly Local Intel), version 2.47
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -308,14 +308,22 @@ html.boxonly .wrap { max-width: none; padding: 8px; margin: 0; }
 .bkbtns button:hover { background: var(--accent); color: var(--bg); }
 #bkText { font: 11px var(--mono); background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: 5px 7px; width: 100%; resize: vertical; }
 /* travel map */
-.tripbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: -2px 0 8px; padding: 6px 10px; border: 1px solid rgba(79,179,217,.35); background: rgba(79,179,217,.08); border-radius: 6px; font: 12px var(--mono); }
+.tripbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 8px 0; padding: 6px 10px; border: 1px solid rgba(79,179,217,.35); background: rgba(79,179,217,.08); border-radius: 6px; font: 12px var(--mono); }
 .tripbar .tsum { margin-right: auto; }
 .tripbar .tsum b { color: var(--fg); }
 .tripbar .tdanger { color: var(--hot); }
 .tripbar button { font: 12px var(--mono); background: var(--bg); color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 3px 9px; cursor: pointer; }
-.tripbar button.on { background: var(--accent); color: var(--bg); }
-#mapPanel.tripon > #map, #mapPanel.tripon > .legend, #mapPanel.tripon > .selbar, #mapPanel.tripon > .selquiet { display: none !important; }
-#tripMap { width: 100%; height: auto; display: block; }
+/* destination box in the gate map's title row: it sits beside the title, so the map keeps all its space */
+#mapPanel { position: relative; }
+.mapdest { position: absolute; top: 8px; right: 14px; display: flex; align-items: center; gap: 4px; margin: 0; z-index: 2; }
+.mapdest input { font: 12px var(--mono); width: 128px; height: 22px; box-sizing: border-box; background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: 0 7px; }
+.mapdest input:focus { border-color: var(--accent); outline: none; }
+.mapdest button { font: 12px var(--mono); height: 22px; padding: 0 8px; background: var(--bg); color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; cursor: pointer; }
+.mdtrip { font: 11px var(--mono); color: var(--muted); white-space: nowrap; margin-right: 4px; }
+.mdtrip b { color: var(--accent); font-weight: 600; } .mdtrip .tdanger { color: var(--hot); }
+.mdtrip button { height: 18px; padding: 0 5px; margin-left: 3px; color: var(--muted); border-color: var(--line); }
+#board #routePanel > #tripMap, #boxHost #routePanel > #tripMap { flex: 1 1 0; min-height: 120px; }
+#tripMap { width: 100%; max-width: 720px; height: auto; display: block; margin: 0 auto; }
 #tripMap text { font-family: var(--mono); font-size: 10px; fill: var(--fg); pointer-events: none; paint-order: stroke; stroke: var(--panel); stroke-width: 3px; stroke-linejoin: round; }
 #tripMap .tline { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; }
 #tripMap .tline.done { stroke: var(--line); }
@@ -474,11 +482,10 @@ footer { font: 11px var(--mono); color: var(--muted); }
   <div class="grid">
     <section class="panel" id="mapPanel">
       <h2>Gate map</h2>
-      <div class="tripbar" id="tripBar" hidden></div>
+      <form class="mapdest" id="mapDest" autocomplete="off"><span class="mdtrip" id="mdTrip" hidden></span><input id="mapDestIn" list="mapDestList" placeholder="Destination" spellcheck="false" aria-label="Destination system"><button type="submit" title="Plan a route there (shown in the Route planner)">Route</button><datalist id="mapDestList"></datalist></form>
       <div class="selbar" id="selbar" hidden></div>
       <div class="selquiet" id="selQuiet"></div>
       <svg id="map" viewBox="0 0 600 600" role="img" aria-label="Systems arranged in rings by jump distance"></svg>
-      <svg id="tripMap" viewBox="0 0 600 300" role="img" aria-label="Your route to the destination" hidden></svg>
       <div class="legend">
         <span><i style="background:var(--hot)"></i>kill in last hour</span>
         <span><i style="background:var(--warm)"></i>kill in last 6 h</span>
@@ -597,6 +604,8 @@ footer { font: 11px var(--mono); color: var(--muted); }
       <label><input type="checkbox" id="avIntel"> hostiles in intel (15 min)</label>
     </div>
     <div class="note" id="routeNote">Plans a route that avoids systems the page knows are dangerous, then sends it to your autopilot.</div>
+    <div class="tripbar" id="tripBar" hidden></div>
+    <svg id="tripMap" viewBox="0 0 600 300" role="img" aria-label="Your route to the destination" hidden></svg>
     <ol class="routelist" id="routeList"></ol>
     <div class="routeacts" id="routeActions" hidden><button type="button" id="routeSend">Send to autopilot</button><button type="button" id="routeClear">Clear</button></div>
   </section>
@@ -706,7 +715,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.46</span>
+    <span class="ver" id="aboutVer">Version 2.47</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -751,7 +760,8 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <p>From the top: the summary numbers, with Thera/Turnur connections and sov fights side by side below them (each box lights up when there's something in range, and a sov fight under way pulses red); the gate map with the systems table and intel beside it; watched systems; then <b>Alerts and settings</b>, <b>Character notifications</b> and <b>Kills</b>. Each of the last three has a <b>–</b> button that collapses it into a small button in a row above them. Press the small button to open it again. The page remembers which are open. A collapsed Character notifications button shows how many attacks arrived in the last hour.</p>
 
     <h3>Travel map</h3>
-    <p>When you set a destination from this page (<b>Set destination</b> on a system, a timer's <b>Destination</b> button, or the Route planner), a trip bar appears at the top of the Gate map. It shows the destination, jumps left, the next system and how many systems ahead have something reported. <b>Travel map</b> switches the Gate map to your route; <b>Area map</b> switches back.</p>
+    <p>Set a destination and the <b>Route planner</b> shows your route as a travel map. Ways to set one: type a system in the <b>Destination</b> box at the top right of the Gate map and press <b>Route</b> (it suggests systems on the map and watched systems, but any system works); click a system on the map and press <b>Safe route</b> or <b>Set destination</b>; a timer's <b>Destination</b> button; or the Route planner's own form. The Route planner opens by itself. The Gate map stays as it is, with the route drawn on it, and next to the Destination box it shows <b>→ destination</b>, jumps left and ⚠ with how many systems ahead have something reported; <b>×</b> ends the trip.</p>
+    <p>In the Route planner, the trip bar shows the destination, jumps left, the next system and how many systems ahead have something reported.</p>
     <ul>
       <li>The route is drawn step by step, in rows, start to destination. Each system shows its name and security status, colored like EVE. The dashed ring is you, the blue ring your next jump, and systems you've passed fade.</li>
       <li>Above a system: <b>✕</b> kills there in the last hour (EVE's own numbers, so this works anywhere, not only on the area map), <b>INTEL</b> with the reported pilot count and minutes since it was reported, and <b>CAMP</b> for gate camps the page has spotted, with a pulsing red ring around the system. Dangerous systems glow red. Hover a system for the details.</li>
@@ -902,6 +912,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.47</b> The travel map is shown in the Route planner instead of replacing the Gate map. A Destination box in the Gate map’s title row plans a route to any system without making the map smaller. Windows keep in step when a trip starts or ends.</li>
       <li><b>2.46</b> Windows app 1.3.1: drag the launcher ring from anywhere to move it; updates now install by themselves while you’re not using OnGrid (it used to wait until you quit, which rarely happens), checking every hour, and reopen your windows afterwards.</li>
       <li><b>2.45</b> Windows app 1.3: opens to a gate-ring launcher; each symbol opens one box in its own window, the middle opens the full page. The page can show a single box on its own for this.</li>
       <li><b>2.44</b> Gate camps on the travel map get a pulsing red ring, as well as the CAMP tag.</li>
@@ -2288,7 +2299,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.46";
+const APP_VERSION = "2.47";
 let watchGen = 0;
 function watchNames() { return (cfg.watch || "").split(",").map(x => x.trim()).filter(Boolean); }
 async function loadWatch() {
@@ -2808,13 +2819,14 @@ const saveTrip = () => ls.set("trip", JSON.stringify(state.trip));
 let tripBusy = false;
 async function startTrip(dest, destName, route, safer) {
   const prev = state.trip;
-  state.trip = { dest, destName, route: route || null, safer: !!safer, view: prev?.dest === dest ? prev.view : true, sec: {} };
+  state.trip = { dest, destName, route: route || null, safer: !!safer, sec: {} };
+  if (prev?.dest !== dest) expandPanel("routePanel"); // the travel map shows in the route planner
   if (!route) await tripReroute(); else await tripPrepare();
   saveTrip(); renderTrip(); renderMap();
 }
 function endTrip(quiet) {
   if (!state.trip) return;
-  state.trip = null; state.route = null; saveTrip(); renderTrip(); renderMap();
+  state.trip = null; state.route = null; $("#routeList").innerHTML = ""; saveTrip(); renderTrip(); renderMap();
   if (!quiet) toast("Trip ended.");
 }
 async function tripPrepare() { // names and security of every system on the route
@@ -2860,8 +2872,11 @@ function tripDanger(id) { // kills in the last hour (EVE's own numbers, any syst
   return { kills, intelN, intelAge, pilots, camp, any: kills > 0 || intelN > 0 || camp };
 }
 function renderTrip() {
-  const bar = $("#tripBar"), t = state.trip, panel = $("#mapPanel"), svg = $("#tripMap");
-  if (!t) { bar.hidden = true; panel.classList.remove("tripon"); svg.toggleAttribute("hidden", true); return; }
+  const bar = $("#tripBar"), t = state.trip, svg = $("#tripMap");
+  renderMapDest();
+  // with a trip, the travel map replaces the plain route list and its buttons in the route planner
+  $("#routeList").hidden = !!t; if (t) $("#routeActions").hidden = true;
+  if (!t) { bar.hidden = true; svg.toggleAttribute("hidden", true); return; }
   const here = tripHere(), R = t.route || [];
   if (!R.length && youNow() && !tripBusy && t.offAt !== youNow().system) { t.offAt = youNow().system; tripReroute(t.safer); } // location just became known
   // follow the trip: arrived, moved along it, or left it (then find a new route from where you are)
@@ -2873,12 +2888,11 @@ function renderTrip() {
   const risky = ahead.filter(id => tripDanger(id).any), left = at == null ? R.length - 1 : R.length - 1 - at, next = ahead[0];
   bar.hidden = false;
   bar.innerHTML = `<span class="tsum">Trip to <b>${esc(t.destName)}</b>${R.length ? ` · ${left} jump${left === 1 ? "" : "s"} left` : youNow() ? " · finding a route…" : " · waiting for your location (EVE login or chat logs)"}${next ? ` · next <b>${esc(nm(next))}</b>${t.sec[next] != null ? ` <span style="color:${secColor(t.sec[next])}">${fmtSec(t.sec[next])}</span>` : ""}` : ""}${risky.length ? ` · <span class="tdanger">${risky.length} dangerous system${risky.length === 1 ? "" : "s"} ahead</span>` : R.length ? " · nothing reported ahead" : ""}${t.safer ? ` <span class="note">(safer route)</span>` : ""}${at == null && R.length ? ` <span class="note">· your location isn't on the route yet</span>` : ""}</span>
-    <button type="button" id="tripView" class="${t.view ? "on" : ""}" aria-pressed="${!!t.view}">${t.view ? "Area map" : "Travel map"}</button>
     ${risky.length ? `<button type="button" id="tripSafer" title="Find a route that avoids the dangerous systems">Safer route</button>` : ""}
     <button type="button" id="tripSend" title="Put this route in your autopilot">Send to autopilot</button>
     <button type="button" id="tripEnd">End trip</button>`;
-  panel.classList.toggle("tripon", !!t.view); svg.toggleAttribute("hidden", !t.view); // (SVG elements have no .hidden property)
-  if (!t.view || !R.length) { if (t.view) svg.innerHTML = ""; return; }
+  svg.toggleAttribute("hidden", !R.length); // (SVG elements have no .hidden property)
+  if (!R.length) { svg.innerHTML = ""; return; }
   // the route as a snake: rows of systems, left to right then right to left
   const n = R.length, per = n <= 7 ? n : n <= 18 ? 6 : n <= 40 ? 8 : 10, rows = Math.ceil(n / per), xs = 600 / per, ys = 92, H = rows * ys + 34;
   svg.setAttribute("viewBox", `0 0 600 ${H}`);
@@ -2913,11 +2927,40 @@ function renderTrip() {
 }
 $("#tripBar").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b || !state.trip) return;
-  if (b.id === "tripView") { state.trip.view = !state.trip.view; saveTrip(); renderTrip(); }
   if (b.id === "tripEnd") endTrip();
   if (b.id === "tripSafer") tripReroute(true);
   if (b.id === "tripSend") { const h = tripHere(), R = state.trip.route || []; state.route = h && h.i > 0 ? R.slice(h.i) : R; sendRoute().finally(() => { state.route = R; }); }
 });
+// the destination box on the gate map: type any system (suggestions from the map and watched systems) and press Route
+function renderMapDest() {
+  const t = state.trip, el = $("#mdTrip");
+  if (!t) { el.hidden = true; el.innerHTML = ""; }
+  else {
+    const h = tripHere(), R = t.route || [], left = R.length ? (h && h.i >= 0 ? R.length - 1 - h.i : R.length - 1) : null;
+    const risky = R.length ? R.slice(h && h.i >= 0 ? h.i + 1 : 1).filter(id => tripDanger(id).any).length : 0;
+    el.hidden = false;
+    el.innerHTML = `→ <b>${esc(t.destName)}</b>${left != null ? ` ${left}j` : ""}${risky ? ` <span class="tdanger" title="${risky} system${risky === 1 ? "" : "s"} ahead with kills, intel or a camp">⚠${risky}</span>` : ""}<button type="button" id="mdEnd" title="End trip">×</button>`;
+  }
+  const names = [...new Set([...state.systems.values(), ...state.watch.values()].map(s => s.name))].sort();
+  const dl = $("#mapDestList"); if (dl.childElementCount !== names.length) dl.innerHTML = names.map(n => `<option value="${esc(n)}">`).join("");
+}
+$("#mapDest").addEventListener("submit", async e => {
+  e.preventDefault();
+  const name = $("#mapDestIn").value.trim(); if (!name) return $("#mapDestIn").focus();
+  expandPanel("routePanel"); $("#routeTo").value = name; $("#routeFrom").value = "";
+  await findRoute();
+  if (state.trip && (state.trip.destName || "").toUpperCase() === name.toUpperCase() || state.trip?.destName && nm(state.trip.dest).toUpperCase() === name.toUpperCase()) $("#mapDestIn").value = "";
+  else if ($("#routeNote").classList.contains("err")) toast($("#routeNote").textContent, true);
+});
+$("#mdTrip").addEventListener("click", e => { if (e.target.closest("#mdEnd")) endTrip(); });
+// other windows (the Windows app's box windows, or other tabs) see a trip started or ended here straight away
+addEventListener("storage", e => {
+  if (e.key !== "trip") return;
+  try { state.trip = JSON.parse(e.newValue || "null"); } catch { state.trip = null; }
+  state.route = state.trip?.route || null; if (!state.trip) $("#routeList").innerHTML = "";
+  renderTrip(); if (state.systems.size) renderMap();
+});
+
 // intel about a system still ahead on your route: alert, however far away it is
 function tripAlert(r) {
   const t = state.trip; if (!t?.route || isClear(r.msg)) return false;
