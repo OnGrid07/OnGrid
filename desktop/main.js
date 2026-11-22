@@ -22,9 +22,9 @@ const isPortable = !!process.env.PORTABLE_EXECUTABLE_DIR; // the single-file ver
 let update = { state: "idle", version: null, error: null };
 const prefsFile = () => path.join(app.getPath("userData"), "desktop-prefs.json");
 let prefs = { alwaysOnTop: false, closeToTray: true, bounds: null, launcher: true, launcherPos: null, boxBounds: {},
-  overlays: { alert: { on: true, pos: null }, hud: { on: true, pos: null } }, overlayUnlocked: false, overlayOpacity: 0.8 };
+  overlays: { alert: { on: true, pos: null }, hud: { on: true, pos: null }, trip: { on: true, pos: null }, mini: { on: true, pos: null } }, overlayUnlocked: false, overlayOpacity: 0.8, miniSize: 320 };
 try { prefs = { ...prefs, ...JSON.parse(fs.readFileSync(prefsFile(), "utf8")) }; } catch {}
-prefs.overlays = { alert: { on: true, pos: null, ...(prefs.overlays?.alert || {}) }, hud: { on: true, pos: null, ...(prefs.overlays?.hud || {}) } };
+prefs.overlays = Object.fromEntries(["alert", "hud", "trip", "mini"].map(k => [k, { on: true, pos: null, ...(prefs.overlays?.[k] || {}) }]));
 const savePrefs = () => { try { fs.writeFileSync(prefsFile(), JSON.stringify(prefs)); } catch {} };
 
 // one copy at a time: starting it again just shows the open window
@@ -193,12 +193,16 @@ function updateItems() {
 /* ---------- overlays: alert banner and intel HUD ----------
    Separate see-through windows that float above EVE (windowed or fixed-window mode). They never touch the game
    client: the page sends them its alerts and an intel summary. Locked, clicks pass straight through to EVE. */
-const overlays = { alert: null, hud: null };
-let lastHud = null, ovDragFrom = null;
-const OV_SIZE = { alert: [600, 86], hud: [330, 150] };
+const OV_KINDS = ["alert", "hud", "trip", "mini"];
+const overlays = { alert: null, hud: null, trip: null, mini: null };
+let lastHud = null, lastTrip = null, lastMini = null, ovDragFrom = null;
+const OV_SIZE = { alert: [600, 86], hud: [330, 150], trip: [520, 110], get mini() { const m = prefs.miniSize || 320; return [m, m + 8]; } };
 function ovDefaultPos(kind) {
   const wa = screen.getPrimaryDisplay().workArea, [w] = OV_SIZE[kind];
-  return kind === "alert" ? { x: Math.round(wa.x + (wa.width - w) / 2), y: wa.y + 70 } : { x: Math.round(wa.x + wa.width * 0.36 - w / 2), y: wa.y + wa.height - 260 };
+  return kind === "alert" ? { x: Math.round(wa.x + (wa.width - w) / 2), y: wa.y + 70 }
+    : kind === "hud" ? { x: Math.round(wa.x + wa.width * 0.36 - w / 2), y: wa.y + wa.height - 260 }
+    : kind === "trip" ? { x: Math.round(wa.x + wa.width * 0.62), y: wa.y + wa.height - 240 }
+    : { x: wa.x + 260, y: Math.round(wa.y + wa.height * 0.42) };
 }
 function ovPos(kind) {
   const p = prefs.overlays?.[kind]?.pos;
@@ -218,7 +222,7 @@ function createOverlay(kind) {
   ov.loadFile(path.join(__dirname, "overlay.html"), { query: { kind } });
   ov.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   ov.webContents.on("will-navigate", e => e.preventDefault());
-  ov.webContents.on("did-finish-load", () => { ovMode(ov); if (kind === "hud") { ov.webContents.send("ov:data", lastHud); } applyOverlayState(kind); });
+  ov.webContents.on("did-finish-load", () => { ovMode(ov); const d = { hud: lastHud, trip: lastTrip, mini: lastMini }[kind]; if (kind !== "alert") ov.webContents.send("ov:data", d ?? null); applyOverlayState(kind); });
   ov.on("closed", () => { overlays[kind] = null; });
   overlays[kind] = ov;
 }
@@ -229,11 +233,12 @@ function applyOverlayState(kind) { // show or hide, and whether clicks go throug
   ov.setFocusable(!!prefs.overlayUnlocked); // unlocked: fully interactive so it can be dragged; locked: never takes focus from EVE
   ovMode(ov);
   if (!on) return ov.hide();
-  if (kind === "hud" || prefs.overlayUnlocked) ov.showInactive(); // the banner only shows while an alert is up (or while you place it)
-  else ov.hide(); // locked again: the banner's placeholder goes away until the next alert
+  // the banner only shows while an alert is up and the travel HUD only during a trip (or while you place them)
+  if (prefs.overlayUnlocked || kind === "hud" || kind === "mini" || (kind === "trip" && lastTrip)) ov.showInactive();
+  else ov.hide();
 }
 function setupOverlays() {
-  for (const kind of ["alert", "hud"]) if (prefs.overlays?.[kind]?.on && !overlays[kind]) createOverlay(kind);
+  for (const kind of OV_KINDS) if (prefs.overlays?.[kind]?.on && !overlays[kind]) createOverlay(kind);
 }
 const fromSite = e => { try { return new URL(e.senderFrame?.url || e.sender.getURL()).origin === SITE_ORIGIN; } catch { return false; } };
 ipcMain.on("page:alert", (e, a) => {
@@ -242,10 +247,12 @@ ipcMain.on("page:alert", (e, a) => {
   const ov = overlays.alert, send = () => { ov.showInactive(); ov.setAlwaysOnTop(true, "screen-saver"); ov.webContents.send("ov:data", a); };
   ov.webContents.isLoading() ? ov.webContents.once("did-finish-load", send) : send();
 });
-ipcMain.on("page:hud", (e, d) => {
-  if (!fromSite(e) || e.sender !== win?.webContents) return; // the full page (always running) speaks for the HUD
-  lastHud = d && typeof d === "object" ? d : null;
-  const ov = overlays.hud; if (ov && !ov.isDestroyed() && !ov.webContents.isLoading()) ov.webContents.send("ov:data", lastHud);
+// the full page (always running) speaks for the HUD, the travel HUD and the mini map
+for (const kind of ["hud", "trip", "mini"]) ipcMain.on("page:" + kind, (e, d) => {
+  if (!fromSite(e) || e.sender !== win?.webContents) return;
+  const v = d && typeof d === "object" ? d : null;
+  if (kind === "hud") lastHud = v; else if (kind === "trip") { const had = !!lastTrip; lastTrip = v; if (had !== !!v) applyOverlayState("trip"); } else lastMini = v;
+  const ov = overlays[kind]; if (ov && !ov.isDestroyed() && !ov.webContents.isLoading()) ov.webContents.send("ov:data", v);
 });
 const ovOf = e => Object.entries(overlays).find(([, w]) => w && !w.isDestroyed() && w.webContents === e.sender) || [];
 ipcMain.on("ov:drag", (e, what, dx, dy) => {
@@ -254,20 +261,21 @@ ipcMain.on("ov:drag", (e, what, dx, dy) => {
   else if (what === "move" && ovDragFrom && Number.isFinite(dx) && Number.isFinite(dy)) ov.setPosition(Math.round(ovDragFrom.x + dx), Math.round(ovDragFrom.y + dy));
   else if (what === "end") { ovDragFrom = null; const [x, y] = ov.getPosition(); prefs.overlays[kind] = { ...prefs.overlays[kind], pos: { x, y } }; savePrefs(); }
 });
-ipcMain.on("ov:resize", (e, h) => { const [kind, ov] = ovOf(e); if (ov && h > 20 && h < 600) { const [w] = OV_SIZE[kind]; ov.setSize(w, Math.round(h)); } });
+ipcMain.on("ov:resize", (e, h) => { const [kind, ov] = ovOf(e); if (ov && kind !== "mini" && h > 20 && h < 600) { const [w] = OV_SIZE[kind]; ov.setSize(w, Math.round(h)); } });
 ipcMain.on("ov:hide", e => { const [kind, ov] = ovOf(e); if (ov && kind === "alert" && !prefs.overlayUnlocked) ov.hide(); });
 // one place that changes the overlay settings, used by the tray menu and by the page's Alerts and settings
 function setOverlays(o) {
-  for (const kind of ["alert", "hud"]) if (typeof o[kind] === "boolean") {
+  for (const kind of OV_KINDS) if (typeof o[kind] === "boolean") {
     prefs.overlays[kind] = { ...prefs.overlays[kind], on: o[kind] };
     if (o[kind] && !overlays[kind]) createOverlay(kind); else applyOverlayState(kind);
   }
   if (typeof o.unlocked === "boolean") { prefs.overlayUnlocked = o.unlocked; for (const k of Object.keys(overlays)) applyOverlayState(k); }
   if (Number.isFinite(o.opacity) && o.opacity >= 0.3 && o.opacity <= 1) { prefs.overlayOpacity = o.opacity; for (const w of Object.values(overlays)) ovMode(w); }
-  if (o.reset) for (const k of ["alert", "hud"]) { prefs.overlays[k] = { ...prefs.overlays[k], pos: null }; const ov = overlays[k]; if (ov && !ov.isDestroyed()) { const p = ovDefaultPos(k); ov.setPosition(p.x, p.y); } }
+  if ([240, 320, 420].includes(o.miniSize)) { prefs.miniSize = o.miniSize; const ov = overlays.mini; if (ov && !ov.isDestroyed()) { const [w, h] = OV_SIZE.mini; ov.setSize(w, h); } }
+  if (o.reset) for (const k of OV_KINDS) { prefs.overlays[k] = { ...prefs.overlays[k], pos: null }; const ov = overlays[k]; if (ov && !ov.isDestroyed()) { const p = ovDefaultPos(k); ov.setPosition(p.x, p.y); } }
   savePrefs(); refreshTray(); sendOverlayState();
 }
-const overlayState = () => ({ alert: !!prefs.overlays.alert.on, hud: !!prefs.overlays.hud.on, unlocked: !!prefs.overlayUnlocked, opacity: prefs.overlayOpacity ?? 0.8 });
+const overlayState = () => ({ alert: !!prefs.overlays.alert.on, hud: !!prefs.overlays.hud.on, trip: !!prefs.overlays.trip.on, mini: !!prefs.overlays.mini.on, miniSize: prefs.miniSize || 320, unlocked: !!prefs.overlayUnlocked, opacity: prefs.overlayOpacity ?? 0.8 });
 function sendOverlayState() { for (const w of [win, ...boxWins.values()]) if (w && !w.isDestroyed()) w.webContents.send("ov:state", overlayState()); }
 ipcMain.handle("ov:get", e => fromSite(e) ? overlayState() : null);
 ipcMain.on("ov:set", (e, o) => { if (fromSite(e) && o && typeof o === "object") setOverlays(o); });
@@ -275,6 +283,8 @@ function overlayItems() {
   return [
     { label: "Alert banner over the game", type: "checkbox", checked: !!prefs.overlays.alert.on, click: i => setOverlays({ alert: i.checked }) },
     { label: "Intel HUD over the game", type: "checkbox", checked: !!prefs.overlays.hud.on, click: i => setOverlays({ hud: i.checked }) },
+    { label: "Travel HUD (during a trip)", type: "checkbox", checked: !!prefs.overlays.trip.on, click: i => setOverlays({ trip: i.checked }) },
+    { label: "Mini map over the game", type: "checkbox", checked: !!prefs.overlays.mini.on, click: i => setOverlays({ mini: i.checked }) },
     { label: "Move overlays (unlock)", type: "checkbox", checked: !!prefs.overlayUnlocked, click: i => setOverlays({ unlocked: i.checked }) },
     { label: "Overlay background", submenu: [["Light", 0.55], ["Medium", 0.8], ["Solid", 0.95]].map(([l, v]) => ({ label: l, type: "radio", checked: Math.abs((prefs.overlayOpacity ?? 0.8) - v) < 0.01, click: () => setOverlays({ opacity: v }) })) },
     { label: "Put overlays back in place", click: () => setOverlays({ reset: true }) }

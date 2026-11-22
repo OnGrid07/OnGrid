@@ -7,6 +7,7 @@
 <style>
   /* OnGrid overlays: separate see-through windows on top of EVE (never part of the game client).
      ?kind=alert: a banner that flashes when OnGrid raises an alert.  ?kind=hud: a small intel summary that stays up.
+     ?kind=trip: the next jumps of your trip with danger on them.  ?kind=mini: a small see-through copy of the gate map.
      Locked, clicks pass straight through to EVE; unlocked (from the tray menu), drag them to move. */
   :root { color-scheme: dark; --bg: #0b0f14; --line: #1f2a36; --fg: #d6e1ea; --muted: #8a9bab; --accent: #4fb3d9; --hot: #ff5a3c; --warm: #f2a33a; --ok: #57c47a; --intel: #d65cff; }
   html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; user-select: none; font: 12px/1.5 "Cascadia Mono", Consolas, "IBM Plex Mono", monospace; color: var(--fg); }
@@ -40,13 +41,36 @@
   .k { color: var(--muted); }
   .hot { color: var(--hot); } .intel { color: var(--intel); } .warm { color: var(--warm); } .ok { color: var(--ok); }
   .stale { color: var(--muted); font-size: 10px; text-align: right; margin-top: 2px; }
+
+  /* travel HUD */
+  .trip { padding: 7px 12px 8px; }
+  .trip .top { display: flex; align-items: baseline; gap: 7px; white-space: nowrap; }
+  .trip .top b { font: 600 14px "Segoe UI", system-ui, sans-serif; }
+  .trip .warn { margin-left: auto; color: var(--hot); font-size: 11px; }
+  .chain { display: flex; align-items: flex-start; margin-top: 6px; }
+  .st { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; font-size: 10px; position: relative; }
+  .st + .st::before { content: ""; position: absolute; top: 17px; right: 50%; width: 100%; height: 2px; background: var(--accent); z-index: 0; }
+  .st .mk { height: 12px; font-weight: 700; font-size: 9px; white-space: nowrap; }
+  .st .dot { width: 11px; height: 11px; border-radius: 50%; border: 1.5px solid #05080b; margin: 1px 0 3px; position: relative; z-index: 1; }
+  .st .nm { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .st .sc { font-size: 9px; }
+  .st.you .dot { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--fg); }
+  .st.camp .dot { animation: cp 1.3s ease-out infinite; }
+  @keyframes cp { 0% { box-shadow: 0 0 0 2px var(--hot); } 100% { box-shadow: 0 0 0 10px rgba(255,90,60,0); } }
+  @media (prefers-reduced-motion: reduce) { .st.camp .dot { animation: none; box-shadow: 0 0 0 2px var(--hot); } }
+  .st.gap .dot { background: transparent !important; border: 0; } .st.gap .nm { color: var(--muted); }
+
+  /* mini map */
+  .mini { position: absolute; left: 4px; top: 4px; right: 4px; bottom: 4px; padding: 4px; }
+  .mini svg { width: 100%; height: 100%; display: block; }
+  .mini .empty { color: var(--muted); font-size: 11px; padding: 10px; }
 </style>
 </head>
 <body>
 <div id="root"></div>
 <div class="hint">drag to move · lock in the tray menu</div>
 <script>
-  const kind = new URLSearchParams(location.search).get("kind") === "hud" ? "hud" : "alert";
+  const kind = ["hud", "trip", "mini"].includes(new URLSearchParams(location.search).get("kind")) ? new URLSearchParams(location.search).get("kind") : "alert";
   const api = window.overlay || { onData: () => {}, onMode: () => {}, dragStart: () => {}, dragMove: () => {}, dragEnd: () => {}, resize: () => {} };
   const root = document.getElementById("root");
   const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -80,17 +104,53 @@
     fit();
   }
 
+  function drawTrip(d) {
+    if (!d) { root.innerHTML = `<div class="box trip"><div class="top"><b>Travel HUD</b><span class="k">shows here during a trip</span></div></div>`; return fit(); }
+    const st = (x, cls) => { const sc = x.sec; const col = sc == null ? "#3a4858" : secColor(sc);
+      const mk = cls.includes("you") ? `<span style="color:var(--fg)">YOU</span>` : x.camp ? `<span class="hot">CAMP</span>` : cls.includes("dest") ? `<span style="color:var(--accent)">DEST</span>` : x.camp ? `<span class="hot">CAMP</span>` : x.intel ? `<span class="intel">INT ${esc(x.intel)}</span>` : x.kills ? `<span class="hot">✕${x.kills}</span>` : "";
+      return `<div class="st ${cls}${x.camp ? " camp" : ""}"><span class="mk">${mk}</span><span class="dot" style="background:${col}"></span><span class="nm">${esc(x.name)}</span><span class="sc" style="color:${col}">${sc == null ? "" : (Math.round(sc * 10) / 10).toFixed(1)}</span></div>`; };
+    // you, the next jumps, and the destination (with "+N" for the jumps in between when the route is longer)
+    const list = [[d.you, "you"], ...d.next.map((x, i) => [x, !d.more && i === d.next.length - 1 ? "dest" : ""])];
+    const steps = list.map(([x, c]) => st(x, c));
+    if (d.more && d.destStep) steps.push(`<div class="st gap"><span class="mk"></span><span class="dot"></span><span class="nm">+${d.more - 1}</span></div>`, st(d.destStep, "dest"));
+    root.innerHTML = `<div class="box trip"><div class="top">→ <b>${esc(d.dest)}</b><span>${d.left} jump${d.left === 1 ? "" : "s"}</span>${d.next[0] ? `<span class="k">· next</span><b>${esc(d.next[0].name)}</b>` : ""}
+      ${d.campAhead ? `<span class="warn">⚠ camp ${d.campAhead.d === 1 ? "next jump" : d.campAhead.d + " ahead"}: ${esc(d.campAhead.name)}</span>` : d.risky ? `<span class="warn">⚠ ${d.risky} risky ahead</span>` : `<span class="warn ok" style="color:var(--ok)">clear ahead</span>`}</div>
+      <div class="chain">${steps.join("")}</div>${d.onRoute ? "" : `<div class="stale">you're not on the route yet</div>`}</div>`;
+    fit();
+  }
+  let miniCss = "";
+  function drawMini(d) {
+    if (!d || !d.svg) { root.innerHTML = `<div class="box mini"><div class="empty">Mini map: waiting for the gate map…</div></div>`; return; }
+    if (d.css && d.css !== miniCss) { miniCss = d.css; let st = document.getElementById("minicss"); if (!st) { st = document.createElement("style"); st.id = "minicss"; document.head.appendChild(st); }
+      // the gate map's own look, plus: bigger text, and only the systems that matter are named so it stays readable when small
+      st.textContent = d.css + `\n#mini text { font-size: 20px !important; } #mini .tag { font-size: 18px !important; } #mini .hpath .hlbl { font-size: 18px !important; }
+        #mini g[data-id] text, #mini .ratlbl, #mini .ringlbl, #mini .reglbl, #mini .rat { display: none; }
+        #mini g[data-id]:has(.intelring) text:not(.ratlbl), #mini g[data-id]:has(.youring) text:not(.ratlbl) { display: inline; }
+        #mini .tag.sov, #mini .tag.ess { display: none; }
+        #mini .node { stroke-width: 3; } #mini .edge { stroke-width: 2; } #mini .intelring { stroke-width: 4; } #mini .youring { stroke-width: 3; }`; }
+    const clean = String(d.svg).replace(/<script[\s\S]*?<\/script>/gi, "").replace(/\son\w+\s*=\s*("[^"]*"|'[^']*')/gi, "");
+    let box = root.querySelector(".mini svg");
+    if (!box) { root.innerHTML = `<div class="box mini"><svg id="mini" viewBox="0 0 600 600" preserveAspectRatio="xMidYMid meet"></svg></div>`; box = root.querySelector(".mini svg"); }
+    box.setAttribute("viewBox", /^[\d.\s-]+$/.test(d.viewBox) ? d.viewBox : "0 0 600 600"); box.innerHTML = clean;
+  }
   api.onData(d => {
     if (kind === "alert") { if (d && d.title) showAlert(d); }
+    else if (kind === "trip") { last = d; drawTrip(d); }
+    else if (kind === "mini") { last = d; drawMini(d); }
     else { last = d; drawHud(d); }
   });
   api.onMode(m => {
     unlocked = !!m.unlocked; document.body.classList.toggle("unlocked", unlocked);
     document.documentElement.style.setProperty("--op", String(m.opacity ?? 0.8));
     if (kind === "alert") drawAlert(unlocked && !hideTimer ? { title: "Alert banner", body: "" } : last, unlocked && !hideTimer);
+    else if (kind === "trip") drawTrip(last);
+    else if (kind === "mini") drawMini(last);
     else drawHud(last);
   });
-  if (kind === "hud") { drawHud(null); setInterval(() => drawHud(last), 15e3); } else drawAlert(null, true);
+  if (kind === "hud") { drawHud(null); setInterval(() => drawHud(last), 15e3); }
+  else if (kind === "trip") drawTrip(null);
+  else if (kind === "mini") drawMini(null);
+  else drawAlert(null, true);
 
   // moving: only while unlocked (locked overlays let clicks through to EVE)
   let drag = null;

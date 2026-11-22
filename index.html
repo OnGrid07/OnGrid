@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.58
+  OnGrid (formerly Local Intel), version 2.59
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -671,6 +671,8 @@ footer { font: 11px var(--mono); color: var(--muted); }
         <div class="note">Windows app: see-through windows on top of EVE. Clicks pass through them to the game while they're locked.</div>
         <label><input type="checkbox" id="ovAlert"> Alert banner: flashes at the top of the screen for every alert</label>
         <label><input type="checkbox" id="ovHud"> Intel HUD: your system, danger and the nearest hostile</label>
+        <label><input type="checkbox" id="ovTrip"> Travel HUD: next jumps and danger on your route (shows only during a trip)</label>
+        <label><input type="checkbox" id="ovMini"> Mini map: a small see-through gate map <select id="ovMiniSize" aria-label="Mini map size"><option value="240">small</option><option value="320">medium</option><option value="420">large</option></select></label>
         <label><input type="checkbox" id="ovUnlock"> Move overlays: unlock, then drag them where you want (yellow dashed outline); untick to lock</label>
         <label>Background <select id="ovOpacity"><option value="0.55">Light</option><option value="0.8">Medium</option><option value="0.95">Solid</option></select></label>
         <div><button type="button" id="ovReset">Put overlays back in place</button> <button type="button" id="ovTest">Show the banner</button></div>
@@ -736,7 +738,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.58</span>
+    <span class="ver" id="aboutVer">Version 2.59</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -802,7 +804,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <p><b>OnGrid for Windows</b> is this page in its own app window. Download <code>OnGrid-Setup-….exe</code> from <a href="https://github.com/OnGrid07/OnGrid/releases/latest" target="_blank" rel="noopener">the releases page</a> and run it; it installs in a few seconds and adds a Start menu shortcut.</p>
     <ul>
       <li><b>The launcher</b> (app 1.3 and later): the app opens to a round gate ring. Each symbol on the ring opens one box in its own window: Gate map, Intel and location, Local and D-scan, Hostile tracker, Watched systems, Systems, Kills, Character notifications, Timers, Route planner, Alerts and settings, and About; the power symbol quits. Hover a symbol to see its name in the middle. A small blue dot under a symbol means its window is open; clicking the symbol again closes that window. Click the middle of the ring to open the full OnGrid window. Drag the ring from anywhere, even from a symbol, to move it (it remembers where you put it), and press <b>hide</b> (or Esc) to tuck it into the tray. Each box window remembers its size and place. The Gate map window shows just the map. In its title row, the small <b>2j</b>-style picker changes how many jumps the map shows, and the <b>☰</b> button shows or hides System, Jumps, Load, presets and the summary above it. Every window shows the same intel, rings, tracks and alerts: the window that reads your chat logs (or the phone relay) shares them with the others. To start with the full window instead, untick <b>Open to the launcher</b> in the tray menu.</li>
-      <li><b>Overlays</b> (app 1.4 and later): two see-through windows that float on top of EVE when the game runs in windowed or fixed-window mode. They are separate windows and never touch the game client. The <b>alert banner</b> flashes at the top of the screen whenever OnGrid alerts you (hostiles in range, watched systems, big ships, camps, sov, timers) and fades after about nine seconds; several at once show a +count. The <b>intel HUD</b> stays up and shows your system and its security, a danger rating (HIGH: a hostile reported within 1 jump in the last 5 minutes, or a camp next door; MEDIUM: hostiles within 3 jumps, kills where you are, camps or big ships nearby; LOW: quiet), the nearest reported hostile with jumps, pilots and minutes ago, how many systems within 3 jumps have hostiles reported, big ships, and kills where you are. Clicks pass straight through both to EVE. Switch them in <b>Alerts and settings → Overlays over the game</b> (or the tray menu): turn each one on or off, <b>Move overlays</b> to drag them where you want (they get a yellow dashed outline; untick it to lock them again), <b>Overlay background</b> to make them lighter or more solid, and <b>Put overlays back in place</b>. <b>Test alert</b> in Alerts and settings shows the banner.</li>
+      <li><b>Overlays</b> (app 1.4 and later): two see-through windows that float on top of EVE when the game runs in windowed or fixed-window mode. They are separate windows and never touch the game client. The <b>alert banner</b> flashes at the top of the screen whenever OnGrid alerts you (hostiles in range, watched systems, big ships, camps, sov, timers) and fades after about nine seconds; several at once show a +count. The <b>intel HUD</b> stays up and shows your system and its security, a danger rating (HIGH: a hostile reported within 1 jump in the last 5 minutes, or a camp next door; MEDIUM: hostiles within 3 jumps, kills where you are, camps or big ships nearby; LOW: quiet), the nearest reported hostile with jumps, pilots and minutes ago, how many systems within 3 jumps have hostiles reported, big ships, and kills where you are. The <b>travel HUD</b> appears only while a trip is on: destination and jumps left, then your system and the next five jumps with their security, kills in the last hour (✕), intel (with pilot count) and a pulsing ring on camps, plus a warning for the first camp ahead. The <b>mini map</b> is a small see-through copy of the gate map (small, medium or large) with the intel rings, hostile tracks and your YOU ring; to stay readable it only names systems with intel, kills, you or hostile groups. Clicks pass straight through all of them to EVE. Switch them in <b>Alerts and settings → Overlays over the game</b> (or the tray menu): turn each one on or off, <b>Move overlays</b> to drag them where you want (they get a yellow dashed outline; untick it to lock them again), <b>Overlay background</b> to make them lighter or more solid, and <b>Put overlays back in place</b>. <b>Test alert</b> in Alerts and settings shows the banner.</li>
       <li>It keeps running in the system tray, and alerts and Windows notifications keep working while it's minimized or behind the game. Closing the window hides it to the tray; quit from the tray icon.</li>
       <li>Right-click the tray icon for <b>Always on top</b>, <b>Keep running when closed</b> and <b>Start with Windows</b>.</li>
       <li>It remembers your chat logs folder, so there's no permission prompt each time.</li>
@@ -935,6 +937,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.59</b> Windows app 1.5: two more overlays over the game, a travel HUD (during a trip) and a mini map, switched in Alerts and settings or the tray menu.</li>
       <li><b>2.58</b> Windows app 1.4.1: overlay switches in Alerts and settings (Overlays over the game): on and off, Move overlays, background, put back in place, and Show the banner. Unlocked overlays are fully interactive so they can always be dragged.</li>
       <li><b>2.57</b> Windows app 1.4: overlays on top of EVE. An alert banner that flashes for every alert, and an intel HUD with your system, a danger rating, the nearest hostile and what’s within 3 jumps. Click-through; move and switch them from the tray menu.</li>
       <li><b>2.56</b> Hostile tracks follow the gates through the systems in between, and break instead of drawing impossible lines between systems that aren’t connected (or are too far apart for the time between reports).</li>
@@ -1996,16 +1999,49 @@ function hudSummary() {
 // the overlay switches in Alerts and settings (Windows app only)
 if (window.ongridApp?.overlayState) {
   $("#ovSet").hidden = false;
-  const show = st => { if (!st) return; $("#ovAlert").checked = st.alert; $("#ovHud").checked = st.hud; $("#ovUnlock").checked = st.unlocked; $("#ovOpacity").value = String([0.55, 0.8, 0.95].reduce((a, b) => Math.abs(b - st.opacity) < Math.abs(a - st.opacity) ? b : a)); };
+  const show = st => { if (!st) return; $("#ovAlert").checked = st.alert; $("#ovHud").checked = st.hud; $("#ovTrip").checked = !!st.trip; $("#ovMini").checked = !!st.mini; if (st.miniSize) $("#ovMiniSize").value = String(st.miniSize); $("#ovUnlock").checked = st.unlocked; $("#ovOpacity").value = String([0.55, 0.8, 0.95].reduce((a, b) => Math.abs(b - st.opacity) < Math.abs(a - st.opacity) ? b : a)); };
   window.ongridApp.overlayState().then(show).catch(() => {}); window.ongridApp.onOverlayState?.(show);
   $("#ovAlert").addEventListener("change", e => window.ongridApp.setOverlay({ alert: e.target.checked }));
   $("#ovHud").addEventListener("change", e => window.ongridApp.setOverlay({ hud: e.target.checked }));
+  $("#ovTrip").addEventListener("change", e => window.ongridApp.setOverlay({ trip: e.target.checked }));
+  $("#ovMini").addEventListener("change", e => window.ongridApp.setOverlay({ mini: e.target.checked }));
+  $("#ovMiniSize").addEventListener("change", e => window.ongridApp.setOverlay({ miniSize: +e.target.value }));
   $("#ovUnlock").addEventListener("change", e => window.ongridApp.setOverlay({ unlocked: e.target.checked }));
   $("#ovOpacity").addEventListener("change", e => window.ongridApp.setOverlay({ opacity: +e.target.value }));
   $("#ovReset").addEventListener("click", () => window.ongridApp.setOverlay({ reset: true }));
   $("#ovTest").addEventListener("click", () => window.ongridApp.alert({ title: "Alert banner", body: "This is where OnGrid alerts show over the game." }));
 }
-if (window.ongridApp?.hud && !/[?&]box=/.test(location.search)) setInterval(() => { try { window.ongridApp.hud(hudSummary()); } catch {} }, 3000);
+// Windows app: the travel HUD (only while a trip is on) and the mini map over the game
+function tripOverlay() {
+  const t = state.trip; if (!t?.route?.length) return null;
+  const R = t.route, h = tripHere(), at = h && h.i >= 0 ? h.i : 0, ahead = R.slice(at + 1);
+  const step = id => { const d = tripDanger(id); return { name: nm(id), sec: t.sec?.[id] ?? null, kills: d.kills, intel: d.intelN ? (d.pilots || "!") : 0, camp: d.camp }; };
+  const risky = ahead.filter(id => tripDanger(id).any);
+  const firstCamp = ahead.findIndex(id => tripDanger(id).camp);
+  return { dest: t.destName, left: R.length - 1 - at, onRoute: !!(h && h.i >= 0), you: step(R[at]), next: ahead.slice(0, 5).map(step), more: Math.max(0, ahead.length - 5),
+    destStep: ahead.length > 5 ? step(R[R.length - 1]) : null, risky: risky.length, campAhead: firstCamp >= 0 ? { name: nm(ahead[firstCamp]), d: firstCamp + 1 } : null };
+}
+let mapCss = null, lastMini = "";
+function miniMapData() { // the gate map as it is drawn now, with its styles, for the mini map overlay
+  if (!state.systems.size) return null;
+  if (mapCss == null) {
+    const rules = [];
+    for (const sh of document.styleSheets) { let rs; try { rs = sh.cssRules; } catch { continue; }
+      for (const r of rs) {
+        if (r.selectorText === ":root") rules.push(r.cssText);
+        else if (r.type === CSSRule.KEYFRAMES_RULE) rules.push(r.cssText);
+        else if (r.selectorText && r.selectorText.includes("#map")) rules.push(r.cssText.replace(/#map/g, "#mini"));
+        else if (r.type === CSSRule.MEDIA_RULE && r.cssText.includes("#map")) rules.push(r.cssText.replace(/#map/g, "#mini"));
+      } }
+    mapCss = rules.join("\n");
+  }
+  return { svg: $("#map").innerHTML, viewBox: $("#map").getAttribute("viewBox") || "0 0 600 600", css: mapCss };
+}
+if (window.ongridApp?.hud && !/[?&]box=/.test(location.search)) setInterval(() => {
+  try { window.ongridApp.hud(hudSummary()); } catch {}
+  try { window.ongridApp.trip?.(tripOverlay()); } catch {}
+  try { const m = miniMapData(); if (m && m.svg !== lastMini) { lastMini = m.svg; window.ongridApp.mini?.(m); } } catch {}
+}, 3000);
 function distFromYou(toId) {
   const me = youNow(); if (!me) return null;
   const meSys = [...state.systems.values()].find(s => s.name.toUpperCase() === me.system.toUpperCase());
@@ -2398,7 +2434,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.58";
+const APP_VERSION = "2.59";
 // a window left open (an app box window, a pinned tab) would keep running an old copy of the page after an update:
 // every 10 minutes, look at the live page's version; if it's newer, reload while the window isn't being looked at,
 // or show a small bar with a Reload button
