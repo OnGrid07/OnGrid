@@ -5,5 +5,9 @@ const { contextBridge, ipcRenderer } = require("electron");
 contextBridge.exposeInMainWorld("ongridApp", {
   overlays: true,
   alert: a => ipcRenderer.send("page:alert", { title: String(a?.title || "").slice(0, 160), body: String(a?.body || "").slice(0, 300), level: a?.level === "info" ? "info" : "alert" }),
-  hud: d => ipcRenderer.send("page:hud", JSON.parse(JSON.stringify(d || null)))
+  hud: d => ipcRenderer.send("page:hud", JSON.parse(JSON.stringify(d || null))),
+  // overlay switches, so they can be set from Alerts and settings as well as the tray menu
+  overlayState: () => ipcRenderer.invoke("ov:get"),
+  setOverlay: o => ipcRenderer.send("ov:set", { alert: o?.alert, hud: o?.hud, unlocked: o?.unlocked, opacity: o?.opacity, reset: !!o?.reset }),
+  onOverlayState: cb => ipcRenderer.on("ov:state", (e, st) => cb(st))
 });

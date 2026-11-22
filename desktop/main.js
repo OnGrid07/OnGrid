@@ -226,6 +226,7 @@ function applyOverlayState(kind) { // show or hide, and whether clicks go throug
   const ov = overlays[kind]; if (!ov || ov.isDestroyed()) return;
   const on = prefs.overlays?.[kind]?.on;
   ov.setIgnoreMouseEvents(!prefs.overlayUnlocked);
+  ov.setFocusable(!!prefs.overlayUnlocked); // unlocked: fully interactive so it can be dragged; locked: never takes focus from EVE
   ovMode(ov);
   if (!on) return ov.hide();
   if (kind === "hud" || prefs.overlayUnlocked) ov.showInactive(); // the banner only shows while an alert is up (or while you place it)
@@ -255,21 +256,35 @@ ipcMain.on("ov:drag", (e, what, dx, dy) => {
 });
 ipcMain.on("ov:resize", (e, h) => { const [kind, ov] = ovOf(e); if (ov && h > 20 && h < 600) { const [w] = OV_SIZE[kind]; ov.setSize(w, Math.round(h)); } });
 ipcMain.on("ov:hide", e => { const [kind, ov] = ovOf(e); if (ov && kind === "alert" && !prefs.overlayUnlocked) ov.hide(); });
+// one place that changes the overlay settings, used by the tray menu and by the page's Alerts and settings
+function setOverlays(o) {
+  for (const kind of ["alert", "hud"]) if (typeof o[kind] === "boolean") {
+    prefs.overlays[kind] = { ...prefs.overlays[kind], on: o[kind] };
+    if (o[kind] && !overlays[kind]) createOverlay(kind); else applyOverlayState(kind);
+  }
+  if (typeof o.unlocked === "boolean") { prefs.overlayUnlocked = o.unlocked; for (const k of Object.keys(overlays)) applyOverlayState(k); }
+  if (Number.isFinite(o.opacity) && o.opacity >= 0.3 && o.opacity <= 1) { prefs.overlayOpacity = o.opacity; for (const w of Object.values(overlays)) ovMode(w); }
+  if (o.reset) for (const k of ["alert", "hud"]) { prefs.overlays[k] = { ...prefs.overlays[k], pos: null }; const ov = overlays[k]; if (ov && !ov.isDestroyed()) { const p = ovDefaultPos(k); ov.setPosition(p.x, p.y); } }
+  savePrefs(); refreshTray(); sendOverlayState();
+}
+const overlayState = () => ({ alert: !!prefs.overlays.alert.on, hud: !!prefs.overlays.hud.on, unlocked: !!prefs.overlayUnlocked, opacity: prefs.overlayOpacity ?? 0.8 });
+function sendOverlayState() { for (const w of [win, ...boxWins.values()]) if (w && !w.isDestroyed()) w.webContents.send("ov:state", overlayState()); }
+ipcMain.handle("ov:get", e => fromSite(e) ? overlayState() : null);
+ipcMain.on("ov:set", (e, o) => { if (fromSite(e) && o && typeof o === "object") setOverlays(o); });
 function overlayItems() {
-  const toggle = kind => i => { prefs.overlays[kind] = { ...prefs.overlays[kind], on: i.checked }; savePrefs(); if (i.checked && !overlays[kind]) createOverlay(kind); else applyOverlayState(kind); };
   return [
-    { label: "Alert banner over the game", type: "checkbox", checked: !!prefs.overlays.alert.on, click: toggle("alert") },
-    { label: "Intel HUD over the game", type: "checkbox", checked: !!prefs.overlays.hud.on, click: toggle("hud") },
-    { label: "Move overlays (unlock)", type: "checkbox", checked: !!prefs.overlayUnlocked, click: i => { prefs.overlayUnlocked = i.checked; savePrefs(); for (const k of Object.keys(overlays)) applyOverlayState(k); } },
-    { label: "Overlay background", submenu: [["Light", 0.55], ["Medium", 0.8], ["Solid", 0.95]].map(([l, v]) => ({ label: l, type: "radio", checked: Math.abs((prefs.overlayOpacity ?? 0.8) - v) < 0.01, click: () => { prefs.overlayOpacity = v; savePrefs(); for (const w of Object.values(overlays)) ovMode(w); } })) },
-    { label: "Put overlays back in place", click: () => { for (const k of ["alert", "hud"]) { prefs.overlays[k] = { ...prefs.overlays[k], pos: null }; const ov = overlays[k]; if (ov && !ov.isDestroyed()) { const p = ovDefaultPos(k); ov.setPosition(p.x, p.y); } } savePrefs(); } }
+    { label: "Alert banner over the game", type: "checkbox", checked: !!prefs.overlays.alert.on, click: i => setOverlays({ alert: i.checked }) },
+    { label: "Intel HUD over the game", type: "checkbox", checked: !!prefs.overlays.hud.on, click: i => setOverlays({ hud: i.checked }) },
+    { label: "Move overlays (unlock)", type: "checkbox", checked: !!prefs.overlayUnlocked, click: i => setOverlays({ unlocked: i.checked }) },
+    { label: "Overlay background", submenu: [["Light", 0.55], ["Medium", 0.8], ["Solid", 0.95]].map(([l, v]) => ({ label: l, type: "radio", checked: Math.abs((prefs.overlayOpacity ?? 0.8) - v) < 0.01, click: () => setOverlays({ opacity: v }) })) },
+    { label: "Put overlays back in place", click: () => setOverlays({ reset: true }) }
   ];
 }
 
 // only for automated tests of the overlays (not used in normal running)
 if (process.env.ONGRID_TEST) global.__ongridTest = {
-  unlock: v => { prefs.overlayUnlocked = !!v; for (const k of Object.keys(overlays)) applyOverlayState(k); },
-  toggle: (kind, on) => { prefs.overlays[kind].on = !!on; if (on && !overlays[kind]) createOverlay(kind); else applyOverlayState(kind); },
+  unlock: v => setOverlays({ unlocked: !!v }),
+  toggle: (kind, on) => setOverlays({ [kind]: !!on }),
   prefs: () => JSON.parse(JSON.stringify(prefs))
 };
 function refreshTray() { if (tray) tray.setContextMenu(trayMenu()); }
