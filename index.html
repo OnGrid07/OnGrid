@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.52
+  OnGrid (formerly Local Intel), version 2.53
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -251,6 +251,8 @@ tr:hover td { background: #141d27; }
 
 #shareBox { width: 100%; font: 11px var(--mono); background: var(--bg); color: var(--fg); border: 1px solid var(--accent); border-radius: 4px; padding: 6px; }
 .scangrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); gap: 16px; }
+.addlocal { font: 12px var(--mono); background: var(--bg); color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 4px 10px; cursor: pointer; }
+.addlocal:hover { background: var(--accent); color: var(--bg); }
 .scancol { display: grid; gap: 6px; align-content: start; min-width: 0; }
 .scanhead { display: flex; align-items: center; justify-content: space-between; }
 .scanhead .lbl { font: 600 12px var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
@@ -566,14 +568,15 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <div class="scansys"><label for="scanSys">System</label><input id="scanSys" placeholder="Where these scans are from" autocomplete="off" spellcheck="false"><span class="note">Filled in with where you are; type another system to change it.</span></div>
     <div class="scangrid">
       <div class="scancol">
-        <div class="scanhead"><label class="lbl" for="localIn">Local</label><button type="button" class="mini" id="localClear">Clear</button></div>
-        <textarea id="localIn" rows="4" placeholder="Paste the Local member list here" spellcheck="false"></textarea>
-        <div class="note" id="localNote"></div>
-      </div>
-      <div class="scancol">
         <div class="scanhead"><label class="lbl" for="dscanIn">D-scan</label><button type="button" class="mini" id="dscanClear">Clear</button></div>
         <textarea id="dscanIn" rows="4" placeholder="Paste directional scan results here" spellcheck="false"></textarea>
         <div class="note" id="dscanNote"></div>
+        <div><button type="button" class="addlocal" id="addLocal" hidden>+ Add Local</button></div>
+      </div>
+      <div class="scancol" id="localCol" hidden>
+        <div class="scanhead"><label class="lbl" for="localIn">Local</label><button type="button" class="mini" id="localClear">Clear</button></div>
+        <textarea id="localIn" rows="4" placeholder="Paste the Local member list here" spellcheck="false"></textarea>
+        <div class="note" id="localNote"></div>
       </div>
     </div>
     <div id="scanResult" class="scanres" hidden></div>
@@ -722,7 +725,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.52</span>
+    <span class="ver" id="aboutVer">Version 2.53</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -801,6 +804,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <p>The <b>Presets</b> row under the header saves the current map (center system, jumps and watched systems) under a name. Click a preset to switch back to it; × deletes it. Loading a preset turns <b>Follow me</b> off so the map stays where you put it.</p>
 
     <h3>Local &amp; D-scan</h3>
+    <p>The box starts with just <b>D-scan</b>. Paste your D-scan first; once it's in, an <b>+ Add Local</b> button appears to open the <b>Local</b> box for the Local list. Clearing both puts it back to D-scan only.</p>
     <p><b>Local:</b> in EVE, click a name in the Local member list, press Ctrl+A then Ctrl+C, and paste into the Local box. Everyone is grouped by alliance (or corp), hostile groups first and opened, blue groups last. Pilots who aren't blue are checked on zKillboard (up to 60 per paste); anyone dangerous (danger 70% or more with 20+ kills) or flagged as a likely cloaky hunter or cyno alt is listed under <b>Watch out</b>. Blues and hostiles come from your EVE contacts and the Standings lists. Open a group to see each pilot, with an <b>in EVE</b> button for their info window.</p>
     <p><b>D-scan:</b> run the directional scanner, click a result, press Ctrl+A then Ctrl+C, and paste into the D-scan box. You get the number of ships (and how many are on grid, within about 8,000 km), structures, deployables, drones and fighters, ships counted by class and by type, and <b>Threats</b>: capitals, dictors, HICs, Black Ops, bombers, recons, Strategic Cruisers, interceptors, covert ops and logistics. Hover a threat to see the nearest one's distance.</p>
     <p>Results show under a header with the system and how long ago you scanned, then side-by-side cards: <b>Ships</b> and <b>Ship Classes</b> from the D-scan, <b>Alliances</b> and <b>Corporations</b> from Local, each with counts, logos and tickers. Hostile groups have a red edge and blue groups a blue edge; click one to see its pilots. <b>Watch out</b> and <b>Threats</b> sit above the cards.</p>
@@ -919,6 +923,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.53</b> Local &amp; D-scan starts with only the D-scan box; after pasting a D-scan, + Add Local opens the Local box.</li>
       <li><b>2.52</b> Windows and tabs left open now pick up new versions by themselves: every 10 minutes the page checks for a newer version and reloads when you’re not looking at it, or shows a small Reload bar. Windows app 1.3.3 always loads the newest page instead of a stored copy.</li>
       <li><b>2.51</b> The Windows app’s Gate map window has a small ☰ button that shows or hides the controls, presets and summary above the map (hidden at first).</li>
       <li><b>2.50</b> The Windows app’s Gate map window shows only the Gate map again.</li>
@@ -2337,7 +2342,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.52";
+const APP_VERSION = "2.53";
 // a window left open (an app box window, a pinned tab) would keep running an old copy of the page after an update:
 // every 10 minutes, look at the live page's version; if it's newer, reload while the window isn't being looked at,
 // or show a small bar with a Reload button
@@ -3724,10 +3729,20 @@ async function analyzeDscan() {
   } catch (e) { note.textContent = "Couldn't read that scan right now: " + e.message; note.className = "note err"; }
 }
 var sharedAt = null; // set while showing a scan opened from a share link, so "scanned … ago" counts from when it was shared
-$("#localIn").addEventListener("input", () => { sharedAt = null; clearTimeout(localTimer); localTimer = setTimeout(analyzeLocal, 500); });
-$("#dscanIn").addEventListener("input", () => { sharedAt = null; clearTimeout(dscanTimer); dscanTimer = setTimeout(analyzeDscan, 400); });
-$("#localClear").addEventListener("click", () => { $("#localIn").value = ""; analyzeLocal(); $("#localIn").focus(); });
-$("#dscanClear").addEventListener("click", () => { $("#dscanIn").value = ""; analyzeDscan(); $("#dscanIn").focus(); });
+// two steps: the box starts with D-scan only; once a D-scan is pasted, "+ Add Local" opens the Local box
+let localWanted = false;
+function syncScanSteps() {
+  const hasD = !!$("#dscanIn").value.trim(), hasL = !!$("#localIn").value.trim();
+  if (!hasD && !hasL) localWanted = false; // both empty: back to the first step
+  $("#localCol").hidden = !(hasL || localWanted);
+  $("#addLocal").hidden = !hasD || !$("#localCol").hidden;
+}
+$("#addLocal").addEventListener("click", () => { localWanted = true; syncScanSteps(); $("#localIn").focus(); });
+$("#localIn").addEventListener("input", () => { sharedAt = null; syncScanSteps(); clearTimeout(localTimer); localTimer = setTimeout(analyzeLocal, 500); });
+$("#dscanIn").addEventListener("input", () => { sharedAt = null; syncScanSteps(); clearTimeout(dscanTimer); dscanTimer = setTimeout(analyzeDscan, 400); });
+$("#localClear").addEventListener("click", () => { $("#localIn").value = ""; analyzeLocal(); syncScanSteps(); if (!$("#localCol").hidden) $("#localIn").focus(); else $("#dscanIn").focus(); });
+$("#dscanClear").addEventListener("click", () => { $("#dscanIn").value = ""; analyzeDscan(); syncScanSteps(); $("#dscanIn").focus(); });
+syncScanSteps();
 analyzeLocal(); analyzeDscan();
 
 /* ---------- scan results: Ships, Ship Classes, Alliances and Corporations side by side ---------- */
@@ -3949,7 +3964,7 @@ async function openSharedScan() {
   if (!payload) return toast("That shared scan couldn't be opened. Short links last 12 hours; ask for a new one.", true);
   sharedAt = payload.t || Date.now();
   $("#scanSys").value = payload.sys || ""; scanSysTyped = !!payload.sys;
-  $("#localIn").value = payload.local || ""; $("#dscanIn").value = payload.dscan || "";
+  $("#localIn").value = payload.local || ""; $("#dscanIn").value = payload.dscan || ""; syncScanSteps();
   if (!SCAN_ONLY) expandPanel("scanPanel");
   await Promise.all([analyzeLocal(), analyzeDscan()]);
   if (SCAN_ONLY) document.title = `Scan of ${payload.sys || "a system"} · OnGrid`;
