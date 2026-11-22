@@ -6,6 +6,10 @@ OnGrid is an intel tool for EVE Online. Everything ships from this repo.
 - **`desktop/`**: "OnGrid for Windows", an Electron shell that loads the live site. Its app ID is `com.ongrid.app`.
   - It opens to a launcher, `launcher.html` with `launcher-preload.js`: a gate ring whose symbols open single boxes in their own windows. Those windows load the page with `?box=<panel id>`, or `?box=about`.
   - The full page always runs, hidden, so alerts keep working.
+  - Overlays (`overlay.html`, `overlay-preload.js`): an alert banner and an intel HUD. They're separate click-through windows above EVE and never touch the game client.
+    - The page reaches them only through `page-preload.js` (`window.ongridApp.alert` and `.hud`).
+    - The HUD only takes data from the full page window.
+  - Never read game memory, inject into the client or automate input: that's against CCP's rules.
   - The ring and its symbols are original artwork. Don't copy another franchise's or app's art into it.
 - **`.github/workflows/desktop.yml`**: builds the Windows app on `windows-latest` when anything in `desktop/` changes on `main`, and publishes the release `v<version>`. Installed copies update themselves from these releases (`latest.yml`).
 

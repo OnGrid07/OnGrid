@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.56
+  OnGrid (formerly Local Intel), version 2.57
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -727,7 +727,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.56</span>
+    <span class="ver" id="aboutVer">Version 2.57</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -793,6 +793,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <p><b>OnGrid for Windows</b> is this page in its own app window. Download <code>OnGrid-Setup-….exe</code> from <a href="https://github.com/OnGrid07/OnGrid/releases/latest" target="_blank" rel="noopener">the releases page</a> and run it; it installs in a few seconds and adds a Start menu shortcut.</p>
     <ul>
       <li><b>The launcher</b> (app 1.3 and later): the app opens to a round gate ring. Each symbol on the ring opens one box in its own window: Gate map, Intel and location, Local and D-scan, Hostile tracker, Watched systems, Systems, Kills, Character notifications, Timers, Route planner, Alerts and settings, and About; the power symbol quits. Hover a symbol to see its name in the middle. A small blue dot under a symbol means its window is open; clicking the symbol again closes that window. Click the middle of the ring to open the full OnGrid window. Drag the ring from anywhere, even from a symbol, to move it (it remembers where you put it), and press <b>hide</b> (or Esc) to tuck it into the tray. Each box window remembers its size and place. The Gate map window shows just the map. In its title row, the small <b>2j</b>-style picker changes how many jumps the map shows, and the <b>☰</b> button shows or hides System, Jumps, Load, presets and the summary above it. Every window shows the same intel, rings, tracks and alerts: the window that reads your chat logs (or the phone relay) shares them with the others. To start with the full window instead, untick <b>Open to the launcher</b> in the tray menu.</li>
+      <li><b>Overlays</b> (app 1.4 and later): two see-through windows that float on top of EVE when the game runs in windowed or fixed-window mode. They are separate windows and never touch the game client. The <b>alert banner</b> flashes at the top of the screen whenever OnGrid alerts you (hostiles in range, watched systems, big ships, camps, sov, timers) and fades after about nine seconds; several at once show a +count. The <b>intel HUD</b> stays up and shows your system and its security, a danger rating (HIGH: a hostile reported within 1 jump in the last 5 minutes, or a camp next door; MEDIUM: hostiles within 3 jumps, kills where you are, camps or big ships nearby; LOW: quiet), the nearest reported hostile with jumps, pilots and minutes ago, how many systems within 3 jumps have hostiles reported, big ships, and kills where you are. Clicks pass straight through both to EVE. In the tray menu: switch each one on or off, <b>Move overlays (unlock)</b> to drag them where you want (they get a yellow dashed outline; untick it to lock them again), <b>Overlay background</b> to make them lighter or more solid, and <b>Put overlays back in place</b>. <b>Test alert</b> in Alerts and settings shows the banner.</li>
       <li>It keeps running in the system tray, and alerts and Windows notifications keep working while it's minimized or behind the game. Closing the window hides it to the tray; quit from the tray icon.</li>
       <li>Right-click the tray icon for <b>Always on top</b>, <b>Keep running when closed</b> and <b>Start with Windows</b>.</li>
       <li>It remembers your chat logs folder, so there's no permission prompt each time.</li>
@@ -925,6 +926,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.57</b> Windows app 1.4: overlays on top of EVE. An alert banner that flashes for every alert, and an intel HUD with your system, a danger rating, the nearest hostile and what’s within 3 jumps. Click-through; move and switch them from the tray menu.</li>
       <li><b>2.56</b> Hostile tracks follow the gates through the systems in between, and break instead of drawing impossible lines between systems that aren’t connected (or are too far apart for the time between reports).</li>
       <li><b>2.55</b> The Windows app’s Gate map window has a Jumps picker in its title row to change the map’s size.</li>
       <li><b>2.54</b> Share link works for big fights: a scan with thousands of pilots in Local is saved in pieces and put back together when the link is opened.</li>
@@ -1833,6 +1835,7 @@ function fireAlert(key, title, body, speech, force) {
     try { localStorage.setItem("alertedShared", JSON.stringify(shared)); } catch {}
   }
   if (cfg.alSound) beep();
+  try { window.ongridApp?.alert({ title, body, level: /^(tm|timer)/.test(key) ? "info" : "alert" }); } catch {} // Windows app: the alert banner over the game
   if (cfg.alDesktop && "Notification" in window && Notification.permission === "granted") {
     try { const n = new Notification(title, { body, tag: key }); n.onclick = () => { window.focus(); n.close(); }; } catch {}
   }
@@ -1955,6 +1958,32 @@ function routeTo(fromName, toId) {
   })().catch(() => { routeV.set(k, null); return null; }));
   return { k, p: routeP.get(k) };
 }
+/* Windows app: the intel HUD over the game. The full page (always running in the app) sends a short summary of the
+   danger around you every few seconds. */
+function hudSummary() {
+  const me = youNow(), now = Date.now(), range = 3;
+  const here = me ? [...state.systems.values()].find(s => s.name.toUpperCase() === me.system.toUpperCase()) : null;
+  const out = { at: now, sys: me?.system || null, sec: here?.sec ?? null, range, nearest: null, reports: 0, pilots: 0, big: [], k1: here?.k1 || 0, camp: null, danger: "UNKNOWN" };
+  if (!me || !here) return out;
+  for (const r of intel.reports) {
+    if (now - r.t > 15 * 60e3 || isClear(r.msg)) continue;
+    const ids = matchSystems(r.msg), n = ids.length === 1 ? parseCount(r.msg) : null;
+    for (const id of ids) { const d = distFromYou(id); if (d == null) continue;
+      if (!out.nearest || d < out.nearest.d || (d === out.nearest.d && r.t > out.nearest.t)) out.nearest = { name: nm(id) || state.systems.get(id)?.name, d, t: r.t, pilots: n }; }
+  }
+  const big = new Set();
+  for (const s of state.systems.values()) {
+    const d = distFromYou(s.id); if (d == null || d > range) continue;
+    if (s.intelAge != null && s.intelAge < 15 && !s.intelClear && !s.intelMoved) { out.reports++; out.pilots += s.intelCount || 0; }
+    bigTags(s).forEach(b => big.add(b));
+    if (state.camps.has(s.id) && (!out.camp || d < out.camp.d)) out.camp = { name: s.name, d };
+  }
+  out.big = [...big].slice(0, 4);
+  const n = out.nearest, fresh = n && now - n.t < 5 * 60e3;
+  out.danger = (n && n.d <= 1 && fresh) || (out.camp && out.camp.d <= 1) ? "HIGH" : (n && n.d <= range) || out.k1 || out.camp || out.big.length ? "MEDIUM" : "LOW";
+  return out;
+}
+if (window.ongridApp?.hud && !/[?&]box=/.test(location.search)) setInterval(() => { try { window.ongridApp.hud(hudSummary()); } catch {} }, 3000);
 function distFromYou(toId) {
   const me = youNow(); if (!me) return null;
   const meSys = [...state.systems.values()].find(s => s.name.toUpperCase() === me.system.toUpperCase());
@@ -2347,7 +2376,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.56";
+const APP_VERSION = "2.57";
 // a window left open (an app box window, a pinned tab) would keep running an old copy of the page after an update:
 // every 10 minutes, look at the live page's version; if it's newer, reload while the window isn't being looked at,
 // or show a small bar with a Reload button

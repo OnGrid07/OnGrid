@@ -21,8 +21,10 @@ const RELEASES = "https://github.com/OnGrid07/OnGrid/releases/latest";
 const isPortable = !!process.env.PORTABLE_EXECUTABLE_DIR; // the single-file version can't replace itself
 let update = { state: "idle", version: null, error: null };
 const prefsFile = () => path.join(app.getPath("userData"), "desktop-prefs.json");
-let prefs = { alwaysOnTop: false, closeToTray: true, bounds: null, launcher: true, launcherPos: null, boxBounds: {} };
+let prefs = { alwaysOnTop: false, closeToTray: true, bounds: null, launcher: true, launcherPos: null, boxBounds: {},
+  overlays: { alert: { on: true, pos: null }, hud: { on: true, pos: null } }, overlayUnlocked: false, overlayOpacity: 0.8 };
 try { prefs = { ...prefs, ...JSON.parse(fs.readFileSync(prefsFile(), "utf8")) }; } catch {}
+prefs.overlays = { alert: { on: true, pos: null, ...(prefs.overlays?.alert || {}) }, hud: { on: true, pos: null, ...(prefs.overlays?.hud || {}) } };
 const savePrefs = () => { try { fs.writeFileSync(prefsFile(), JSON.stringify(prefs)); } catch {} };
 
 // one copy at a time: starting it again just shows the open window
@@ -49,7 +51,7 @@ function createWindow(visible = true) {
     minWidth: 420, minHeight: 500,
     title: "OnGrid", icon: ICON, backgroundColor: "#0b0f14",
     alwaysOnTop: prefs.alwaysOnTop, autoHideMenuBar: true,
-    webPreferences: { backgroundThrottling: false, contextIsolation: true, sandbox: true } // keep timers and alerts running when hidden
+    webPreferences: { preload: path.join(__dirname, "page-preload.js"), backgroundThrottling: false, contextIsolation: true, sandbox: true } // keep timers and alerts running when hidden
   });
   win.loadURL(SITE, FRESH);
   guard(win);
@@ -102,7 +104,7 @@ function openBox(id, quiet) { // quiet: reopened after a restart, so don't take 
   const bw = new BrowserWindow({
     width: b?.width || w, height: b?.height || h, x: b?.x, y: b?.y, minWidth: 360, minHeight: 260,
     title: "OnGrid", icon: ICON, backgroundColor: "#0b0f14", autoHideMenuBar: true, alwaysOnTop: prefs.alwaysOnTop, show: !quiet,
-    webPreferences: { backgroundThrottling: false, contextIsolation: true, sandbox: true }
+    webPreferences: { preload: path.join(__dirname, "page-preload.js"), backgroundThrottling: false, contextIsolation: true, sandbox: true }
   });
   if (quiet) bw.once("ready-to-show", () => bw.showInactive());
   const url = new URL(SITE); url.searchParams.set("box", id);
@@ -188,6 +190,88 @@ function updateItems() {
   const status = { checking: "Checking for updates…", downloading: `Downloading ${update.version}…`, current: `Up to date (${v})`, error: "Update check failed" }[update.state] || `Version ${v}`;
   return [{ label: status, enabled: false }, ...(isPortable || !app.isPackaged ? [] : [{ label: "Check for updates", click: () => { manualCheck = true; autoUpdater.checkForUpdates().catch(() => {}); } }])];
 }
+/* ---------- overlays: alert banner and intel HUD ----------
+   Separate see-through windows that float above EVE (windowed or fixed-window mode). They never touch the game
+   client: the page sends them its alerts and an intel summary. Locked, clicks pass straight through to EVE. */
+const overlays = { alert: null, hud: null };
+let lastHud = null, ovDragFrom = null;
+const OV_SIZE = { alert: [600, 86], hud: [330, 150] };
+function ovDefaultPos(kind) {
+  const wa = screen.getPrimaryDisplay().workArea, [w] = OV_SIZE[kind];
+  return kind === "alert" ? { x: Math.round(wa.x + (wa.width - w) / 2), y: wa.y + 70 } : { x: Math.round(wa.x + wa.width * 0.36 - w / 2), y: wa.y + wa.height - 260 };
+}
+function ovPos(kind) {
+  const p = prefs.overlays?.[kind]?.pos;
+  const ok = p && screen.getAllDisplays().some(d => p.x >= d.workArea.x - 200 && p.y >= d.workArea.y - 50 && p.x < d.workArea.x + d.workArea.width && p.y < d.workArea.y + d.workArea.height);
+  return ok ? p : ovDefaultPos(kind);
+}
+function ovMode(w) { if (w && !w.isDestroyed()) w.webContents.send("ov:mode", { unlocked: !!prefs.overlayUnlocked, opacity: prefs.overlayOpacity ?? 0.8 }); }
+function createOverlay(kind) {
+  const [w, h] = OV_SIZE[kind], p = ovPos(kind);
+  const ov = new BrowserWindow({
+    width: w, height: h, x: p.x, y: p.y, frame: false, transparent: true, resizable: false, movable: true, minimizable: false, maximizable: false,
+    fullscreenable: false, skipTaskbar: true, focusable: false, hasShadow: false, show: false, backgroundColor: "#00000000", title: "OnGrid " + kind,
+    webPreferences: { preload: path.join(__dirname, "overlay-preload.js"), contextIsolation: true, sandbox: true, backgroundThrottling: false }
+  });
+  ov.setAlwaysOnTop(true, "screen-saver"); // above EVE's window
+  ov.setVisibleOnAllWorkspaces(true);
+  ov.loadFile(path.join(__dirname, "overlay.html"), { query: { kind } });
+  ov.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  ov.webContents.on("will-navigate", e => e.preventDefault());
+  ov.webContents.on("did-finish-load", () => { ovMode(ov); if (kind === "hud") { ov.webContents.send("ov:data", lastHud); } applyOverlayState(kind); });
+  ov.on("closed", () => { overlays[kind] = null; });
+  overlays[kind] = ov;
+}
+function applyOverlayState(kind) { // show or hide, and whether clicks go through
+  const ov = overlays[kind]; if (!ov || ov.isDestroyed()) return;
+  const on = prefs.overlays?.[kind]?.on;
+  ov.setIgnoreMouseEvents(!prefs.overlayUnlocked);
+  ovMode(ov);
+  if (!on) return ov.hide();
+  if (kind === "hud" || prefs.overlayUnlocked) ov.showInactive(); // the banner only shows while an alert is up (or while you place it)
+  else ov.hide(); // locked again: the banner's placeholder goes away until the next alert
+}
+function setupOverlays() {
+  for (const kind of ["alert", "hud"]) if (prefs.overlays?.[kind]?.on && !overlays[kind]) createOverlay(kind);
+}
+const fromSite = e => { try { return new URL(e.senderFrame?.url || e.sender.getURL()).origin === SITE_ORIGIN; } catch { return false; } };
+ipcMain.on("page:alert", (e, a) => {
+  if (!fromSite(e) || !prefs.overlays?.alert?.on) return;
+  if (!overlays.alert) createOverlay("alert");
+  const ov = overlays.alert, send = () => { ov.showInactive(); ov.setAlwaysOnTop(true, "screen-saver"); ov.webContents.send("ov:data", a); };
+  ov.webContents.isLoading() ? ov.webContents.once("did-finish-load", send) : send();
+});
+ipcMain.on("page:hud", (e, d) => {
+  if (!fromSite(e) || e.sender !== win?.webContents) return; // the full page (always running) speaks for the HUD
+  lastHud = d && typeof d === "object" ? d : null;
+  const ov = overlays.hud; if (ov && !ov.isDestroyed() && !ov.webContents.isLoading()) ov.webContents.send("ov:data", lastHud);
+});
+const ovOf = e => Object.entries(overlays).find(([, w]) => w && !w.isDestroyed() && w.webContents === e.sender) || [];
+ipcMain.on("ov:drag", (e, what, dx, dy) => {
+  const [kind, ov] = ovOf(e); if (!ov || !prefs.overlayUnlocked) return;
+  if (what === "start") { const [x, y] = ov.getPosition(); ovDragFrom = { x, y }; }
+  else if (what === "move" && ovDragFrom && Number.isFinite(dx) && Number.isFinite(dy)) ov.setPosition(Math.round(ovDragFrom.x + dx), Math.round(ovDragFrom.y + dy));
+  else if (what === "end") { ovDragFrom = null; const [x, y] = ov.getPosition(); prefs.overlays[kind] = { ...prefs.overlays[kind], pos: { x, y } }; savePrefs(); }
+});
+ipcMain.on("ov:resize", (e, h) => { const [kind, ov] = ovOf(e); if (ov && h > 20 && h < 600) { const [w] = OV_SIZE[kind]; ov.setSize(w, Math.round(h)); } });
+ipcMain.on("ov:hide", e => { const [kind, ov] = ovOf(e); if (ov && kind === "alert" && !prefs.overlayUnlocked) ov.hide(); });
+function overlayItems() {
+  const toggle = kind => i => { prefs.overlays[kind] = { ...prefs.overlays[kind], on: i.checked }; savePrefs(); if (i.checked && !overlays[kind]) createOverlay(kind); else applyOverlayState(kind); };
+  return [
+    { label: "Alert banner over the game", type: "checkbox", checked: !!prefs.overlays.alert.on, click: toggle("alert") },
+    { label: "Intel HUD over the game", type: "checkbox", checked: !!prefs.overlays.hud.on, click: toggle("hud") },
+    { label: "Move overlays (unlock)", type: "checkbox", checked: !!prefs.overlayUnlocked, click: i => { prefs.overlayUnlocked = i.checked; savePrefs(); for (const k of Object.keys(overlays)) applyOverlayState(k); } },
+    { label: "Overlay background", submenu: [["Light", 0.55], ["Medium", 0.8], ["Solid", 0.95]].map(([l, v]) => ({ label: l, type: "radio", checked: Math.abs((prefs.overlayOpacity ?? 0.8) - v) < 0.01, click: () => { prefs.overlayOpacity = v; savePrefs(); for (const w of Object.values(overlays)) ovMode(w); } })) },
+    { label: "Put overlays back in place", click: () => { for (const k of ["alert", "hud"]) { prefs.overlays[k] = { ...prefs.overlays[k], pos: null }; const ov = overlays[k]; if (ov && !ov.isDestroyed()) { const p = ovDefaultPos(k); ov.setPosition(p.x, p.y); } } savePrefs(); } }
+  ];
+}
+
+// only for automated tests of the overlays (not used in normal running)
+if (process.env.ONGRID_TEST) global.__ongridTest = {
+  unlock: v => { prefs.overlayUnlocked = !!v; for (const k of Object.keys(overlays)) applyOverlayState(k); },
+  toggle: (kind, on) => { prefs.overlays[kind].on = !!on; if (on && !overlays[kind]) createOverlay(kind); else applyOverlayState(kind); },
+  prefs: () => JSON.parse(JSON.stringify(prefs))
+};
 function refreshTray() { if (tray) tray.setContextMenu(trayMenu()); }
 
 function trayMenu() {
@@ -195,6 +279,8 @@ function trayMenu() {
     { label: "Show launcher", click: showLauncher },
     { label: "Show full OnGrid", click: show },
     { label: "Open to the launcher", type: "checkbox", checked: prefs.launcher, click: i => { prefs.launcher = i.checked; savePrefs(); } },
+    { type: "separator" },
+    ...overlayItems(),
     { type: "separator" },
     { label: "Always on top", type: "checkbox", checked: prefs.alwaysOnTop, click: i => { prefs.alwaysOnTop = i.checked; savePrefs();
       for (const w of [win, launcher, ...boxWins.values()]) if (w && !w.isDestroyed()) w.setAlwaysOnTop(i.checked); } },
@@ -227,6 +313,7 @@ app.whenReady().then(() => {
   createWindow(!prefs.launcher && !again); // with the launcher, the full page still runs (hidden) so alerts and the tray keep working
   if (prefs.launcher && (!again || again.launcher)) createLauncher(!!again);
   if (again) for (const id of again.boxes || []) openBox(id, true);
+  setupOverlays();
   buildTray();
   setupUpdates();
 });

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<title>OnGrid overlay</title>
+<style>
+  /* OnGrid overlays: separate see-through windows on top of EVE (never part of the game client).
+     ?kind=alert: a banner that flashes when OnGrid raises an alert.  ?kind=hud: a small intel summary that stays up.
+     Locked, clicks pass straight through to EVE; unlocked (from the tray menu), drag them to move. */
+  :root { color-scheme: dark; --bg: #0b0f14; --line: #1f2a36; --fg: #d6e1ea; --muted: #8a9bab; --accent: #4fb3d9; --hot: #ff5a3c; --warm: #f2a33a; --ok: #57c47a; --intel: #d65cff; }
+  html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; user-select: none; font: 12px/1.5 "Cascadia Mono", Consolas, "IBM Plex Mono", monospace; color: var(--fg); }
+  .box { position: absolute; left: 4px; top: 4px; right: 4px; background: rgba(11,15,20,var(--op, .8)); border: 1px solid rgba(79,179,217,.45); border-radius: 7px; box-shadow: 0 4px 18px rgba(0,0,0,.55); }
+  body.unlocked .box { outline: 2px dashed #ffd166; outline-offset: 1px; cursor: grab; }
+  body.unlocked.dragging .box { cursor: grabbing; }
+  .hint { display: none; position: absolute; right: 10px; bottom: 3px; font: 10px "Segoe UI", sans-serif; color: #ffd166; }
+  body.unlocked .hint { display: block; }
+
+  /* alert banner */
+  .alert { display: flex; gap: 12px; align-items: center; padding: 10px 16px; border-color: var(--hot); background: rgba(60,12,8,var(--op, .88)); opacity: 0; transform: translateY(-6px); transition: opacity .25s, transform .25s; }
+  .alert.on, body.unlocked .alert { opacity: 1; transform: none; }
+  .alert.on { animation: flash 1s ease-in-out 4; }
+  @keyframes flash { 50% { box-shadow: 0 0 0 3px rgba(255,90,60,.55), 0 4px 18px rgba(0,0,0,.55); background: rgba(110,20,12,.92); } }
+  @media (prefers-reduced-motion: reduce) { .alert.on { animation: none; } }
+  .alert .ic { font-size: 24px; color: var(--hot); flex-shrink: 0; }
+  .alert .t { font: 600 16px "Segoe UI", system-ui, sans-serif; color: #fff; letter-spacing: .01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .alert .b { font-size: 12px; color: #f3c7bf; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .alert .more { margin-left: auto; flex-shrink: 0; font: 600 11px "Segoe UI", sans-serif; background: var(--hot); color: #fff; border-radius: 9px; padding: 0 7px; }
+  .alert.info { border-color: var(--accent); background: rgba(8,30,44,var(--op, .88)); } .alert.info .ic { color: var(--accent); } .alert.info .b { color: #bfe6f6; }
+
+  /* intel HUD */
+  .hud { padding: 8px 12px 9px; }
+  .hud .head { display: flex; align-items: baseline; gap: 6px; margin-bottom: 2px; }
+  .hud .sys { font: 600 15px "Segoe UI", system-ui, sans-serif; letter-spacing: .03em; }
+  .hud .sec { font-size: 12px; }
+  .hud .lvl { margin-left: auto; font: 700 11px "Segoe UI", sans-serif; padding: 0 8px; border-radius: 9px; }
+  .lvl.HIGH { background: var(--hot); color: #fff; } .lvl.MEDIUM { background: var(--warm); color: #111; } .lvl.LOW { background: #234; color: var(--ok); } .lvl.UNKNOWN { background: #234; color: var(--muted); }
+  .row { display: flex; justify-content: space-between; gap: 10px; white-space: nowrap; }
+  .row > span:last-child { overflow: hidden; text-overflow: ellipsis; }
+  .k { color: var(--muted); }
+  .hot { color: var(--hot); } .intel { color: var(--intel); } .warm { color: var(--warm); } .ok { color: var(--ok); }
+  .stale { color: var(--muted); font-size: 10px; text-align: right; margin-top: 2px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div class="hint">drag to move · lock in the tray menu</div>
+<script>
+  const kind = new URLSearchParams(location.search).get("kind") === "hud" ? "hud" : "alert";
+  const api = window.overlay || { onData: () => {}, onMode: () => {}, dragStart: () => {}, dragMove: () => {}, dragEnd: () => {}, resize: () => {} };
+  const root = document.getElementById("root");
+  const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const secColor = s => { const r = Math.round(s * 10) / 10; return r >= 0.5 ? "var(--ok)" : r > 0 ? "var(--warm)" : "var(--hot)"; };
+  const ago = t => { const m = Math.max(0, Math.floor((Date.now() - t) / 60e3)); return m < 1 ? "now" : m + "m"; };
+  const fit = () => api.resize(Math.ceil(root.firstElementChild?.getBoundingClientRect().height || 40) + 8);
+  let unlocked = false, last = null, hideTimer = null, queue = 0;
+
+  function drawAlert(a, sample) {
+    root.innerHTML = `<div class="box alert ${a?.level === "info" ? "info" : ""}" id="al"><span class="ic">${a?.level === "info" ? "ℹ" : "⚠"}</span>
+      <div style="min-width:0"><div class="t">${esc(a?.title || "Alert banner")}</div><div class="b">${esc(a?.body || (sample ? "OnGrid alerts show here over the game" : ""))}</div></div>${queue > 1 ? `<span class="more">+${queue - 1}</span>` : ""}</div>`;
+    fit();
+  }
+  function showAlert(a) {
+    queue = hideTimer ? queue + 1 : 1; last = a; drawAlert(a);
+    requestAnimationFrame(() => document.getElementById("al")?.classList.add("on"));
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(() => { hideTimer = null; queue = 0; document.getElementById("al")?.classList.remove("on"); if (!unlocked) setTimeout(() => api.hideMe?.(), 300); }, 9000);
+  }
+  function drawHud(d) {
+    if (!d) { root.innerHTML = `<div class="box hud"><div class="head"><span class="sys">OnGrid</span><span class="lvl UNKNOWN">WAITING</span></div><div class="k">Waiting for intel from OnGrid…</div></div>`; return fit(); }
+    const n = d.nearest, row = (k, v) => `<div class="row"><span class="k">${k}</span><span>${v}</span></div>`;
+    root.innerHTML = `<div class="box hud">
+      <div class="head"><span class="sys">${esc(d.sys || "Location unknown")}</span>${d.sec != null ? `<span class="sec" style="color:${secColor(d.sec)}">${(Math.round(d.sec * 10) / 10).toFixed(1)}</span>` : ""}<span class="lvl ${esc(d.danger)}">${d.danger === "UNKNOWN" ? "NO LOCATION" : "DANGER: " + esc(d.danger)}</span></div>
+      ${row("Nearest hostile", n ? `<span class="hot">${esc(n.name)}</span> ${n.d === 0 ? "here" : n.d + "j"}${n.pilots ? " · " + n.pilots : ""} · ${ago(n.t)}` : `<span class="ok">none reported</span>`)}
+      ${row(`Within ${d.range} jumps`, d.reports ? `<span class="intel">${d.reports} system${d.reports === 1 ? "" : "s"}</span>${d.pilots ? " · " + d.pilots + " pilots" : ""}` : `<span class="k">quiet</span>`)}
+      ${d.big?.length ? row("Big ships", `<span class="warm">${esc(d.big.join(", "))}</span>`) : ""}
+      ${row("Kills here, 1 h", `${d.k1 ? `<span class="hot">${d.k1}</span>` : "0"}${d.camp ? ` <span class="k">· camp</span> <span class="hot">${esc(d.camp.name)}</span>${d.camp.d ? " " + d.camp.d + "j" : ""}` : ""}`)}
+      ${Date.now() - d.at > 60e3 ? `<div class="stale">no update for ${ago(d.at)}</div>` : ""}
+    </div>`;
+    fit();
+  }
+
+  api.onData(d => {
+    if (kind === "alert") { if (d && d.title) showAlert(d); }
+    else { last = d; drawHud(d); }
+  });
+  api.onMode(m => {
+    unlocked = !!m.unlocked; document.body.classList.toggle("unlocked", unlocked);
+    document.documentElement.style.setProperty("--op", String(m.opacity ?? 0.8));
+    if (kind === "alert") drawAlert(unlocked && !hideTimer ? { title: "Alert banner", body: "" } : last, unlocked && !hideTimer);
+    else drawHud(last);
+  });
+  if (kind === "hud") { drawHud(null); setInterval(() => drawHud(last), 15e3); } else drawAlert(null, true);
+
+  // moving: only while unlocked (locked overlays let clicks through to EVE)
+  let drag = null;
+  addEventListener("pointerdown", e => { if (!unlocked || e.button !== 0) return; drag = { x: e.screenX, y: e.screenY, id: e.pointerId }; document.body.setPointerCapture?.(e.pointerId); document.body.classList.add("dragging"); api.dragStart(); });
+  addEventListener("pointermove", e => { if (drag && e.pointerId === drag.id) api.dragMove(Math.round(e.screenX - drag.x), Math.round(e.screenY - drag.y)); });
+  const end = () => { if (!drag) return; drag = null; document.body.classList.remove("dragging"); api.dragEnd(); };
+  addEventListener("pointerup", end); addEventListener("pointercancel", end);
+</script>
+</body>
+</html>
