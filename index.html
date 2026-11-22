@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.48
+  OnGrid (formerly Local Intel), version 2.49
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -282,8 +282,10 @@ tr:hover td { background: #141d27; }
 html.boxonly body { overflow: hidden; }
 html.boxonly .wrap > :not(#boxHost) { display: none !important; }
 html.boxonly .wrap { max-width: none; padding: 8px; margin: 0; }
-#boxHost { position: fixed; inset: 8px; z-index: 1; }
-#boxHost > .panel { height: 100%; box-sizing: border-box; margin: 0; display: flex; flex-direction: column; overflow: hidden; }
+#boxHost { position: fixed; inset: 8px; z-index: 1; display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
+#boxHost > :not(.panel) { flex-shrink: 0; margin: 0; }
+#boxHost > .panel { flex: 1 1 auto; min-height: 0; box-sizing: border-box; margin: 0; display: flex; flex-direction: column; overflow: hidden; }
+html.boxonly #lockBtn, html.boxonly #layoutReset { display: none !important; }
 #boxHost > .panel > * { flex-shrink: 0; }
 #boxHost > .panel > .tablebox, #boxHost > .panel > .feed, #boxHost > .panel > .hlist, #boxHost > .panel > .tlist, #boxHost > .panel > .setgrid,
 #boxHost > .panel > .watchgrid, #boxHost > .panel > .routelist, #boxHost > .panel > .scangrid { flex: 1 1 auto; min-height: 0; overflow: auto; }
@@ -715,7 +717,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.48</span>
+    <span class="ver" id="aboutVer">Version 2.49</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -780,7 +782,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <h3>Windows app</h3>
     <p><b>OnGrid for Windows</b> is this page in its own app window. Download <code>OnGrid-Setup-….exe</code> from <a href="https://github.com/OnGrid07/OnGrid/releases/latest" target="_blank" rel="noopener">the releases page</a> and run it; it installs in a few seconds and adds a Start menu shortcut.</p>
     <ul>
-      <li><b>The launcher</b> (app 1.3 and later): the app opens to a round gate ring. Each symbol on the ring opens one box in its own window: Gate map, Intel and location, Local and D-scan, Hostile tracker, Watched systems, Systems, Kills, Character notifications, Timers, Route planner, Alerts and settings, and About; the power symbol quits. Hover a symbol to see its name in the middle. A small blue dot under a symbol means its window is open; clicking the symbol again closes that window. Click the middle of the ring to open the full OnGrid window. Drag the ring from anywhere, even from a symbol, to move it (it remembers where you put it), and press <b>hide</b> (or Esc) to tuck it into the tray. Each box window remembers its size and place. To start with the full window instead, untick <b>Open to the launcher</b> in the tray menu.</li>
+      <li><b>The launcher</b> (app 1.3 and later): the app opens to a round gate ring. Each symbol on the ring opens one box in its own window: Gate map, Intel and location, Local and D-scan, Hostile tracker, Watched systems, Systems, Kills, Character notifications, Timers, Route planner, Alerts and settings, and About; the power symbol quits. Hover a symbol to see its name in the middle. A small blue dot under a symbol means its window is open; clicking the symbol again closes that window. Click the middle of the ring to open the full OnGrid window. Drag the ring from anywhere, even from a symbol, to move it (it remembers where you put it), and press <b>hide</b> (or Esc) to tuck it into the tray. Each box window remembers its size and place. Every window shows the same intel, rings, tracks and alerts: the window that reads your chat logs (or the phone relay) shares them with the others. The Gate map window also has the System, Jumps, Load and Refresh controls, presets and the summary from the top of the page. To start with the full window instead, untick <b>Open to the launcher</b> in the tray menu.</li>
       <li>It keeps running in the system tray, and alerts and Windows notifications keep working while it's minimized or behind the game. Closing the window hides it to the tray; quit from the tray icon.</li>
       <li>Right-click the tray icon for <b>Always on top</b>, <b>Keep running when closed</b> and <b>Start with Windows</b>.</li>
       <li>It remembers your chat logs folder, so there's no permission prompt each time.</li>
@@ -912,6 +914,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.49</b> Intel is shared between windows: the window reading your chat logs passes intel and your location to all other OnGrid windows and tabs, so the Windows app’s box windows show the pulsing intel rings, hostile tracks and YOU ring too. Windows also share the EVE login safely (they take turns renewing it, so it can’t get logged out by two at once), and logging in from a box window brings you back to that box. The app’s Gate map window now has the controls, presets and summary from the top of the page.</li>
       <li><b>2.48</b> Windows app 1.3.2: clicking a symbol on the launcher ring whose window is open closes that window.</li>
       <li><b>2.47</b> The travel map is shown in the Route planner instead of replacing the Gate map. A Destination box in the Gate map’s title row plans a route to any system without making the map smaller. Windows keep in step when a trip starts or ends.</li>
       <li><b>2.46</b> Windows app 1.3.1: drag the launcher ring from anywhere to move it; updates now install by themselves while you’re not using OnGrid (it used to wait until you quit, which rarely happens), checking every hour, and reopen your windows afterwards.</li>
@@ -1548,8 +1551,34 @@ async function pollIntel() {
   const cut = Date.now() - 36e5;
   intel.reports = intel.reports.filter(r => r.t >= cut);
   checkFollow();
-  if (changed) { computeIntel(); renderIntel(); renderMap(); renderTable(); renderWatch(); renderHostiles(); resolvePilots(); }
+  if (changed) { computeIntel(); renderIntel(); renderMap(); renderTable(); renderWatch(); renderHostiles(); resolvePilots(); shareIntel(); }
 }
+
+/* intel shared between windows: a window that reads the chat logs (or receives the phone relay) passes its intel and
+   your chat-log location to every other OnGrid window or tab, so they all show the same rings, tracks and alerts.
+   This matters most in the Windows app, where each box on the launcher ring is its own window. */
+function isBoxWindow() { return /[?&]box=/.test(location.search); }
+const intelBC = typeof BroadcastChannel === "function" ? new BroadcastChannel("ongrid-intel") : null;
+const hasOwnIntel = () => !!intel.dir || !!relay?.on;
+function shareIntel() {
+  if (!intelBC || !hasOwnIntel()) return;
+  const cut = Date.now() - 36e5;
+  intelBC.postMessage({ type: "intel", reports: intel.reports.filter(r => r.t >= cut).map(r => ({ t: r.t, who: r.who, msg: r.msg, ch: r.ch })),
+    locals: [...intel.locals.values()].filter(f => f.system).map(f => ({ listener: f.listener || "You", system: f.system, since: f.since || 0 })) });
+}
+if (intelBC) intelBC.onmessage = e => {
+  const d = e.data || {};
+  if (d.type === "hello") { shareIntel(); return; }
+  if (d.type !== "intel" || hasOwnIntel()) return; // a window with its own intel source keeps using it
+  const now = Date.now(), had = new Map(intel.reports.map(r => [r.t + "|" + r.who + "|" + r.msg, r])), fresh = [];
+  intel.reports = (d.reports || []).map(x => { const k = x.t + "|" + x.who + "|" + x.msg; if (had.has(k)) return had.get(k); const r = { ...x, live: intel.remote && now - x.t < 3 * 60e3 }; fresh.push(r); return r; });
+  intel.locals = new Map((d.locals || []).map(l => [l.listener.toLowerCase(), { ...l }]));
+  const first = !intel.remote; intel.remote = true;
+  if (first) intelStatus("Intel and location come from your other OnGrid window.");
+  for (const r of fresh) if (r.live) maybeAlert(r); // alerts are shared between windows, so they still only sound once
+  checkFollow(); computeIntel(); renderIntel(); renderMap(); renderTable(); renderWatch(); renderHostiles(); resolvePilots();
+};
+if (intelBC) setTimeout(() => intelBC.postMessage({ type: "hello" }), 300);
 
 function startIntel() {
   clearInterval(intel.poll); clearInterval(intel.scan);
@@ -1633,7 +1662,7 @@ function intelCell(s) {
 
 function renderIntel() {
   renderYou();
-  if (!intel.dir && !relay?.on) return; // intel comes from chat logs, or from the PC through the phone relay
+  if (!intel.dir && !relay?.on && !intel.remote) return; // intel comes from chat logs, the phone relay, or another OnGrid window
   const lim = +cfg.alRange, fromYou = cfg.alFrom === "you" && youNow();
   const onMap = cfg.intelFilter === "map";
   const list = [...intel.reports].filter(r => !onMap || matchSystems(r.msg).length || matchWatch(r.msg).length).sort((a, b) => b.t - a.t).slice(0, 60);
@@ -2300,7 +2329,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.48";
+const APP_VERSION = "2.49";
 let watchGen = 0;
 function watchNames() { return (cfg.watch || "").split(",").map(x => x.trim()).filter(Boolean); }
 async function loadWatch() {
@@ -2448,6 +2477,7 @@ async function ssoLogin() {
   const challenge = b64url(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier)));
   const st = b64url(crypto.getRandomValues(new Uint8Array(16)));
   ls.set("ssoPending", JSON.stringify({ verifier, state: st }));
+  try { sessionStorage.setItem("ssoReturn", location.search.match(/[?&]box=[^&]*/)?.[0].slice(1) || ""); } catch {} // a box window comes back as that box
   const u = new URL(SSO + "/authorize");
   u.search = new URLSearchParams({ response_type: "code", redirect_uri: callbackUrl(), client_id: cid, scope: SCOPES, code_challenge: challenge, code_challenge_method: "S256", state: st }).toString();
   location.assign(u.toString());
@@ -2471,6 +2501,8 @@ async function ssoCallback() {
   ssoMsg("Finishing login…");
   try { addChar(await tokenRequest({ grant_type: "authorization_code", code, client_id: cfg.ssoClient, code_verifier: pend.verifier })); }
   catch (e) { ssoMsg("EVE login failed: " + e.message + ". Check that the Client ID and callback URL match your app.", true); }
+  let back = ""; try { back = sessionStorage.getItem("ssoReturn") || ""; sessionStorage.removeItem("ssoReturn"); } catch {}
+  if (back && /^box=[A-Za-z]+$/.test(back) && !isBoxWindow()) location.replace(callbackUrl() + "?" + back);
 }
 function addChar(tok) {
   const p = jwtPayload(tok.access_token);
@@ -2482,17 +2514,39 @@ function addChar(tok) {
 }
 // one refresh at a time per character: EVE replaces the refresh token each time, so two at once would break the login
 const refreshing = new Map();
+// Several OnGrid windows or tabs share one login (the Windows app opens a window per box), so they take turns: a lock
+// across windows, and inside it the newest token any window saved is used before asking EVE for another.
+function storedChar(id) { try { return (JSON.parse(localStorage.getItem("chars") || "[]") || []).find(x => x.id === id) || null; } catch { return null; } }
+function saveCharToken(c) { // update just this character in storage, so other windows' changes aren't overwritten
+  try { const all = JSON.parse(localStorage.getItem("chars") || "[]") || []; const i = all.findIndex(x => x.id === c.id);
+    if (i >= 0) { all[i] = { ...all[i], access: c.access, refresh: c.refresh, exp: c.exp }; localStorage.setItem("chars", JSON.stringify(all)); } else saveChars(); } catch { saveChars(); }
+}
 async function accessFor(c) {
   if (c.access && c.exp - 60e3 > Date.now()) return c.access;
   if (!refreshing.has(c.id)) refreshing.set(c.id, (async () => {
-    const tok = await tokenRequest({ grant_type: "refresh_token", refresh_token: c.refresh, client_id: cfg.ssoClient });
-    c.access = tok.access_token; c.exp = Date.now() + (tok.expires_in || 1199) * 1000;
-    if (tok.refresh_token) c.refresh = tok.refresh_token;
-    saveChars();
-    return c.access;
+    const run = async () => {
+      const st = storedChar(c.id);
+      if (st && st.exp - 60e3 > Date.now()) { Object.assign(c, { access: st.access, refresh: st.refresh, exp: st.exp }); return c.access; } // another window just refreshed it
+      if (st?.refresh) c.refresh = st.refresh;
+      const tok = await tokenRequest({ grant_type: "refresh_token", refresh_token: c.refresh, client_id: cfg.ssoClient });
+      c.access = tok.access_token; c.exp = Date.now() + (tok.expires_in || 1199) * 1000;
+      if (tok.refresh_token) c.refresh = tok.refresh_token;
+      saveCharToken(c);
+      return c.access;
+    };
+    return navigator.locks?.request ? navigator.locks.request("ongrid-token-" + c.id, run) : run();
   })().finally(() => refreshing.delete(c.id)));
   return refreshing.get(c.id);
 }
+// a login, log-out or token refresh in another window shows up here too
+addEventListener("storage", e => {
+  if (e.key !== "chars") return;
+  let all = []; try { all = JSON.parse(e.newValue || "[]") || []; } catch {}
+  const before = chars.map(c => c.id).join();
+  chars = all.map(x => Object.assign(chars.find(c => c.id === x.id) || {}, x));
+  chars.forEach(c => state.names.set(c.id, c.name));
+  if (chars.map(c => c.id).join() !== before) { renderChars(); loadNotifs(); pollLocation(); loadContacts(); }
+});
 function scopesOf(c) { try { const sc = jwtPayload(c.access).scp; return Array.isArray(sc) ? sc : sc ? [sc] : []; } catch { return []; } }
 const hasLoc = c => LOC_SCOPES.every(x => scopesOf(c).includes(x));
 
@@ -3190,7 +3244,7 @@ function hostileTracks() {
 function renderHostiles() {
   const box = $("#hostileList"), list = hostileTracks(), groups = hostileGroups(list);
   if (state.selGroup && !groups.has(state.selGroup)) state.selGroup = null;
-  if (!list.length) { box.innerHTML = `<div class="empty">${intel.dir || relay.on ? "No pilots named in intel in the last hour." : "Connect your chat logs (or receive intel from your PC) to track pilots named in intel."}</div>`; return; }
+  if (!list.length) { box.innerHTML = `<div class="empty">${intel.dir || relay.on || intel.remote ? "No pilots named in intel in the last hour." : "Connect your chat logs (or receive intel from your PC) to track pilots named in intel."}</div>`; return; }
   const me = youNow();
   box.innerHTML = list.map(tr => {
     const i = pil.info.get(tr.id) || {}, last = tr.seen[tr.seen.length - 1], prev = tr.seen[tr.seen.length - 2];
@@ -3377,7 +3431,7 @@ async function publish(body) {
 }
 // PC side: queue new intel and send it in bundles
 function relayQueue(r) {
-  if (!cfg.relaySend || !relay?.key) return;
+  if (!cfg.relaySend || !relay?.key || isBoxWindow()) return; // box windows leave the relay to the main window
   if (!cfg.relayAll && !matchSystems(r.msg).length && !matchWatch(r.msg).length) return;
   relay.queue.push({ t: r.t, who: r.who, msg: r.msg.slice(0, 300), ch: r.ch });
   scheduleFlush();
@@ -3410,7 +3464,7 @@ async function relayPush(title, body) {
 // Each check asks for everything since the last message received, so nothing is missed while the phone sleeps.
 function relayListen() {
   clearInterval(relay.pollTimer); relay.pollTimer = null; relay.on = false;
-  if (!cfg.relayRecv || !relay.topic) { renderIntel(); renderHostiles(); return; }
+  if (!cfg.relayRecv || !relay.topic || isBoxWindow()) { renderIntel(); renderHostiles(); return; }
   relay.on = true;
   if (relay.sinceFor !== relay.topic) { relay.since = "1h"; relay.sinceFor = relay.topic; }
   intelStatus("Connecting to the relay…");
@@ -3449,7 +3503,7 @@ async function relayPoll() {
     intelStatus(relay.lastRecv
       ? `Connected to your PC's intel · last intel ${ago(relay.lastRecv)} · checked ${new Date().toLocaleTimeString()}`
       : `Connected · no intel from your PC yet (it only sends when your intel channel has something) · checked ${new Date().toLocaleTimeString()}`);
-    if (got) { computeIntel(); renderIntel(); renderMap(); renderTable(); renderWatch(); renderHostiles(); resolvePilots(); }
+    if (got) { computeIntel(); renderIntel(); renderMap(); renderTable(); renderWatch(); renderHostiles(); resolvePilots(); shareIntel(); }
   } catch (e) {
     intelStatus(`Can't reach the relay right now (${e.message}). Trying again every 15 seconds.`, true);
   }
@@ -3794,7 +3848,11 @@ if (BOX_ONLY) {
   const host = document.createElement("div"); host.id = "boxHost"; document.querySelector(".wrap").appendChild(host);
   if (BOX_ONLY === "about") setTimeout(() => { const d = $("#about"); d.showModal ? d.showModal() : d.setAttribute("open", ""); d.addEventListener("cancel", e => e.preventDefault()); $("#aboutClose").hidden = true; document.title = BOX_TITLE = "About · OnGrid"; }, 0);
   else {
-    const el = document.getElementById(BOX_ONLY); host.appendChild(el); el.hidden = false;
+    const el = document.getElementById(BOX_ONLY);
+    // the Gate map window also gets what sits above the map on the website: System, Jumps, Load, Refresh, About,
+    // the presets, the status line and the summary with Thera/Turnur and sov fights
+    if (BOX_ONLY === "mapPanel") for (const sel of ["header", ".presetbar", "#status", "#summary"]) { const x = document.querySelector(".wrap > " + sel); if (x) host.appendChild(x); }
+    host.appendChild(el); el.hidden = false;
     document.title = BOX_TITLE = `${el.dataset.title || el.querySelector("h2")?.textContent || "OnGrid"} · OnGrid`;
   }
 }
