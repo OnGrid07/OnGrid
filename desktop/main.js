@@ -43,16 +43,24 @@ function guard(w) {
   w.webContents.on("will-navigate", (e, url) => { if (!isOurs(url)) { e.preventDefault(); shell.openExternal(url); } });
 }
 
+// a saved window place is only used if most of the window is still on a screen (a monitor may have been unplugged)
+function onScreen(b) {
+  if (!b || !Number.isFinite(b.x) || !Number.isFinite(b.y)) return false;
+  return screen.getAllDisplays().some(d => { const a = d.workArea, w = Math.min(b.x + b.width, a.x + a.width) - Math.max(b.x, a.x), h = Math.min(b.y + b.height, a.y + a.height) - Math.max(b.y, a.y); return w > 120 && h > 60; });
+}
 function createWindow(visible = true) {
+  const pb = onScreen(prefs.bounds) ? prefs.bounds : null;
   win = new BrowserWindow({
-    show: visible,
+    show: false,
     width: prefs.bounds?.width || 1400, height: prefs.bounds?.height || 950,
-    x: prefs.bounds?.x, y: prefs.bounds?.y,
+    x: pb?.x, y: pb?.y,
     minWidth: 420, minHeight: 500,
     title: "OnGrid", icon: ICON, backgroundColor: "#0b0f14",
     alwaysOnTop: prefs.alwaysOnTop, autoHideMenuBar: true,
     webPreferences: { preload: path.join(__dirname, "page-preload.js"), backgroundThrottling: false, contextIsolation: true, sandbox: true } // keep timers and alerts running when hidden
   });
+  if (prefs.maximized) win.maximize();
+  if (visible) win.show();
   win.loadURL(SITE, FRESH);
   guard(win);
 
@@ -62,7 +70,7 @@ function createWindow(visible = true) {
   });
 
   win.on("close", e => {
-    prefs.bounds = win.getBounds(); savePrefs();
+    prefs.maximized = win.isMaximized(); prefs.bounds = win.isMaximized() ? win.getNormalBounds() : win.getBounds(); savePrefs();
     if (!quitting && prefs.closeToTray) {
       e.preventDefault(); win.hide();
       if (!prefs.toldTray) { prefs.toldTray = true; savePrefs(); new Notification({ title: "OnGrid is still running", body: "It keeps watching intel in the tray. Right-click the tray icon to quit.", icon: ICON }).show(); }
@@ -96,23 +104,26 @@ function createLauncher(quiet) {
 }
 function showLauncher() { if (!launcher) createLauncher(); launcher.show(); launcher.focus(); }
 function sendOpenIds() { if (launcher && !launcher.isDestroyed()) launcher.webContents.send("launcher:open-ids", [...boxWins.keys()]); }
+function saveBoxBounds(id, bw) { const max = bw.isMaximized(); prefs.boxBounds = { ...(prefs.boxBounds || {}), [id]: { ...(max ? bw.getNormalBounds() : bw.getBounds()), max } }; }
 function openBox(id, quiet) { // quiet: reopened after a restart, so don't take the focus away from the game
   if (!BOX_SIZE[id]) return;
   const open = boxWins.get(id);
   if (open && !open.isDestroyed()) { if (open.isMinimized()) open.restore(); open.show(); open.focus(); return; }
-  const b = prefs.boxBounds?.[id], [w, h] = BOX_SIZE[id];
+  const b = prefs.boxBounds?.[id], [w, h] = BOX_SIZE[id], here = onScreen(b);
   const bw = new BrowserWindow({
-    width: b?.width || w, height: b?.height || h, x: b?.x, y: b?.y, minWidth: 360, minHeight: 260,
-    title: "OnGrid", icon: ICON, backgroundColor: "#0b0f14", autoHideMenuBar: true, alwaysOnTop: prefs.alwaysOnTop, show: !quiet,
+    width: b?.width || w, height: b?.height || h, x: here ? b.x : undefined, y: here ? b.y : undefined, minWidth: 360, minHeight: 260,
+    title: "OnGrid", icon: ICON, backgroundColor: "#0b0f14", autoHideMenuBar: true, alwaysOnTop: prefs.alwaysOnTop, show: false,
     webPreferences: { preload: path.join(__dirname, "page-preload.js"), backgroundThrottling: false, contextIsolation: true, sandbox: true }
   });
-  if (quiet) bw.once("ready-to-show", () => bw.showInactive());
+  if (b?.max) bw.maximize();
+  if (quiet) bw.once("ready-to-show", () => bw.showInactive()); else bw.show();
   const url = new URL(SITE); url.searchParams.set("box", id);
   bw.loadURL(url.toString(), FRESH); guard(bw);
   bw.webContents.on("did-fail-load", (e, code, desc, u, isMain) => { if (isMain && code !== -3) bw.loadFile(path.join(__dirname, "offline.html"), { query: { site: url.toString(), reason: desc } }); });
-  bw.on("close", () => { prefs.boxBounds = { ...(prefs.boxBounds || {}), [id]: bw.getBounds() }; savePrefs(); });
-  bw.on("closed", () => { boxWins.delete(id); sendOpenIds(); });
-  boxWins.set(id, bw); sendOpenIds();
+  bw.on("close", () => { saveBoxBounds(id, bw); savePrefs(); });
+  bw.on("closed", () => { boxWins.delete(id); sendOpenIds(); saveSession(); });
+  bw.on("moved", () => saveBoxBounds(id, bw)); bw.on("resized", () => saveBoxBounds(id, bw));
+  boxWins.set(id, bw); sendOpenIds(); setTimeout(saveSession, 500);
 }
 // a symbol on the ring opens its box, or closes it if its window is already open
 ipcMain.on("launcher:open", (e, id) => {
@@ -179,7 +190,7 @@ function setupUpdates() {
 let installTimer = null, manualCheck = false;
 function installNow() { // silent install, then OnGrid starts again with the same box windows open
   clearInterval(installTimer); quitting = true;
-  prefs.reopen = { boxes: [...boxWins.keys()], launcher: !!launcher?.isVisible(), at: Date.now() }; savePrefs();
+  prefs.reopen = { boxes: [...boxWins.keys()], launcher: !!launcher?.isVisible(), full: !!win?.isVisible(), at: Date.now() }; savePrefs();
   autoUpdater.quitAndInstall(true, true);
 }
 function newer(a, b) { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; }
@@ -335,14 +346,31 @@ app.whenReady().then(() => {
   ses.setPermissionRequestHandler((wc, permission, cb, details) => cb(isOurs(details?.requestingUrl || wc.getURL())));
   ses.setPermissionCheckHandler((wc, permission, origin) => isOurs(origin || wc?.getURL() || ""));
   // after an update restart: put back the launcher and box windows that were open, without stealing focus from the game
-  const again = prefs.reopen && Date.now() - prefs.reopen.at < 10 * 60e3 ? prefs.reopen : null;
+  // and after quitting: put back every window that was open, where it was (prefs.session, saved when the app quits)
+  const fresh = prefs.reopen && Date.now() - prefs.reopen.at < 10 * 60e3 ? prefs.reopen : null;
+  const again = fresh || prefs.session || null;
   if (prefs.reopen) { delete prefs.reopen; savePrefs(); }
-  createWindow(!prefs.launcher && !again); // with the launcher, the full page still runs (hidden) so alerts and the tray keep working
-  if (prefs.launcher && (!again || again.launcher)) createLauncher(!!again);
+  createWindow(again ? !!again.full : !prefs.launcher); // the full page always runs (hidden if it wasn't open) so alerts and the tray keep working
+  if (again ? again.launcher !== false && (prefs.launcher || again.launcher) : prefs.launcher) createLauncher(!!fresh);
   if (again) for (const id of again.boxes || []) openBox(id, true);
+  if (again && !again.full && !again.launcher && !(again.boxes || []).length) prefs.launcher ? showLauncher() : show(); // nothing was showing: don't start invisible
+  win.on("session-end", saveSession); // Windows logging off or shutting down
   setupOverlays();
   buildTray();
   setupUpdates();
 });
-app.on("before-quit", () => { quitting = true; });
+// remember which windows are open and where, so the next start puts them all back. Saved whenever a window opens or
+// closes, every 30 seconds, and when the app quits (Windows shutting down doesn't always let an app finish quitting)
+let sessionFrozen = false;
+function saveSession() {
+  if (sessionFrozen) return;
+  for (const [id, bw] of boxWins) if (!bw.isDestroyed()) saveBoxBounds(id, bw);
+  if (win && !win.isDestroyed()) { prefs.maximized = win.isMaximized(); prefs.bounds = win.isMaximized() ? win.getNormalBounds() : win.getBounds(); }
+  if (launcher && !launcher.isDestroyed()) { const [x, y] = launcher.getPosition(); prefs.launcherPos = { x, y }; }
+  prefs.session = { boxes: [...boxWins.keys()].filter(id => !boxWins.get(id).isDestroyed()), full: !!(win && !win.isDestroyed() && win.isVisible()),
+    launcher: !!(launcher && !launcher.isDestroyed() && launcher.isVisible()), savedAt: Date.now() };
+  savePrefs();
+}
+setInterval(saveSession, 30e3);
+app.on("before-quit", () => { saveSession(); sessionFrozen = true; quitting = true; }); // closing windows after this doesn't count
 app.on("window-all-closed", () => { if (quitting) app.quit(); });
