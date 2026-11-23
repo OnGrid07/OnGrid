@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.72
+  OnGrid (formerly Local Intel), version 2.73
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -738,7 +738,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
       </fieldset>
       <fieldset>
         <legend>Jump bridges</legend>
-        <div class="note">Paste your alliance's jump bridge list (any layout with two system names per line, like "C-J6MT @ 1-1 … EFM-C4 @ 1-1" or "C-J6MT » EFM-C4"). It stays in this browser and is never sent anywhere.</div>
+        <div class="note">Paste your alliance's jump bridge list (any layout with two system names per line, like "C-J6MT @ 1-1 … EFM-C4 @ 1-1", "RD-G2R --> P-33KR" or "C-J6MT » EFM-C4"; several lists at once is fine). It stays in this browser and is never sent anywhere.</div>
         <textarea id="jbIn" rows="4" placeholder="Paste the jump bridge list here" spellcheck="false"></textarea>
         <div><button type="button" id="jbSave">Save bridges</button> <button type="button" id="jbClear">Clear</button></div>
         <div class="note" id="jbNote"></div>
@@ -781,7 +781,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.72</span>
+    <span class="ver" id="aboutVer">Version 2.73</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -906,7 +906,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
       <li>Systems are laid out like EVE's own star map seen from above: each one where it is in space, so what's north, south, east or west matches the game. Busy clusters are opened out a little so names don't overlap, but every system keeps its place relative to its neighbours. Region names are written faintly over their systems. Lines are stargates. To get the older layout, with systems in rings by jumps from the centre, choose <b>Map layout: Rings by jumps</b> in Alerts and settings.</li>
       <li>Dot color: red is a kill in the last hour, orange a kill in the last 6 hours, blue is ship traffic only, grey is quiet. Bigger dots mean more ship jumps in the last hour.</li>
       <li>When the map reaches into other regions, each region's systems are kept together in their own slice of the map. Other regions are shaded in a faint color with their name in it; your own region is unshaded and its name is grey. Hover a shaded area to see which region it is.</li>
-      <li><b>Jump bridges</b>: paste your alliance's jump bridge list into <b>Alerts and settings → Jump bridges</b> and press <b>Save bridges</b> (any list with two system names per line works). Bridges with both ends on the map are drawn as dashed green curves; a system whose bridge leads off the map gets a green <b>JB</b> tag, and hovering a system names where its bridge goes. Hostile tracks also follow bridges. In the <b>Route planner</b>, tick <b>Use jump bridges</b> to let routes take them: the route list marks each bridge with <b>JB » system</b>, the travel map with <b>JB»</b>, and the note says how many it uses. EVE's autopilot takes them too when jump bridges are turned on in its settings in the game. (EVE's route service accepts 50 bridges per route, so OnGrid uses the 50 nearest the way you're going.) The list stays in this browser (it's included in Copy my settings) and is never sent anywhere.</li>
+      <li><b>Jump bridges</b>: paste your alliance's jump bridge list into <b>Alerts and settings → Jump bridges</b> and press <b>Save bridges</b> (any list with two system names per line works: tables with "@ 1-1", lines like "1053773110271 RD-G2R --> P-33KR (FADE)", or simply "A » B"; lines starting with # are skipped, and you can paste several alliances' lists at once). Bridges with both ends on the map are drawn as dashed green curves; a system whose bridge leads off the map gets a green <b>JB</b> tag, and hovering a system names where its bridge goes. Hostile tracks also follow bridges. In the <b>Route planner</b>, tick <b>Use jump bridges</b> to let routes take them: the route list marks each bridge with <b>JB » system</b>, the travel map with <b>JB»</b>, and the note says how many it uses. EVE's autopilot takes them too when jump bridges are turned on in its settings in the game. (EVE's route service accepts 50 bridges per route, so OnGrid uses the 50 nearest the way you're going.) The list stays in this browser (it's included in Copy my settings) and is never sent anywhere.</li>
       <li>Green glow is ratting: NPC kills in the last hour. The label shows rats per hour.</li>
       <li>A purple ring is a system named in intel in the last 15 minutes. It pulses for the first 3 minutes. A number in brackets is the reported pilot count. When every pilot named in a system's latest report has since been sighted in another system, that ring goes away and the systems table shows "moved", so the rings follow the hostiles. Reports that don't name pilots (like "5 nv") keep their ring for the full 15 minutes.</li>
       <li>A dashed ring and YOU mark where your character is.</li>
@@ -981,6 +981,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.73</b> Jump bridge lists in the "number  A --> B (FADE)" layout now import, and # comment lines are skipped.</li>
       <li><b>2.72</b> Windows app 1.5.6: a Wormholes and sov fights symbol on the launcher ring opens Thera/Turnur connections and sov fights in their own window.</li>
       <li><b>2.71</b> Windows app 1.5.5: Settings is a ⋮ in each window’s title bar, next to the minimize button. Fixed the settings box sometimes opening empty.</li>
       <li><b>2.70</b> Windows app 1.5.4: each window has Settings in its top bar, showing only the settings for that window.</li>
@@ -1320,13 +1321,24 @@ let bridges = (() => { try { return JSON.parse(localStorage.getItem("bridges") |
 let jbByEnd = new Map();
 function indexBridges() { jbByEnd = new Map(); for (const { a, b } of bridges) { (jbByEnd.get(a) || jbByEnd.set(a, new Set()).get(a)).add(b); (jbByEnd.get(b) || jbByEnd.set(b, new Set()).get(b)).add(a); } }
 indexBridges();
-// two system names per line: "A @ 1-1 … B @ 1-1" (alliance tools), or "A » B", "A <-> B", "A - B", "A,B"
+// two system names per line, in the layouts alliances use: "A @ 1-1 … B @ 1-1" (tables), "1053773110271 A --> B (FADE)"
+// (structure number first, notes after), "A » B", "A <-> B", "A - B", "A,B". Lines starting with # and headings are skipped.
+const SYS_NAME = /^(?=.*[A-Za-z])[A-Za-z0-9][A-Za-z0-9'-]{1,24}$/; // a word with a letter in it (not a structure number)
 function parseBridgeText(text) {
   const pairs = [];
-  for (const line of text.split(/\r?\n/)) {
+  for (let line of text.split(/\r?\n/)) {
+    line = line.trim(); if (!line || /^[#\/;]/.test(line)) continue;
     let names = [...line.matchAll(/([A-Za-z0-9][A-Za-z0-9 '-]*?)\s*@/g)].map(m => m[1].trim().split(/\t/).pop().trim());
     if (names.length < 2 && line.split(/\t/).length > 3) continue; // a table heading, not a bridge
-    if (names.length < 2) names = line.split(/\s*(?:»|<->|<=>|->|=>|↔|→|\t|,)\s*|\s+-\s+/).map(x => x.trim()).filter(x => /^[A-Za-z0-9][A-Za-z0-9 '-]{1,24}$/.test(x));
+    if (names.length < 2) {
+      const bare = line.replace(/\([^)]*\)|\[[^\]]*\]/g, " "); // notes like (FADE) or [offline]
+      const sides = bare.split(/\s*(?:<-+>|<=+>|-{1,2}>|={1,2}>|»|↔|→|⇄|\t|,)\s*|\s+-\s+/).filter(x => x.trim());
+      if (sides.length >= 2) {
+        const words = x => x.split(/[\s>|:]+/).filter(w => SYS_NAME.test(w));
+        const a = words(sides[0]).pop(), b = words(sides[1])[0]; // the name nearest the arrow on each side
+        names = a && b ? [a, b] : [];
+      } else names = [];
+    }
     if (names.length >= 2 && names[0].toUpperCase() !== names[1].toUpperCase()) pairs.push([names[0], names[1]]);
   }
   return pairs;
@@ -2667,7 +2679,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.72";
+const APP_VERSION = "2.73";
 // a window left open (an app box window, a pinned tab) would keep running an old copy of the page after an update:
 // every 10 minutes, look at the live page's version; if it's newer, reload while the window isn't being looked at,
 // or show a small bar with a Reload button
