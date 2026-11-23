@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.61
+  OnGrid (formerly Local Intel), version 2.62
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -645,7 +645,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
         <legend>Map</legend>
         <label><input type="checkbox" id="follow"> Follow me: re-center the map when I jump</label>
         <label><input type="checkbox" id="locEsi"> Get my location from my EVE login</label>
-        <label>Map layout <select id="mapLayout"><option value="eve">Like the EVE star map (real positions)</option><option value="rings">Rings by jumps</option></select></label>
+        <label>Map layout <select id="mapView"><option value="rings">Rings by jumps, in their real directions</option><option value="classic">Rings by jumps, evenly spaced</option><option value="eve">Like the EVE star map (real positions)</option></select></label>
         <label>Kills to load per system <select id="killCap"><option value="200">200</option><option value="500">500</option><option value="1000">1,000</option><option value="2000">2,000</option></select></label>
         <div class="note">Covers up to 24 hours. Busy systems can have thousands of kills a day; higher limits download more data (about 1 to 2 MB per 200 kills).</div>
         <label><input type="checkbox" id="showRats"> Show ratting activity (green glow)</label>
@@ -740,7 +740,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.61</span>
+    <span class="ver" id="aboutVer">Version 2.62</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -862,7 +862,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Gate map</h3>
     <ul>
-      <li>Systems are laid out like EVE's own star map seen from above: each one where it is in space, so what's north, south, east or west matches the game. Busy clusters are opened out a little so names don't overlap, but every system keeps its place relative to its neighbours. Region names are written faintly over their systems. Lines are stargates. To get the older layout, with systems in rings by jumps from the centre, choose <b>Map layout: Rings by jumps</b> in Alerts and settings.</li>
+      <li>Systems sit in rings by jumps from the center, and each one is placed in the real direction it lies from the center system, as on EVE's star map (north up). So regions and systems appear on the side of the map where they really are; systems on the same ring are only nudged apart enough for their names. Other regions are shaded with their name. Lines are stargates. <b>Map layout</b> in Alerts and settings also offers evenly spaced rings, or the star map itself with real positions and no rings.</li>
       <li>Dot color: red is a kill in the last hour, orange a kill in the last 6 hours, blue is ship traffic only, grey is quiet. Bigger dots mean more ship jumps in the last hour.</li>
       <li>When the map reaches into other regions, each region's systems are kept together in their own slice of the map. Other regions are shaded in a faint color with their name in it; your own region is unshaded and its name is grey. Hover a shaded area to see which region it is.</li>
       <li>Green glow is ratting: NPC kills in the last hour. The label shows rats per hour.</li>
@@ -939,6 +939,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.62</b> The Gate map is back on jump rings, with each system placed in its real direction from the center (as on EVE’s star map), so regions and systems sit where they really are. Map layout also offers evenly spaced rings or the plain star map.</li>
       <li><b>2.61</b> Windows app 1.5.1: the mini map shows at most 3 jumps (zoomed in on them), and its size can be changed back and forth.</li>
       <li><b>2.60</b> The Gate map is laid out like the EVE star map: systems at their real positions (opened out a little so names fit), with region names. The ring layout is still available under Map layout in Alerts and settings.</li>
       <li><b>2.59</b> Windows app 1.5: two more overlays over the game, a travel HUD (during a trip) and a mini map, switched in Alerts and settings or the tray menu.</li>
@@ -1275,7 +1276,9 @@ const NODE_DEFS = Object.entries({ hot: "var(--hot)", warm: "var(--warm)", cool:
 
 function layout() {
   state.geo = false;
-  if (cfg.mapLayout !== "rings" && [...state.systems.values()].every(s => s.pos)) return geoLayout();
+  const hasPos = [...state.systems.values()].every(s => s.pos);
+  if (cfg.mapView === "eve" && hasPos) return geoLayout();
+  if (cfg.mapView !== "classic" && hasPos && state.systems.get(state.origin)) return realRingLayout();
   // rings by distance; order each ring by the average angle of its parents to keep edges short
   const pos = layoutPass(null);
   // systems in other regions: a second pass keeps each region's systems together in their own slice of the map
@@ -1291,6 +1294,36 @@ function layout() {
   const pos2 = layoutPass(key);
   state.regionView = { center, home };
   return pos2;
+}
+// jump rings, but each system sits in the real direction it lies from the centre system (as on EVE's map, seen from
+// above): regions fall where they really are. Systems on the same ring are only nudged apart enough for their names.
+function realRingLayout() {
+  const o = state.systems.get(state.origin), C = 300, step = 270 / Math.max(1, state.radius), TAU = 2 * Math.PI;
+  const byD = []; for (const s of state.systems.values()) (byD[s.dist] ||= []).push(s);
+  const pos = new Map([[o.id, { x: C, y: C, a: 0 }]]);
+  byD.forEach((ring, d) => {
+    if (!d || !ring?.length) return;
+    const A = ring.map(s => ({ s, a: Math.atan2(-(s.pos[1] - o.pos[1]), s.pos[0] - o.pos[0]) })).sort((x, y) => x.a - y.a);
+    const n = A.length, gap = Math.min(TAU / n * 0.92, 40 / (step * d)); // room for a name along the ring
+    for (let it = 0; it < 200 && n > 1; it++) {
+      let moved = false;
+      for (let i = 0; i < n; i++) {
+        const p = A[i], q = A[(i + 1) % n], g = i === n - 1 ? q.a + TAU - p.a : q.a - p.a;
+        if (g >= gap) continue; moved = true; const k = (gap - g) / 2; p.a -= k; q.a += k;
+      }
+      if (!moved) break;
+    }
+    for (const { s, a } of A) pos.set(s.id, { a, x: C + Math.cos(a) * step * d, y: C + Math.sin(a) * step * d });
+    byD[d] = A.map(x => x.s); // ring order by angle, for the region shading
+  });
+  // region shading and names, as on the ring map
+  const regs = new Set([...state.systems.values()].map(s => s.regionId).filter(Boolean));
+  if (regs.size > 1) {
+    const center = new Map();
+    for (const r of regs) { const as = [...state.systems.values()].filter(s => s.dist > 0 && s.regionId === r).map(s => pos.get(s.id).a); if (as.length) center.set(r, Math.atan2(as.reduce((t, a) => t + Math.sin(a), 0), as.reduce((t, a) => t + Math.cos(a), 0))); }
+    state.regionView = { center, home: o.regionId }; state.regionRings = byD;
+  } else { state.regionView = null; state.regionRings = null; }
+  return pos;
 }
 // like EVE's star map seen from above: each system at its real position (x across, z up), scaled to fit, then nudged
 // apart just enough that dots and names don't sit on top of each other
@@ -1376,12 +1409,14 @@ function regionSvg(pos) {
   let h = "";
   state.regionRings.forEach((ring, d) => {
     if (!d || !ring) return;
-    const half = Math.PI / ring.length, r1 = step * (d - 0.5), r2 = Math.min(298, step * (d + 0.5));
-    for (const s of ring) {
-      const c = tint.get(s.regionId); if (!c) continue;
-      const a = pos.get(s.id).a, a1 = a - half, a2 = a + half, big = 2 * half > Math.PI ? 1 : 0;
+    const r1 = step * (d - 0.5), r2 = Math.min(298, step * (d + 0.5)), n = ring.length;
+    ring.forEach((s, i) => {
+      const c = tint.get(s.regionId); if (!c) return;
+      const a = pos.get(s.id).a, pa = pos.get(ring[(i - 1 + n) % n].id).a, na = pos.get(ring[(i + 1) % n].id).a;
+      const back = n === 1 ? Math.PI : ((a - pa) % TAU + TAU) % TAU / 2 || Math.PI, fwd = n === 1 ? Math.PI : ((na - a) % TAU + TAU) % TAU / 2 || Math.PI;
+      const lim = n > 2 ? 0.32 : Math.PI, a1 = a - Math.min(back, lim), a2 = a + Math.min(fwd, lim), big = a2 - a1 > Math.PI ? 1 : 0; // don't shade big empty stretches
       h += `<path class="regtint" fill="${c}" d="M${pt(a1, r1)} L${pt(a1, r2)} A${r2.toFixed(1)},${r2.toFixed(1)} 0 ${big} 1 ${pt(a2, r2)} L${pt(a2, r1)} A${r1.toFixed(1)},${r1.toFixed(1)} 0 ${big} 0 ${pt(a1, r1)} Z"><title>${esc(nm(s.regionId))}</title></path>`;
-    }
+    });
   });
   // names: at the region's middle angle, in the gap just inside its outermost ring (between rings there are no systems)
   const byReg = new Map();
@@ -1831,7 +1866,7 @@ $("#intelChannels").addEventListener("input", () => ls.set("intelChannels", $("#
 $("#intelChannels").addEventListener("change", () => { ls.set("intelChannels", $("#intelChannels").value); if (intel.dir) startIntel(); });
 
 /* ---------- settings ---------- */
-const SETTINGS_DEFAULT = { alRange: "1", alFrom: "you", alSound: true, alDesktop: false, alSpeak: false, alKills: false, alBig: true, follow: false, locEsi: true, killCap: "1000", intelFilter: "all", showRats: true, showSov: true, alSov: true, watch: "", alWatch: true, alTimers: true, relaySend: false, relayRecv: false, relayEvery: "60", relayAll: false, relayPush: false, relayCode: "", ssoClient: "", stdEsi: true, shipAware: true, routeFlag: "shortest", avCamps: true, avKills: true, avIntel: true, alNotif: true, alNotifWarn: true, showWh: true, friends: "", enemies: "", hideFriendly: false, youHide: [], mapLayout: "eve" };
+const SETTINGS_DEFAULT = { alRange: "1", alFrom: "you", alSound: true, alDesktop: false, alSpeak: false, alKills: false, alBig: true, follow: false, locEsi: true, killCap: "1000", intelFilter: "all", showRats: true, showSov: true, alSov: true, watch: "", alWatch: true, alTimers: true, relaySend: false, relayRecv: false, relayEvery: "60", relayAll: false, relayPush: false, relayCode: "", ssoClient: "", stdEsi: true, shipAware: true, routeFlag: "shortest", avCamps: true, avKills: true, avIntel: true, alNotif: true, alNotifWarn: true, showWh: true, friends: "", enemies: "", hideFriendly: false, youHide: [], mapView: "rings" };
 let cfg;
 try { cfg = { ...SETTINGS_DEFAULT, ...JSON.parse(ls.get("settings", "{}")) }; } catch { cfg = { ...SETTINGS_DEFAULT }; }
 if (ls.get("settings", null) == null && ls.get("intelAlert", null) != null) cfg.alRange = ls.get("intelAlert"); // older version's setting
@@ -1860,7 +1895,7 @@ function onSetting(k) {
   if (k === "watch") loadWatch();
   if (/^relay/.test(k) && k !== "relayCode") relaySetup();
   if (k === "killCap") refreshKills();
-  if (k === "mapLayout") renderMap();
+  if (k === "mapView") renderMap();
   if (k === "stdEsi") loadContacts();
   if (k === "shipAware") renderIntel();
   if (k === "locEsi") { pollLocation(); renderChars(); }
@@ -2497,7 +2532,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.61";
+const APP_VERSION = "2.62";
 // a window left open (an app box window, a pinned tab) would keep running an old copy of the page after an update:
 // every 10 minutes, look at the live page's version; if it's newer, reload while the window isn't being looked at,
 // or show a small bar with a Reload button
