@@ -51,7 +51,7 @@ OnGrid is an intel tool for EVE Online. Everything ships from this repo.
   - ntfy.sh
   - `images.evetech.net`
   - Google Fonts
-- **Settings live in localStorage**: `settings`, `presets`, `timers`, `intelChannels`, `panels`, `origin`, `radius`, `layout`. New settings go in `SETTINGS_DEFAULT` (in `cfg`) so they are saved and backed up.
+- **Settings live in localStorage**: `settings`, `presets`, `timers`, `intelChannels`, `panels`, `origin`, `radius`, `layout`, `bridges`. New settings go in `SETTINGS_DEFAULT` (in `cfg`) so they are saved and backed up.
 - **Box layout:**
   - Boxes can be moved, resized, swapped and locked on windows at least 900 px wide.
   - `boxLayout` is stored in the `layout` key.
@@ -62,6 +62,9 @@ OnGrid is an intel tool for EVE Online. Everything ships from this repo.
   - It defaults to "like the EVE star map" (`cfg.mapLayout = "eve"`, `geoLayout()`): real x/z positions, each axis half real distance and half rank order, then pushed apart so names fit.
   - "Rings by jumps" (`layoutPass()`, with region slices) is the alternative.
 - **Travel map** lives in the Route planner (`#tripMap`, `#tripBar`); the Gate map only gets the compact Destination box (`#mapDest`) in its title row. Nothing may make the Gate map smaller.
+- **Jump bridges** (`bridges` in localStorage, pasted in settings):
+  - They're the alliance's private data: never send them anywhere except as `connections` on ESI route requests.
+  - ESI takes at most 100 one-way connections per route, so `bridgeConnections()` sends the 50 bridges nearest the start-to-destination line, both ways.
 - **Hostile tracks** are colored per group (alliance, else corp, else pilot), with stacked ticker labels on the map. There are no group chips in the Hostile tracker.
 
 ## Testing

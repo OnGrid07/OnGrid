@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.65
+  OnGrid (formerly Local Intel), version 2.66
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -454,6 +454,9 @@ dialog.about::backdrop { background: rgba(0, 0, 0, .6); }
 #map .tag.camp { fill: var(--hot); }
 #map .tag.big { fill: var(--warm); }
 #map .tag.wh { fill: var(--accent); }
+#map .jbl { fill: none; stroke: #57c47a; stroke-width: 1.6; stroke-dasharray: 6 5; opacity: .75; }
+#map .tag.jb { fill: #57c47a; }
+#jbIn { font: 11px var(--mono); background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: 5px 7px; width: 100%; box-sizing: border-box; resize: vertical; }
 #map .tag.sov { fill: var(--sov); }
 #map .tag.ess { fill: var(--ok); }
 .chip.sov { background: rgba(230,200,74,.18); color: var(--sov); }
@@ -507,7 +510,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
         <span><i style="background:none;border:1.5px dashed var(--fg)"></i>you</span>
         <span id="ratLegend"><i style="background:radial-gradient(#57c47a,transparent)"></i>green glow = NPC kills, last hour (ratting)</span>
         <span>size = ship jumps, last hour</span>
-        <span style="color:var(--hot)">CAMP</span><span style="color:var(--warm)">big ships</span><span style="color:var(--accent)">TH / TU wormhole</span>
+        <span style="color:var(--hot)">CAMP</span><span style="color:var(--warm)">big ships</span><span style="color:var(--accent)">TH / TU wormhole</span><span><svg width="22" height="8" style="vertical-align:middle"><line x1="1" y1="4" x2="21" y2="4" stroke="#57c47a" stroke-width="1.6" stroke-dasharray="6 5"/></svg> <span style="color:#57c47a">JB</span> jump bridge</span>
         <span id="sovLegend"><span style="color:var(--sov)">VULN / FIGHT</span> sov hub vulnerable / sov fight · <span style="color:var(--ok)">ESS</span> ESS reported</span>
       </div>
     </section>
@@ -609,6 +612,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
       <label>From <input id="routeFrom" placeholder="Where I am" autocomplete="off" spellcheck="false"></label>
       <label>To <input id="routeTo" placeholder="System name" autocomplete="off" spellcheck="false"></label>
       <label>Prefer <select id="routeFlag"><option value="shortest">Shortest</option><option value="secure">Safer (high-sec)</option><option value="insecure">Less secure</option></select></label>
+      <label title="Uses the jump bridges saved in Alerts and settings → Jump bridges"><input type="checkbox" id="useBridges"> Use jump bridges</label>
       <button type="submit">Find safe route</button>
     </form>
     <div class="routeopts">Avoid:
@@ -708,6 +712,13 @@ footer { font: 11px var(--mono); color: var(--muted); }
         <div class="note" id="bkNote"></div>
       </fieldset>
       <fieldset>
+        <legend>Jump bridges</legend>
+        <div class="note">Paste your alliance's jump bridge list (any layout with two system names per line, like "C-J6MT @ 1-1 … EFM-C4 @ 1-1" or "C-J6MT » EFM-C4"). It stays in this browser and is never sent anywhere.</div>
+        <textarea id="jbIn" rows="4" placeholder="Paste the jump bridge list here" spellcheck="false"></textarea>
+        <div><button type="button" id="jbSave">Save bridges</button> <button type="button" id="jbClear">Clear</button></div>
+        <div class="note" id="jbNote"></div>
+      </fieldset>
+      <fieldset>
         <legend>Standings</legend>
         <label>Friendly <input type="text" id="friends" placeholder="Alliance or corp names, comma separated" autocomplete="off" spellcheck="false"></label>
         <label>Hostile <input type="text" id="enemies" placeholder="Alliance or corp names, comma separated" autocomplete="off" spellcheck="false"></label>
@@ -740,7 +751,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.65</span>
+    <span class="ver" id="aboutVer">Version 2.66</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -865,6 +876,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
       <li>Systems are laid out like EVE's own star map seen from above: each one where it is in space, so what's north, south, east or west matches the game. Busy clusters are opened out a little so names don't overlap, but every system keeps its place relative to its neighbours. Region names are written faintly over their systems. Lines are stargates. To get the older layout, with systems in rings by jumps from the centre, choose <b>Map layout: Rings by jumps</b> in Alerts and settings.</li>
       <li>Dot color: red is a kill in the last hour, orange a kill in the last 6 hours, blue is ship traffic only, grey is quiet. Bigger dots mean more ship jumps in the last hour.</li>
       <li>When the map reaches into other regions, each region's systems are kept together in their own slice of the map. Other regions are shaded in a faint color with their name in it; your own region is unshaded and its name is grey. Hover a shaded area to see which region it is.</li>
+      <li><b>Jump bridges</b>: paste your alliance's jump bridge list into <b>Alerts and settings → Jump bridges</b> and press <b>Save bridges</b> (any list with two system names per line works). Bridges with both ends on the map are drawn as dashed green curves; a system whose bridge leads off the map gets a green <b>JB</b> tag, and hovering a system names where its bridge goes. Hostile tracks also follow bridges. In the <b>Route planner</b>, tick <b>Use jump bridges</b> to let routes take them: the route list marks each bridge with <b>JB » system</b>, the travel map with <b>JB»</b>, and the note says how many it uses. Take the bridges yourself; EVE's autopilot only flies gates. (EVE's route service accepts 50 bridges per route, so OnGrid uses the 50 nearest the way you're going.) The list stays in this browser (it's included in Copy my settings) and is never sent anywhere.</li>
       <li>Green glow is ratting: NPC kills in the last hour. The label shows rats per hour.</li>
       <li>A purple ring is a system named in intel in the last 15 minutes. It pulses for the first 3 minutes. A number in brackets is the reported pilot count. When every pilot named in a system's latest report has since been sighted in another system, that ring goes away and the systems table shows "moved", so the rings follow the hostiles. Reports that don't name pilots (like "5 nv") keep their ring for the full 15 minutes.</li>
       <li>A dashed ring and YOU mark where your character is.</li>
@@ -939,6 +951,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.66</b> Jump bridges: paste your alliance’s list in Alerts and settings; bridges show on the Gate map as dashed green curves (JB tag when the other end is off the map), hostile tracks follow them, and the Route planner uses them when <b>Use jump bridges</b> is ticked.</li>
       <li><b>2.65</b> Windows app 1.5.3: the chat logs folder is reopened by itself when the app starts, no more pressing Reconnect folder.</li>
       <li><b>2.64</b> Windows app 1.5.2: reopens every window you had open, in the same places, the next time it starts.</li>
       <li><b>2.63</b> Back to the map as it was in 2.61 (undoes 2.62).</li>
@@ -1266,6 +1279,74 @@ function computeCounts() {
   }
 }
 
+/* ---------- jump bridges (Ansiblex): pasted list, kept in this browser only ---------- */
+let bridges = (() => { try { return JSON.parse(localStorage.getItem("bridges") || "[]") || []; } catch { return []; } })(); // [{ a, b }] system ids
+let jbByEnd = new Map();
+function indexBridges() { jbByEnd = new Map(); for (const { a, b } of bridges) { (jbByEnd.get(a) || jbByEnd.set(a, new Set()).get(a)).add(b); (jbByEnd.get(b) || jbByEnd.set(b, new Set()).get(b)).add(a); } }
+indexBridges();
+// two system names per line: "A @ 1-1 … B @ 1-1" (alliance tools), or "A » B", "A <-> B", "A - B", "A,B"
+function parseBridgeText(text) {
+  const pairs = [];
+  for (const line of text.split(/\r?\n/)) {
+    let names = [...line.matchAll(/([A-Za-z0-9][A-Za-z0-9 '-]*?)\s*@/g)].map(m => m[1].trim().split(/\t/).pop().trim());
+    if (names.length < 2 && line.split(/\t/).length > 3) continue; // a table heading, not a bridge
+    if (names.length < 2) names = line.split(/\s*(?:»|<->|<=>|->|=>|↔|→|\t|,)\s*|\s+-\s+/).map(x => x.trim()).filter(x => /^[A-Za-z0-9][A-Za-z0-9 '-]{1,24}$/.test(x));
+    if (names.length >= 2 && names[0].toUpperCase() !== names[1].toUpperCase()) pairs.push([names[0], names[1]]);
+  }
+  return pairs;
+}
+async function saveBridges() {
+  const note = $("#jbNote"), pairs = parseBridgeText($("#jbIn").value);
+  if (!pairs.length) { note.textContent = "No bridges found: each line needs two system names."; note.className = "note err"; return; }
+  note.textContent = `Checking ${pairs.length} bridges with EVE…`; note.className = "note";
+  const names = [...new Set(pairs.flat().map(n => n.trim()))], ids = new Map();
+  try { for (let i = 0; i < names.length; i += 500) { const r = await getJSON(`${ESI}/universe/ids/?${DS}`, POSTJSON(names.slice(i, i + 500))); for (const x of r.systems || []) { ids.set(x.name.toUpperCase(), x.id); state.names.set(x.id, x.name); } } }
+  catch (e) { note.textContent = "Couldn't check the names with EVE: " + e.message; note.className = "note err"; return; }
+  const seen = new Set(), out = [], bad = new Set();
+  for (const [x, y] of pairs) {
+    const a = ids.get(x.toUpperCase()), b = ids.get(y.toUpperCase()); if (!a || !b) { if (!a) bad.add(x); if (!b) bad.add(y); continue; }
+    const k = Math.min(a, b) + "-" + Math.max(a, b); if (seen.has(k)) continue; seen.add(k); out.push({ a, b, an: nm(a), bn: nm(b) });
+  }
+  note.textContent = `Getting where the ${out.length} bridges are…`;
+  const ends = [...new Set(out.flatMap(x => [x.a, x.b]))], P = new Map(); let done = 0;
+  await pool(ends, 8, async id => { P.set(id, await sysPos(id)); if (++done % 20 === 0) note.textContent = `Getting where the bridges are… ${done}/${ends.length}`; });
+  for (const x of out) { x.pa = P.get(x.a) || null; x.pb = P.get(x.b) || null; }
+  bridges = out; try { localStorage.setItem("bridges", JSON.stringify(bridges)); } catch {} indexBridges();
+  note.textContent = `${bridges.length} jump bridges saved.` + (bad.size ? ` Not recognised: ${[...bad].slice(0, 6).join(", ")}${bad.size > 6 ? "…" : ""}.` : ""); note.className = bad.size ? "note err" : "note";
+  $("#jbIn").value = bridges.map(x => `${x.an} » ${x.bn}`).join("\n");
+  renderMap(); renderHostiles();
+}
+$("#jbSave").addEventListener("click", saveBridges);
+$("#jbClear").addEventListener("click", () => { bridges = []; try { localStorage.removeItem("bridges"); } catch {} indexBridges(); $("#jbIn").value = ""; $("#jbNote").textContent = "Jump bridges cleared."; renderMap(); });
+if (bridges.length) { $("#jbIn").value = bridges.map(x => `${x.an || x.a} » ${x.bn || x.b}`).join("\n"); $("#jbNote").textContent = `${bridges.length} jump bridges saved.`; }
+for (const x of bridges) { if (x.an) state.names.set(x.a, x.an); if (x.bn) state.names.set(x.b, x.bn); }
+// a system's position in space [x, z] (saved after the first look-up)
+async function sysPos(id) {
+  const s = state.systems.get(id); if (s?.pos) return s.pos;
+  let p = cache.get("spos:" + id); if (p) return p;
+  try { const d = await getJSON(`${ESI}/universe/systems/${id}/?${DS}`); p = d.position ? [d.position.x, d.position.z] : null; if (p) cache.set("spos:" + id, p); } catch {}
+  return p;
+}
+// for the route planner: EVE's route service takes at most 100 extra one-way connections, so use the 50 bridges
+// nearest the straight line from start to destination, each both ways
+async function bridgeConnections(from, to) {
+  if (!cfg.useBridges || !bridges.length) return [];
+  const a = await sysPos(from), b = await sysPos(to);
+  const seg = p => { if (!p || !a || !b) return 1e30; const vx = b[0] - a[0], vy = b[1] - a[1], L = vx * vx + vy * vy || 1, t = Math.max(0, Math.min(1, ((p[0] - a[0]) * vx + (p[1] - a[1]) * vy) / L)); return Math.hypot(p[0] - a[0] - t * vx, p[1] - a[1] - t * vy); };
+  return bridges.map(x => ({ x, d: Math.min(seg(x.pa), seg(x.pb)) })).sort((p, q) => p.d - q.d).slice(0, 50).flatMap(({ x }) => [`${x.a}|${x.b}`, `${x.b}|${x.a}`]);
+}
+const isBridgeHop = (x, y) => !!jbByEnd.get(x)?.has(y);
+// dashed curves between both ends of a bridge on the map
+function bridgesSvg(pos) {
+  let h = "";
+  for (const { a, b } of bridges) {
+    const p = pos.get(a), q = pos.get(b); if (!p || !q) continue;
+    const mx = (p.x + q.x) / 2, my = (p.y + q.y) / 2, dx = q.x - p.x, dy = q.y - p.y, k = 0.18; // a gentle bend, so it isn't mistaken for a gate
+    h += `<path class="jbl" d="M${p.x.toFixed(1)},${p.y.toFixed(1)} Q${(mx - dy * k).toFixed(1)},${(my + dx * k).toFixed(1)} ${q.x.toFixed(1)},${q.y.toFixed(1)}"><title>Jump bridge: ${esc(nm(a))} » ${esc(nm(b))}</title></path>`;
+  }
+  return h;
+}
+
 /* ---------- render ---------- */
 function heat(s) {
   if (s.k1 > 0) return "hot";
@@ -1420,6 +1501,7 @@ function renderMap(asString) { // asString: just return the drawing (used for th
     const a = pos.get(s.id), b = pos.get(n);
     h += `<line class="edge" data-d="${Math.max(s.dist, state.systems.get(n).dist)}" x1="${a.x.toFixed(1)}" y1="${a.y.toFixed(1)}" x2="${b.x.toFixed(1)}" y2="${b.y.toFixed(1)}"/>`;
   }
+  h += bridgesSvg(pos);
   h += hostilePathsSvg(pos);
   // planned route through systems on the map
   if (state.route) for (let i = 1; i < state.route.length; i++) {
@@ -1429,7 +1511,7 @@ function renderMap(asString) { // asString: just return the drawing (used for th
   for (const s of state.systems.values()) {
     const p = pos.get(s.id);
     const r = (s.id === state.origin ? 9 : 5) + 9 * Math.sqrt((s.jumps || 0) / maxJ);
-    const tip = `${s.name} (${fmtSec(s.sec)}) · ${s.dist}j · kills 1h ${s.k1} / 24h ${s.k24} · jumps ${s.jumps}`;
+    const tip = `${s.name} (${fmtSec(s.sec)}) · ${s.dist}j · kills 1h ${s.k1} / 24h ${s.k24} · jumps ${s.jumps}${jbByEnd.get(s.id)?.size ? ` · jump bridge to ${[...jbByEnd.get(s.id)].map(nm).join(", ")}` : ""}`;
     h += `<g data-id="${s.id}" data-d="${s.dist}"><title>${esc(tip)}</title><circle class="node${state.sel === s.id ? " sel" : ""}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${r.toFixed(1)}" fill="url(#nd-${heat(s)})"/>`;
     const below = p.y >= 300;
     if (s.intelAge != null && s.intelAge < 15 && !s.intelClear && !s.intelMoved) {
@@ -1454,6 +1536,7 @@ function renderMap(asString) { // asString: just return the drawing (used for th
     {
     }
     const fl = fleetBy.get(s.id); if (fl) tags += `<tspan class="tag fleet"> F${fl.length}</tspan>`;
+    const jbOff = [...(jbByEnd.get(s.id) || [])].filter(x => !state.systems.has(x)); if (jbOff.length) tags += `<tspan class="tag jb"> JB</tspan>`;
     const whs = whBySys.get(s.id); if (whs) tags += `<tspan class="tag wh"> ${whs.map(w => w.out_system_name === "Thera" ? "TH" : "TU").join(" ")}</tspan>`;
     if (cfg.showRats && s.npc_kills) h += `<text class="ratlbl" x="${p.x.toFixed(1)}" y="${(p.y + (below ? r + 21 : -r - 14)).toFixed(1)}" text-anchor="middle">${s.npc_kills} rats/h</text>`;
     h += `<text x="${p.x.toFixed(1)}" y="${(p.y + (below ? r + 11 : -r - 4)).toFixed(1)}" text-anchor="middle" font-weight="${s.id === state.origin ? 600 : 400}">${esc(s.name)}${s.k1 ? " ·" + s.k1 : ""}${cnt}${tags}</text></g>`;
@@ -1845,7 +1928,7 @@ $("#intelChannels").addEventListener("input", () => ls.set("intelChannels", $("#
 $("#intelChannels").addEventListener("change", () => { ls.set("intelChannels", $("#intelChannels").value); if (intel.dir) startIntel(); });
 
 /* ---------- settings ---------- */
-const SETTINGS_DEFAULT = { alRange: "1", alFrom: "you", alSound: true, alDesktop: false, alSpeak: false, alKills: false, alBig: true, follow: false, locEsi: true, killCap: "1000", intelFilter: "all", showRats: true, showSov: true, alSov: true, watch: "", alWatch: true, alTimers: true, relaySend: false, relayRecv: false, relayEvery: "60", relayAll: false, relayPush: false, relayCode: "", ssoClient: "", stdEsi: true, shipAware: true, routeFlag: "shortest", avCamps: true, avKills: true, avIntel: true, alNotif: true, alNotifWarn: true, showWh: true, friends: "", enemies: "", hideFriendly: false, youHide: [], mapLayout: "eve" };
+const SETTINGS_DEFAULT = { alRange: "1", alFrom: "you", alSound: true, alDesktop: false, alSpeak: false, alKills: false, alBig: true, follow: false, locEsi: true, killCap: "1000", intelFilter: "all", showRats: true, showSov: true, alSov: true, watch: "", alWatch: true, alTimers: true, relaySend: false, relayRecv: false, relayEvery: "60", relayAll: false, relayPush: false, relayCode: "", ssoClient: "", stdEsi: true, shipAware: true, routeFlag: "shortest", avCamps: true, avKills: true, avIntel: true, alNotif: true, alNotifWarn: true, showWh: true, friends: "", enemies: "", hideFriendly: false, youHide: [], mapLayout: "eve", useBridges: false };
 let cfg;
 try { cfg = { ...SETTINGS_DEFAULT, ...JSON.parse(ls.get("settings", "{}")) }; } catch { cfg = { ...SETTINGS_DEFAULT }; }
 if (ls.get("settings", null) == null && ls.get("intelAlert", null) != null) cfg.alRange = ls.get("intelAlert"); // older version's setting
@@ -1875,6 +1958,7 @@ function onSetting(k) {
   if (/^relay/.test(k) && k !== "relayCode") relaySetup();
   if (k === "killCap") refreshKills();
   if (k === "mapLayout") renderMap();
+  if (k === "useBridges" && $("#routeTo").value.trim() && $("#routeList").innerHTML) findRoute();
   if (k === "stdEsi") loadContacts();
   if (k === "shipAware") renderIntel();
   if (k === "locEsi") { pollLocation(); renderChars(); }
@@ -2511,7 +2595,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.65";
+const APP_VERSION = "2.66";
 // a window left open (an app box window, a pinned tab) would keep running an old copy of the page after an update:
 // every 10 minutes, look at the live page's version; if it's newer, reload while the window isn't being looked at,
 // or show a small bar with a Reload button
@@ -3005,6 +3089,7 @@ function dangerSystems() {
 async function routeIds(from, to, flag, avoid) {
   const u = new URL(`${ESI}/route/${from}/${to}/`); u.searchParams.set("datasource", "tranquility"); u.searchParams.set("flag", flag);
   for (const a of avoid) u.searchParams.append("avoid", a);
+  for (const c of await bridgeConnections(from, to)) u.searchParams.append("connections", c); // jump bridges, when ticked
   const r = await fetch(u); if (r.status === 404) return null;
   if (!r.ok) throw new Error("HTTP " + r.status);
   return r.json();
@@ -3039,15 +3124,18 @@ async function findRoute() {
     const stillRisky = route.filter(id => danger.has(id));
     state.route = route;
     let msg = safe
-      ? `${route.length - 1} jumps from ${from.name} to ${to.name}` + (safe.length > plain.length ? ` (the shortest is ${plain.length - 1}).` : ". The shortest route is already clear.")
+      ? `${route.length - 1} jump${route.length === 2 ? "" : "s"} from ${from.name} to ${to.name}` + (safe.length > plain.length ? ` (the shortest is ${plain.length - 1}).` : ". The shortest route is already clear.")
       : `No route avoids every dangerous system, so this is the normal route: ${plain.length - 1} jumps.`;
     if (avoidedOnPlain.length) msg += ` Avoids ${avoidedOnPlain.map(id => `${nm(id)} (${[...danger.get(id)].join(", ")})`).join("; ")}.`;
     if (stillRisky.length) msg += ` Still passes ${stillRisky.map(id => `${nm(id)} (${[...danger.get(id)].join(", ")})`).join("; ")}.`;
+    const jbHops = route.filter((id, i) => i && isBridgeHop(route[i - 1], id)).length;
+    if (cfg.useBridges) msg += !bridges.length ? " (No jump bridges saved yet: paste them in Alerts and settings → Jump bridges.)" : jbHops ? ` Uses ${jbHops} jump bridge${jbHops === 1 ? "" : "s"} (JB): take ${jbHops === 1 ? "it" : "them"} yourself; the autopilot only uses gates.` : " No jump bridge makes it shorter.";
     msg += " Only the map and watched systems are checked for danger.";
     say2(msg, !safe || stillRisky.length > 0);
     list.innerHTML = route.map((id, i) => {
       const sc = sec(id), d = danger.get(id);
-      return `<li><span class="rn">${i}</span><b>${esc(nm(id))}</b>${sc != null ? `<span class="sec" style="color:${secColor(sc)}">${fmtSec(sc)}</span>` : ""}${d ? [...d].map(w => `<span class="chip camp">${esc(w.toUpperCase())}</span>`).join("") : ""}</li>`;
+      const jb = route[i + 1] && isBridgeHop(id, route[i + 1]) ? `<span class="chip" style="color:#57c47a;border:1px solid #57c47a">JB » ${esc(nm(route[i + 1]))}</span>` : "";
+      return `<li><span class="rn">${i}</span><b>${esc(nm(id))}</b>${sc != null ? `<span class="sec" style="color:${secColor(sc)}">${fmtSec(sc)}</span>` : ""}${jb}${d ? [...d].map(w => `<span class="chip camp">${esc(w.toUpperCase())}</span>`).join("") : ""}</li>`;
     }).join("");
     $("#routeActions").hidden = false;
     startTrip(to.id, to.name, route, !!safe && safe.length > plain.length);
@@ -3176,7 +3264,7 @@ function renderTrip() {
     else if (at != null && i === at + 1) h += `<circle class="tnext" cx="${p.x.toFixed(1)}" cy="${p.y}" r="12"/>`;
     // danger above the system, name and security below
     const chips = [d.camp ? `<tspan class="tchip c">CAMP </tspan>` : "", d.kills ? `<tspan class="tchip k">✕${d.kills} </tspan>` : "", d.intelN ? `<tspan class="tchip i">INTEL${d.pilots ? " " + d.pilots : ""} ${Math.floor(d.intelAge)}m</tspan>` : ""].join("");
-    const top = at === i ? `<tspan class="tyoulbl">YOU </tspan>` : isDest ? `<tspan class="tdest">DEST </tspan>` : "";
+    const top = (at === i ? `<tspan class="tyoulbl">YOU </tspan>` : isDest ? `<tspan class="tdest">DEST </tspan>` : "") + (R[i + 1] && isBridgeHop(id, R[i + 1]) ? `<tspan class="tchip" style="fill:#57c47a">JB» </tspan>` : "");
     if (top || (chips && !past)) h += `<text x="${p.x.toFixed(1)}" y="${p.y - 20}" text-anchor="middle">${top}${past ? "" : chips}</text>`;
     h += `<text x="${p.x.toFixed(1)}" y="${p.y + 24}" text-anchor="middle" font-weight="${isDest ? 700 : 400}">${esc(nm(id))}</text>`;
     if (sc != null) h += `<text class="tsec" x="${p.x.toFixed(1)}" y="${p.y + 35}" text-anchor="middle" style="fill:${secColor(sc)}">${fmtSec(sc)}</text>`;
@@ -3476,7 +3564,7 @@ function gatePath(a, b, max) {
   const prev = new Map([[a, null]]); let front = [a];
   for (let d = 0; d < max && front.length; d++) {
     const next = [];
-    for (const id of front) for (const n of state.systems.get(id)?.neighbors || []) {
+    for (const id of front) for (const n of [...(state.systems.get(id)?.neighbors || []), ...(jbByEnd.get(id) || [])]) {
       if (prev.has(n) || !state.systems.has(n)) continue; prev.set(n, id);
       if (n === b) { const path = [b]; let c = id; while (c != null) { path.unshift(c); c = prev.get(c); } return path; }
       next.push(n);
@@ -3789,7 +3877,7 @@ $("#relayPair").addEventListener("submit", e => {
 setTimeout(() => { renderPresets(); renderTimers(); relaySetup(); }); // after the collapsing code below has loaded
 
 /* ---------- backup: copy settings to another browser or device (never the EVE login) ---------- */
-const BK_KEYS = ["settings", "presets", "timers", "intelChannels", "panels", "origin", "radius", "layout"];
+const BK_KEYS = ["settings", "presets", "timers", "intelChannels", "panels", "origin", "radius", "layout", "bridges"];
 $("#bkCopy").addEventListener("click", () => {
   const data = { app: "local-intel", v: APP_VERSION, saved: new Date().toISOString(), items: {} };
   for (const k of BK_KEYS) { const v = ls.get(k, null); if (v != null) data.items[k] = v; }
