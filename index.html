@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.68
+  OnGrid (formerly Local Intel), version 2.69
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -149,10 +149,15 @@ tr:hover td { background: #141d27; }
 @media (prefers-reduced-motion: no-preference) { #map .intelring.live { animation: ping 1.6s ease-out infinite; transform-box: fill-box; transform-origin: center; } }
 @keyframes ping { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(2.2); } }
 .settings-unused { cursor: pointer; font: 600 13px var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); list-style: none; }
-.setgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
-.setgrid fieldset { border: 1px solid var(--line); border-radius: 4px; padding: 10px 12px; margin: 0; display: grid; gap: 8px; align-content: start; min-width: 0; font: 12px var(--mono); color: var(--fg); }
+.setgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 16px; }
+/* each column keeps to its own width: everything inside can shrink, and long names, addresses and codes wrap */
+.setgrid fieldset { border: 1px solid var(--line); border-radius: 4px; padding: 10px 12px; margin: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; align-content: start; min-width: 0; max-width: 100%; overflow-wrap: anywhere; font: 12px var(--mono); color: var(--fg); }
+.setgrid fieldset > * { min-width: 0; max-width: 100%; }
+.setgrid code { overflow-wrap: anywhere; word-break: break-all; }
+.setgrid label > select, .setgrid label > input[type=text] { width: 0; }
+.setgrid label > input[type=checkbox] ~ select { flex: 0 0 auto; width: auto; } /* a small choice after a tick box keeps its size */
 .setgrid legend { font: 600 11px var(--display); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding: 0 4px; }
-.setgrid label { display: flex; gap: 8px; align-items: center; }
+.setgrid label { display: flex; gap: 8px; align-items: center; min-width: 0; }
 .setgrid select, .setgrid input[type=text] { font: 13px var(--mono); background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: 5px 7px; min-width: 0; flex: 1; }
 .setgrid button { font: 12px var(--mono); background: var(--bg); color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 5px 9px; cursor: pointer; }
 .setgrid button:hover { background: var(--accent); color: var(--bg); }
@@ -751,7 +756,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.68</span>
+    <span class="ver" id="aboutVer">Version 2.69</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -951,6 +956,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.69</b> Alerts and settings: the columns no longer run into each other; long settings, addresses and codes wrap inside their own column.</li>
       <li><b>2.68</b> Send to autopilot keeps a safer route: when the route goes around danger, it adds only the few waypoints needed for EVE’s autopilot to follow it.</li>
       <li><b>2.67</b> Send to autopilot just sets the destination in EVE; the game’s autopilot plans the way there itself (and uses jump bridges when they’re turned on in the game).</li>
       <li><b>2.66</b> Jump bridges: paste your alliance’s list in Alerts and settings; bridges show on the Gate map as dashed green curves (JB tag when the other end is off the map), hostile tracks follow them, and the Route planner uses them when <b>Use jump bridges</b> is ticked.</li>
@@ -2597,7 +2603,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.68";
+const APP_VERSION = "2.69";
 // a window left open (an app box window, a pinned tab) would keep running an old copy of the page after an update:
 // every 10 minutes, look at the live page's version; if it's newer, reload while the window isn't being looked at,
 // or show a small bar with a Reload button
