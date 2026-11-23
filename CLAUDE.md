@@ -58,10 +58,9 @@ OnGrid is an intel tool for EVE Online. Everything ships from this repo.
   - `FREE_IDS` lists the movable boxes.
   - Narrow windows and phones use the stacked layout.
 - **Map style:** the map uses the original look (plain shaded dots, kill count after the name). The owner rejected a bigger redesign, so ask before restyling it.
-- **Map layout** (`cfg.mapView`):
-  - The default is `"rings"` (`realRingLayout()`): jump rings, with each system at its real direction from the centre system (x across, z up). Systems on a ring are only nudged apart for names, and other regions are shaded.
-  - The options are `"classic"` (evenly spaced rings, `layoutPass()`) and `"eve"` (real positions, no rings, `geoLayout()`).
-  - The owner wants the jump rings kept.
+- **Map layout:**
+  - It defaults to "like the EVE star map" (`cfg.mapLayout = "eve"`, `geoLayout()`): real x/z positions, each axis half real distance and half rank order, then pushed apart so names fit.
+  - "Rings by jumps" (`layoutPass()`, with region slices) is the alternative.
 - **Travel map** lives in the Route planner (`#tripMap`, `#tripBar`); the Gate map only gets the compact Destination box (`#mapDest`) in its title row. Nothing may make the Gate map smaller.
 - **Hostile tracks** are colored per group (alliance, else corp, else pilot), with stacked ticker labels on the map. There are no group chips in the Hostile tracker.
 
