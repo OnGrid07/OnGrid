@@ -95,7 +95,7 @@ const boxWins = new Map(); // box id -> its window
 const BOX_SIZE = { specPanel: [560, 420], mapPanel: [760, 820], sysPanel: [900, 600], intelPanel: [620, 700], watchPanel: [900, 420], scanPanel: [900, 760], hostilePanel: [760, 520],
   timerPanel: [640, 560], routePanel: [560, 640], notifPanel: [640, 640], killPanel: [700, 720], settings: [980, 820], about: [760, 820] };
 function createLauncher(quiet) {
-  const size = 460, p = prefs.launcherPos;
+  const size = prefs.launcherSize || 340, p = prefs.launcherPos;
   const onScreen = p && screen.getAllDisplays().some(d => p.x >= d.workArea.x - 100 && p.y >= d.workArea.y - 100 && p.x < d.workArea.x + d.workArea.width && p.y < d.workArea.y + d.workArea.height);
   launcher = new BrowserWindow({
     width: size, height: size, x: onScreen ? p.x : undefined, y: onScreen ? p.y : undefined,
@@ -110,6 +110,14 @@ function createLauncher(quiet) {
   launcher.webContents.on("did-finish-load", sendOpenIds);
   launcher.on("moved", () => { const [x, y] = launcher.getPosition(); prefs.launcherPos = { x, y }; savePrefs(); });
   launcher.on("close", e => { if (!quitting) { e.preventDefault(); launcher.hide(); } });
+}
+// the ring's size: keep its centre where it is, and let Windows resize it just for the change (it can't be resized by hand)
+function setLauncherSize(v) {
+  prefs.launcherSize = v; savePrefs();
+  if (!launcher || launcher.isDestroyed()) return;
+  const b = launcher.getBounds(), cx = b.x + b.width / 2, cy = b.y + b.height / 2;
+  launcher.setResizable(true); launcher.setBounds({ x: Math.round(cx - v / 2), y: Math.round(cy - v / 2), width: v, height: v }); launcher.setResizable(false);
+  const [x, y] = launcher.getPosition(); prefs.launcherPos = { x, y }; savePrefs();
 }
 function showLauncher() { if (!launcher) createLauncher(); launcher.show(); launcher.focus(); }
 function sendOpenIds() { if (launcher && !launcher.isDestroyed()) launcher.webContents.send("launcher:open-ids", [...boxWins.keys()]); }
@@ -319,7 +327,8 @@ function overlayItems() {
 if (process.env.ONGRID_TEST) global.__ongridTest = {
   unlock: v => setOverlays({ unlocked: !!v }),
   toggle: (kind, on) => setOverlays({ [kind]: !!on }),
-  prefs: () => JSON.parse(JSON.stringify(prefs))
+  prefs: () => JSON.parse(JSON.stringify(prefs)),
+  launcherSize: v => setLauncherSize(v)
 };
 function refreshTray() { if (tray) tray.setContextMenu(trayMenu()); }
 
@@ -328,6 +337,7 @@ function trayMenu() {
     { label: "Show launcher", click: showLauncher },
     { label: "Show full OnGrid", click: show },
     { label: "Open to the launcher", type: "checkbox", checked: prefs.launcher, click: i => { prefs.launcher = i.checked; savePrefs(); } },
+    { label: "Launcher size", submenu: [["Small", 280], ["Medium", 340], ["Large", 460]].map(([l, v]) => ({ label: l, type: "radio", checked: (prefs.launcherSize || 340) === v, click: () => setLauncherSize(v) })) },
     { type: "separator" },
     ...overlayItems(),
     { type: "separator" },
