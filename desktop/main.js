@@ -92,7 +92,7 @@ function show() { if (!win) return; if (win.isMinimized()) win.restore(); win.sh
 /* ---------- launcher: the gate ring ---------- */
 let launcher = null;
 const boxWins = new Map(); // box id -> its window
-const BOX_SIZE = { mapPanel: [760, 820], sysPanel: [900, 600], intelPanel: [620, 700], watchPanel: [900, 420], scanPanel: [900, 760], hostilePanel: [760, 520],
+const BOX_SIZE = { specPanel: [560, 420], mapPanel: [760, 820], sysPanel: [900, 600], intelPanel: [620, 700], watchPanel: [900, 420], scanPanel: [900, 760], hostilePanel: [760, 520],
   timerPanel: [640, 560], routePanel: [560, 640], notifPanel: [640, 640], killPanel: [700, 720], settings: [980, 820], about: [760, 820] };
 function createLauncher(quiet) {
   const size = 460, p = prefs.launcherPos;

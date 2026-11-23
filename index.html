@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.71
+  OnGrid (formerly Local Intel), version 2.72
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -456,6 +456,9 @@ dialog.about::backdrop { background: rgba(0, 0, 0, .6); }
 .spec .lbl { font: 700 12px var(--display); letter-spacing: .12em; text-transform: uppercase; }
 .spec .none { font-size: 12px; }
 .spec .item { color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 3px 8px; }
+.specstack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; align-content: start; }
+#boxHost > .panel > .specstack { flex: 1 1 auto; min-height: 0; overflow: auto; }
+#specBody .spec .item b { display: inline; font: 700 14px var(--display); margin-right: 4px; }
 .summary .spec .item b { display: inline; font: 700 14px var(--display); margin-right: 4px; }
 .spec-wh .lbl { color: var(--accent); }
 .spec-sov .lbl { color: var(--sov); }
@@ -602,6 +605,12 @@ footer { font: 11px var(--mono); color: var(--muted); }
       </div>
     </div>
     <div id="scanResult" class="scanres" hidden></div>
+  </section>
+
+  <!-- Thera/Turnur and sov fights in a window of their own (Windows app's launcher ring only; the page shows them above the map) -->
+  <section class="panel" id="specPanel" data-title="Wormholes and sov fights" hidden>
+    <h2>Wormholes and sov fights</h2>
+    <div class="specials specstack" id="specBody"></div>
   </section>
 
   <section class="panel collapsible" id="hostilePanel" data-title="Hostile tracker">
@@ -772,7 +781,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.71</span>
+    <span class="ver" id="aboutVer">Version 2.72</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -837,7 +846,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <h3>Windows app</h3>
     <p><b>OnGrid for Windows</b> is this page in its own app window. Download <code>OnGrid-Setup-….exe</code> from <a href="https://github.com/OnGrid07/OnGrid/releases/latest" target="_blank" rel="noopener">the releases page</a> and run it; it installs in a few seconds and adds a Start menu shortcut.</p>
     <ul>
-      <li><b>The launcher</b> (app 1.3 and later): the app opens to a round gate ring. Each symbol on the ring opens one box in its own window: Gate map, Intel and location, Local and D-scan, Hostile tracker, Watched systems, Systems, Kills, Character notifications, Timers, Route planner, Alerts and settings, and About; the power symbol quits. Hover a symbol to see its name in the middle. A small blue dot under a symbol means its window is open; clicking the symbol again closes that window. Click the middle of the ring to open the full OnGrid window. Drag the ring from anywhere, even from a symbol, to move it (it remembers where you put it), and press <b>hide</b> (or Esc) to tuck it into the tray. Each box window remembers its size and place, and (in the app only) has <b>⋮</b> (Settings) in its title bar, next to the minimize button, that shows only the settings for that window (the Gate map's map and jump bridge settings, the Intel window's alerts, characters and phone relay, and so on); in the full window it opens Alerts and settings. When you quit the app, it remembers which windows were open (the ring, the full window and each box) and where they were, maximized or not, and puts them all back next time it starts; a window that was on a screen that's no longer connected opens on the main screen. The Gate map window shows just the map. In its title row, the small <b>2j</b>-style picker changes how many jumps the map shows, and the <b>☰</b> button shows or hides System, Jumps, Load, presets and the summary above it. Every window shows the same intel, rings, tracks and alerts: the window that reads your chat logs (or the phone relay) shares them with the others. To start with the full window instead, untick <b>Open to the launcher</b> in the tray menu.</li>
+      <li><b>The launcher</b> (app 1.3 and later): the app opens to a round gate ring. Each symbol on the ring opens one box in its own window: Gate map, Wormholes and sov fights (Thera/Turnur connections and sov fights in range), Intel and location, Local and D-scan, Hostile tracker, Watched systems, Systems, Kills, Character notifications, Timers, Route planner, Alerts and settings, and About; the power symbol quits. Hover a symbol to see its name in the middle. A small blue dot under a symbol means its window is open; clicking the symbol again closes that window. Click the middle of the ring to open the full OnGrid window. Drag the ring from anywhere, even from a symbol, to move it (it remembers where you put it), and press <b>hide</b> (or Esc) to tuck it into the tray. Each box window remembers its size and place, and (in the app only) has <b>⋮</b> (Settings) in its title bar, next to the minimize button, that shows only the settings for that window (the Gate map's map and jump bridge settings, the Intel window's alerts, characters and phone relay, and so on); in the full window it opens Alerts and settings. When you quit the app, it remembers which windows were open (the ring, the full window and each box) and where they were, maximized or not, and puts them all back next time it starts; a window that was on a screen that's no longer connected opens on the main screen. The Gate map window shows just the map. In its title row, the small <b>2j</b>-style picker changes how many jumps the map shows, and the <b>☰</b> button shows or hides System, Jumps, Load, presets and the summary above it. Every window shows the same intel, rings, tracks and alerts: the window that reads your chat logs (or the phone relay) shares them with the others. To start with the full window instead, untick <b>Open to the launcher</b> in the tray menu.</li>
       <li><b>Overlays</b> (app 1.4 and later): two see-through windows that float on top of EVE when the game runs in windowed or fixed-window mode. They are separate windows and never touch the game client. The <b>alert banner</b> flashes at the top of the screen whenever OnGrid alerts you (hostiles in range, watched systems, big ships, camps, sov, timers) and fades after about nine seconds; several at once show a +count. The <b>intel HUD</b> stays up and shows your system and its security, a danger rating (HIGH: a hostile reported within 1 jump in the last 5 minutes, or a camp next door; MEDIUM: hostiles within 3 jumps, kills where you are, camps or big ships nearby; LOW: quiet), the nearest reported hostile with jumps, pilots and minutes ago, how many systems within 3 jumps have hostiles reported, big ships, and kills where you are. The <b>travel HUD</b> appears only while a trip is on: destination and jumps left, then your system and the next five jumps with their security, kills in the last hour (✕), intel (with pilot count) and a pulsing ring on camps, plus a warning for the first camp ahead. The <b>mini map</b> is a small see-through copy of the gate map (small, medium or large), showing at most 3 jumps even when the Gate map shows more, with the intel rings, hostile tracks and your YOU ring; to stay readable it only names systems with intel, kills, you or hostile groups. Clicks pass straight through all of them to EVE. Switch them in <b>Alerts and settings → Overlays over the game</b> (or the tray menu): turn each one on or off, <b>Move overlays</b> to drag them where you want (they get a yellow dashed outline; untick it to lock them again), <b>Overlay background</b> to make them lighter or more solid, and <b>Put overlays back in place</b>. <b>Test alert</b> in Alerts and settings shows the banner.</li>
       <li>It keeps running in the system tray, and alerts and Windows notifications keep working while it's minimized or behind the game. Closing the window hides it to the tray; quit from the tray icon.</li>
       <li>Right-click the tray icon for <b>Always on top</b>, <b>Keep running when closed</b> and <b>Start with Windows</b>.</li>
@@ -972,6 +981,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.72</b> Windows app 1.5.6: a Wormholes and sov fights symbol on the launcher ring opens Thera/Turnur connections and sov fights in their own window.</li>
       <li><b>2.71</b> Windows app 1.5.5: Settings is a ⋮ in each window’s title bar, next to the minimize button. Fixed the settings box sometimes opening empty.</li>
       <li><b>2.70</b> Windows app 1.5.4: each window has Settings in its top bar, showing only the settings for that window.</li>
       <li><b>2.69</b> Alerts and settings: the columns no longer run into each other; long settings, addresses and codes wrap inside their own column.</li>
@@ -1634,6 +1644,7 @@ function renderSummary() {
     <div>Hot right now<b style="font-size:16px">${esc(hot)}</b></div>
     <div class="${mapCamps ? "hotv" : ""}">Possible gate camps<b>${mapCamps}</b></div>
     <div class="specials">${whSummary()}${sovSummary()}</div>`;
+  if (/[?&]box=specPanel\b/.test(location.search)) $("#specBody").innerHTML = whSummary() + sovSummary(); // the app's own window for these
 }
 
 function renderAll() { renderTimers(); timerAlerts(); renderHostiles(); renderWatch(); computeCounts(); computeCamps(); campAlerts(); sovAlerts(); computeIntel(); renderIntel(); renderSummary(); renderMap(); renderTable(); renderFeed(); }
@@ -1906,7 +1917,7 @@ if (navigator.windowControlsOverlay?.visible) {
 }
 /* Windows app: "Settings" in each window's top bar shows just the settings that window uses. The sections are borrowed
    from Alerts and settings (so they stay one set of settings) and put back when the box closes. */
-const BOX_SETTINGS = { mapPanel: ["Map", "Jump bridges"], sysPanel: ["Map"], intelPanel: ["Alerts", "Characters in Intel and location", "Phone relay"],
+const BOX_SETTINGS = { specPanel: ["Map", "Alerts"], mapPanel: ["Map", "Jump bridges"], sysPanel: ["Map"], intelPanel: ["Alerts", "Characters in Intel and location", "Phone relay"],
   watchPanel: ["Alerts"], scanPanel: ["Standings"], hostilePanel: ["Standings", "Alerts"], timerPanel: ["Alerts"], routePanel: ["Jump bridges"],
   notifPanel: ["EVE login"], killPanel: ["Map", "Standings"] };
 const borrowed = [];
@@ -2656,7 +2667,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.71";
+const APP_VERSION = "2.72";
 // a window left open (an app box window, a pinned tab) would keep running an old copy of the page after an update:
 // every 10 minutes, look at the live page's version; if it's newer, reload while the window isn't being looked at,
 // or show a small bar with a Reload button
