@@ -34,6 +34,11 @@ app.setAppUserModelId("com.ongrid.app"); // needed for Windows notifications
 
 const isOurs = url => { try { const u = new URL(url); return u.origin === SITE_ORIGIN || u.host === LOGIN_HOST; } catch { return false; } };
 
+// "Settings" in a window's top bar: the page shows just the settings for that window (all of them in the full window)
+function settingsBar(w) {
+  w.setMenu(Menu.buildFromTemplate([{ label: "Settings", click: () => { if (!w.isDestroyed()) w.webContents.executeJavaScript("window.ongridBoxSettings && window.ongridBoxSettings()", true).catch(() => {}); } }]));
+  w.setAutoHideMenuBar(false); w.setMenuBarVisibility(true);
+}
 // the page's own links (EVE login, watched-system tabs) stay in the app; everything else opens in the normal browser
 function guard(w) {
   w.webContents.setWindowOpenHandler(({ url }) => {
@@ -62,7 +67,7 @@ function createWindow(visible = true) {
   if (prefs.maximized) win.maximize();
   if (visible) win.show();
   win.loadURL(SITE, FRESH);
-  guard(win);
+  guard(win); settingsBar(win);
   // the chat logs folder picked before: browsers only reopen it after a click on Reconnect folder. The app gives that
   // click itself once the page has loaded (and again a little later, in case the page was still starting)
   win.webContents.on("did-finish-load", () => {
@@ -125,6 +130,7 @@ function openBox(id, quiet) { // quiet: reopened after a restart, so don't take 
   if (quiet) bw.once("ready-to-show", () => bw.showInactive()); else bw.show();
   const url = new URL(SITE); url.searchParams.set("box", id);
   bw.loadURL(url.toString(), FRESH); guard(bw);
+  if (id !== "settings" && id !== "about") settingsBar(bw); // the settings window is all settings already
   bw.webContents.on("did-fail-load", (e, code, desc, u, isMain) => { if (isMain && code !== -3) bw.loadFile(path.join(__dirname, "offline.html"), { query: { site: url.toString(), reason: desc } }); });
   bw.on("close", () => { saveBoxBounds(id, bw); savePrefs(); });
   bw.on("closed", () => { boxWins.delete(id); sendOpenIds(); saveSession(); });
