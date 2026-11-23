@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.67
+  OnGrid (formerly Local Intel), version 2.68
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -751,7 +751,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.67</span>
+    <span class="ver" id="aboutVer">Version 2.68</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -864,7 +864,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <ul>
       <li><b>Set destination / Add waypoint</b>: click a system on the map (or in the systems table) and use the bar above the map, or press <b>Destination</b> on a watched-system card. Your autopilot in EVE updates straight away.</li>
       <li><b>Show in EVE</b> opens the selected system's info window in the game. The <b>in EVE</b> button next to a pilot named in intel opens that pilot's info window.</li>
-      <li><b>Route planner</b> (collapsed below the watched systems, or <b>Safe route</b> in the map bar): from where you are (or a system you type) to a destination. It asks EVE for a route that avoids systems with gate camps, kills in the last hour or hostiles reported in intel in the last 15 minutes (each can be switched off), and compares it with the shortest route. The route is drawn on the map. <b>Send to autopilot</b> sets the destination in EVE; your autopilot then plans its own way there (using jump bridges if they're turned on in your autopilot settings in the game). Only systems on the map and watched systems are checked for danger.</li>
+      <li><b>Route planner</b> (collapsed below the watched systems, or <b>Safe route</b> in the map bar): from where you are (or a system you type) to a destination. It asks EVE for a route that avoids systems with gate camps, kills in the last hour or hostiles reported in intel in the last 15 minutes (each can be switched off), and compares it with the shortest route. The route is drawn on the map. <b>Send to autopilot</b> sets the destination in EVE, and your autopilot plans its own way there (using jump bridges if they're turned on in your autopilot settings in the game). When the route goes around danger, it also adds the fewest waypoints needed to keep the autopilot on the safer route, and says which. Only systems on the map and watched systems are checked for danger.</li>
       <li><b>Standings from contacts</b>: your personal, corp and alliance contacts are read every 30 minutes. Positive standing counts as friendly and negative as hostile, and your own corp and alliance are always friendly. Names typed under Standings are added on top.</li>
       <li><b>Fleet</b>: when a logged-in character is fleet boss, each member appears on the map as <b>F</b> and a count (and FLEET in the table), checked every 30 seconds. Hover the fleet line under the intel panel for the list. Other fleet members can't see positions; that's EVE's rule.</li>
       <li><b>Ship-aware alerts</b>: the ship you're flying shows next to your location. In a hauler, transport, freighter, mining barge, exhumer, mining frigate, Rorqual or industrial command ship, alerts reach one jump further and gate camps always alert.</li>
@@ -951,6 +951,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.68</b> Send to autopilot keeps a safer route: when the route goes around danger, it adds only the few waypoints needed for EVE’s autopilot to follow it.</li>
       <li><b>2.67</b> Send to autopilot just sets the destination in EVE; the game’s autopilot plans the way there itself (and uses jump bridges when they’re turned on in the game).</li>
       <li><b>2.66</b> Jump bridges: paste your alliance’s list in Alerts and settings; bridges show on the Gate map as dashed green curves (JB tag when the other end is off the map), hostile tracks follow them, and the Route planner uses them when <b>Use jump bridges</b> is ticked.</li>
       <li><b>2.65</b> Windows app 1.5.3: the chat logs folder is reopened by itself when the app starts, no more pressing Reconnect folder.</li>
@@ -2596,7 +2597,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.67";
+const APP_VERSION = "2.68";
 // a window left open (an app box window, a pinned tab) would keep running an old copy of the page after an update:
 // every 10 minutes, look at the live page's version; if it's newer, reload while the window isn't being looked at,
 // or show a small bar with a Reload button
@@ -3142,15 +3143,35 @@ async function findRoute() {
     startTrip(to.id, to.name, route, !!safe && safe.length > plain.length);
   } catch (e) { say2("Couldn't get a route from EVE right now: " + e.message, true); }
 }
+// the fewest waypoints that keep EVE's autopilot as safe and as short as this route. From each point, find the furthest
+// system on the route the autopilot would reach by itself (EVE's own route, same preference and bridges) just as quickly
+// and without passing a dangerous system; that system becomes a waypoint, and so on to the destination.
+async function minimalWaypoints(route) {
+  const flag = cfg.routeFlag || "shortest", danger = dangerSystems();
+  const natural = async (i, j) => { const leg = await routeIds(route[i], route[j], flag, []); return !!leg && leg.length === j - i + 1 && !leg.slice(1, -1).some(id => danger.has(id)); };
+  const out = []; let i = 0;
+  while (i < route.length - 1) {
+    if (await natural(i, route.length - 1)) break; // from here the autopilot follows our route by itself
+    let lo = i + 1, hi = route.length - 1; // furthest j with natural(i, j): one jump always is
+    while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (await natural(i, mid)) lo = mid; else hi = mid; }
+    out.push(route[lo]); i = lo;
+  }
+  out.push(route[route.length - 1]);
+  return out;
+}
 async function sendRoute() {
   const route = state.route; if (!route || route.length < 2) return;
   const c = actingChar("esi-ui.write_waypoint.v1"); if (!c) return needPermission();
-  // just the destination: EVE's autopilot plans the way itself (and uses jump bridges when they're turned on in the game)
+  // EVE's autopilot plans its own way (using jump bridges when they're turned on in the game). Usually the destination
+  // alone is enough; when OnGrid's route goes around danger, add as few waypoints as it takes to keep the autopilot on it
   const btn = $("#routeSend"); btn.disabled = true;
   const dest = route[route.length - 1];
   try {
-    await esiCall(c, "POST", "/ui/autopilot/waypoint/", { add_to_beginning: false, clear_other_waypoints: true, destination_id: dest });
-    toast(`Destination set for ${c.name}: ${nm(dest)}.`);
+    toast("Working out the waypoints…");
+    const wps = await minimalWaypoints(route);
+    for (let i = 0; i < wps.length; i++) await esiCall(c, "POST", "/ui/autopilot/waypoint/", { add_to_beginning: false, clear_other_waypoints: i === 0, destination_id: wps[i] });
+    const via = wps.slice(0, -1);
+    toast(`Destination set for ${c.name}: ${nm(dest)}` + (via.length ? `, with ${via.length} waypoint${via.length === 1 ? "" : "s"} (${via.map(nm).join(", ")}) to keep the safer route.` : "."));
   } catch (e) { toast("Couldn't set the destination: " + e.message + `. Is ${c.name} logged in to EVE?`, true); }
   btn.disabled = false;
 }
