@@ -63,6 +63,12 @@ function createWindow(visible = true) {
   if (visible) win.show();
   win.loadURL(SITE, FRESH);
   guard(win);
+  // the chat logs folder picked before: browsers only reopen it after a click on Reconnect folder. The app gives that
+  // click itself once the page has loaded (and again a little later, in case the page was still starting)
+  win.webContents.on("did-finish-load", () => {
+    if (!isOurs(win.webContents.getURL())) return;
+    for (const ms of [1500, 6000, 15000]) setTimeout(() => { if (win && !win.isDestroyed()) win.webContents.executeJavaScript("window.ongridResumeFolder ? window.ongridResumeFolder() : false", true).catch(() => {}); }, ms);
+  });
 
   // no internet or the site is down: show a page that retries
   win.webContents.on("did-fail-load", (e, code, desc, url, isMain) => {

@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.64
+  OnGrid (formerly Local Intel), version 2.65
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -740,7 +740,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.64</span>
+    <span class="ver" id="aboutVer">Version 2.65</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -813,7 +813,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
       <li>It loads this live page, so every page update shows up in the app straight away. The app itself <b>updates itself</b> too: it checks for a new version when it starts and every hour, and downloads it in the background. Once it's downloaded, it installs by itself as soon as no OnGrid window has been in front for about a minute (for example while you're playing): OnGrid closes, updates silently and starts again in a few seconds, with the launcher and box windows you had open, without taking the focus from the game. Click the "update ready" notification, or <b>Restart to update</b> in the tray menu, to do it straight away. <b>Check for updates</b> in the tray menu tells you what it found.</li>
       <li>There's also a portable <code>…-portable.exe</code> that runs without installing. It can't replace itself, so it only tells you when a new version is out and opens the download page.</li>
       <li>Your settings in the app are separate from your browser's; use Backup and other devices to copy them across.</li>
-      <li>Windows may say "Windows protected your PC" because the app isn't signed with a paid certificate: click <b>More info → Run anyway</b>.</li>
+      <li>It opens your chat logs folder by itself when it starts (app 1.5.3 and later), so there's no <b>Reconnect folder</b> to press. Windows may say "Windows protected your PC" because the app isn't signed with a paid certificate: click <b>More info → Run anyway</b>.</li>
     </ul>
 
     <h3>Presets</h3>
@@ -939,6 +939,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.65</b> Windows app 1.5.3: the chat logs folder is reopened by itself when the app starts, no more pressing Reconnect folder.</li>
       <li><b>2.64</b> Windows app 1.5.2: reopens every window you had open, in the same places, the next time it starts.</li>
       <li><b>2.63</b> Back to the map as it was in 2.61 (undoes 2.62).</li>
       <li><b>2.62</b> Jump rings with systems in their real directions (undone in 2.63).</li>
@@ -1783,6 +1784,16 @@ async function intelReady() {
     else { intel.pending = h; $("#intelReconnect").hidden = false; intelStatus("Press Reconnect folder to resume watching your intel channel."); }
   } catch {}
 }
+// Windows app: it calls this right after starting (as if you'd clicked), so the chat logs folder you picked before is
+// opened again without pressing Reconnect folder. The browser itself still asks for that one click.
+window.ongridResumeFolder = async () => {
+  if (intel.dir) return true;
+  const h = intel.pending || await kvGet("dir"); if (!h) return false;
+  try {
+    if (await h.requestPermission({ mode: "read" }) !== "granted") return false;
+    intel.dir = h; intel.pending = null; $("#intelReconnect").hidden = true; startIntel(); followLocation(); return true;
+  } catch { return false; }
+};
 // the system your most recently active character was last in, from the Local chat logs
 async function lastLocation(dir) {
   const ymd = d => d.toISOString().slice(0, 10).replace(/-/g, "");
@@ -2500,7 +2511,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.64";
+const APP_VERSION = "2.65";
 // a window left open (an app box window, a pinned tab) would keep running an old copy of the page after an update:
 // every 10 minutes, look at the live page's version; if it's newer, reload while the window isn't being looked at,
 // or show a small bar with a Reload button
