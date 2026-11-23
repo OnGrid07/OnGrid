@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.74
+  OnGrid (formerly Local Intel), version 2.75
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -781,7 +781,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.74</span>
+    <span class="ver" id="aboutVer">Version 2.75</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -866,7 +866,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <p><b>D-scan:</b> run the directional scanner, click a result, press Ctrl+A then Ctrl+C, and paste into the D-scan box. You get the number of ships (and how many are on grid, within about 8,000 km), structures, deployables, drones and fighters, ships counted by class and by type, and <b>Threats</b>: capitals, dictors, HICs, Black Ops, bombers, recons, Strategic Cruisers, interceptors, covert ops and logistics. Hover a threat to see the nearest one's distance.</p>
     <p>Results show under a header with the system and how long ago you scanned, then side-by-side cards: <b>Ships</b> and <b>Ship Classes</b> from the D-scan, <b>Alliances</b> and <b>Corporations</b> from Local, each with counts, logos and tickers. Hostile groups have a red edge and blue groups a blue edge; click one to see its pilots. <b>Watch out</b> and <b>Threats</b> sit above the cards.</p>
     <p><b>Copy</b>, in the results header, copies a message for Discord laid out like the results: the system and scan time, the summary, Watch out and Threats, then the cards as two columns of aligned text (Ships next to Ship Classes, Alliances next to Corporations) with tickers and counts. Hostile rows start with "!" and blue rows with "+". Long lists are shortened with "+N more" so it fits in one Discord message. On a phone, Discord may wrap the two columns. The <b>System</b> box fills in with where you are (or the map's center); type a different system to label the scan with that instead.</p>
-    <p><b>Share link</b>, next to Copy, copies a link to a page that shows only the scan: the system, when it was scanned, Watch out, Threats, the summary and all four cards, with a small link to the full tool at the top. Nothing else on the page loads for whoever opens it. Post it in Discord and anyone can click it. Most scans travel inside the link itself, so the link never expires and no server stores them. A scan too big for that (a busy Local) is kept on the ntfy.sh relay under a random name and the link is short; those links work for 12 hours. Big fights work too: a Local with thousands of pilots is saved in several pieces that the link puts back together (about 4 pieces per 1,000 pilots, up to roughly 10,000 pilots). Each piece counts toward ntfy.sh's free 250 messages a day, shared with the phone relay. Ship names people gave their ships aren't included. Whoever opens the link sees blues and hostiles by their own standings.</p>
+    <p><b>Share link</b>, next to Copy, copies a link to a page that shows only the scan: the system, when it was scanned, Watch out, Threats, the summary and all four cards, with a small link to the full tool at the top. Nothing else on the page loads for whoever opens it. Post it in Discord and anyone can click it. The link is always short (about 50 characters), so it pastes neatly into Discord or fleet chat: the scan is kept on the ntfy.sh relay under a random name for 12 hours. If the relay can't be reached, or today's free allowance is used up, the link carries the whole scan instead: long, but it works and never expires. Big fights work too: a Local with thousands of pilots is saved in several pieces that the link puts back together (about 4 pieces per 1,000 pilots, up to roughly 10,000 pilots). Each piece counts toward ntfy.sh's free 250 messages a day, shared with the phone relay. Ship names people gave their ships aren't included. Whoever opens the link sees blues and hostiles by their own standings.</p>
     <p>Paste a new scan any time to replace the old one; nothing is saved or sent anywhere except the look-ups to EVE and zKillboard.</p>
 
     <h3>Hostile tracker</h3>
@@ -981,6 +981,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.75</b> Share link always makes a short link (about 50 characters) for Discord and fleet chat; it lasts 12 hours.</li>
       <li><b>2.74</b> Windows app 1.5.7: the launcher ring is smaller, and Launcher size in the tray menu sets it to small, medium or large.</li>
       <li><b>2.73</b> Jump bridge lists in the "number  A --> B (FADE)" layout now import, and # comment lines are skipped.</li>
       <li><b>2.72</b> Windows app 1.5.6: a Wormholes and sov fights symbol on the launcher ring opens Thera/Turnur connections and sov fights in their own window.</li>
@@ -2680,7 +2681,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.74";
+const APP_VERSION = "2.75";
 // a window left open (an app box window, a pinned tab) would keep running an old copy of the page after an update:
 // every 10 minutes, look at the live page's version; if it's newer, reload while the window isn't being looked at,
 // or show a small bar with a Reload button
@@ -4335,14 +4336,19 @@ function scanPayload() {
 async function shareScan() {
   if (!window.CompressionStream) return toast("This browser can't make share links. Use Copy instead.", true);
   const code = await packScan(scanPayload()), base = callbackUrl();
-  let link = `${base}#scan=${code}`, how = "The scan is inside the link, so it never expires.";
-  if (link.length > 1500) { // too long to post in Discord comfortably: keep it on the relay instead
-    // ntfy.sh takes about 4 KB per message, so a big scan (a fight with thousands in Local) goes up in numbered pieces
-    // ("3/12|…") under one random name, and the link puts them back together
-    const PIECE = 3800, n = Math.ceil(code.length / PIECE);
-    if (n > SHARE_MAX_PIECES) return toast(`This scan is too big even for a short link (it would need ${n} pieces; the most is ${SHARE_MAX_PIECES}). Use Copy instead.`, true);
-    if (sentToday().length + n > RELAY_DAILY - 3) return toast(`Sharing this scan needs ${n} relay messages, and today's free ntfy.sh allowance doesn't have that many left. Use Copy instead, or try later.`, true);
-    const id = b64url(crypto.getRandomValues(new Uint8Array(12)));
+  // always a short link (easy to paste in Discord or fleet chat): the scan is kept on the ntfy.sh relay for 12 hours.
+  // ntfy.sh takes about 4 KB per message, so a big scan (a fight with thousands in Local) goes up in numbered pieces
+  // ("3/12|…") under one random name, and the link puts them back together. If the relay can't take it, the link
+  // carries the scan itself instead (long, but it works and never expires).
+  const long = `${base}#scan=${code}`;
+  let link = long, how = "";
+  const PIECE = 3800, n = Math.ceil(code.length / PIECE);
+  const fallback = why => { if (long.length > 6000) { toast(`Couldn't make a short link (${why}), and this scan is too big to fit in a link. Use Copy instead.`, true); return false; }
+    how = `Couldn't make a short link (${why}), so this link carries the whole scan (long, but it never expires).`; return true; };
+  if (n > SHARE_MAX_PIECES) { if (!fallback(`it would need ${n} pieces; the most is ${SHARE_MAX_PIECES}`)) return; }
+  else if (sentToday().length + n > RELAY_DAILY - 3) { if (!fallback("today's free ntfy.sh allowance is used up")) return; }
+  else {
+    const id = b64url(crypto.getRandomValues(new Uint8Array(9))); // 12 characters
     try {
       if (n > 1) toast(`Saving the scan for a short link (${n} pieces)…`);
       for (let k = 0; k < n; k++) {
@@ -4352,10 +4358,10 @@ async function shareScan() {
           if (r.status !== 429 || tries === 3) break; await sleep(2500 * (tries + 1));
         }
         countSend();
-        if (!r.ok) throw new Error(r.status === 429 ? "the relay asked to slow down or its daily limit is used up" : "HTTP " + r.status);
+        if (!r.ok) throw new Error(r.status === 429 ? "the relay asked to slow down" : "HTTP " + r.status);
       }
-    } catch (e) { return toast("Couldn't save the scan for a short link: " + e.message + ". Use Copy instead.", true); }
-    link = `${base}#s=${id}`; how = "Short link: the scan is kept on the ntfy.sh relay for 12 hours.";
+      link = `${base}#s=${id}`; how = "Short link: the scan is kept for 12 hours.";
+    } catch (e) { if (!fallback(e.message)) return; }
   }
   try { await navigator.clipboard.writeText(link); toast(`Link copied. ${how}`); }
   catch { let box = $("#shareBox"); if (!box) { box = document.createElement("textarea"); box.id = "shareBox"; box.rows = 2; box.readOnly = true; } document.querySelector(".srhead").after(box); box.value = link; box.select(); toast("Press Ctrl+C to copy the selected link."); }
