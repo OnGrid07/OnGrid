@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.66
+  OnGrid (formerly Local Intel), version 2.67
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -751,7 +751,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.66</span>
+    <span class="ver" id="aboutVer">Version 2.67</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -803,7 +803,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
       <li>Above a system: <b>✕</b> kills there in the last hour (EVE's own numbers, so this works anywhere, not only on the area map), <b>INTEL</b> with the reported pilot count and minutes since it was reported, and <b>CAMP</b> for gate camps the page has spotted, with a pulsing red ring around the system. Dangerous systems glow red. Hover a system for the details.</li>
       <li>It follows you: as you jump the route moves along; if you leave the route it finds a new one from where you are; when you arrive the trip ends.</li>
       <li>Intel about a system still ahead on your route alerts you, however far away it is.</li>
-      <li><b>Safer route</b> (shown when something is reported ahead) finds a route around the dangerous systems. <b>Send to autopilot</b> puts the route from where you are into your autopilot. <b>End trip</b> clears it. The trip is remembered if you reload.</li>
+      <li><b>Safer route</b> (shown when something is reported ahead) finds a route around the dangerous systems. <b>Send to autopilot</b> sets the destination in EVE, and the autopilot plans the way there itself. <b>End trip</b> clears it. The trip is remembered if you reload.</li>
       <li>EVE doesn't tell other programs about a destination you set inside the game, so set it from this page to get the travel map.</li>
     </ul>
 
@@ -864,7 +864,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <ul>
       <li><b>Set destination / Add waypoint</b>: click a system on the map (or in the systems table) and use the bar above the map, or press <b>Destination</b> on a watched-system card. Your autopilot in EVE updates straight away.</li>
       <li><b>Show in EVE</b> opens the selected system's info window in the game. The <b>in EVE</b> button next to a pilot named in intel opens that pilot's info window.</li>
-      <li><b>Route planner</b> (collapsed below the watched systems, or <b>Safe route</b> in the map bar): from where you are (or a system you type) to a destination. It asks EVE for a route that avoids systems with gate camps, kills in the last hour or hostiles reported in intel in the last 15 minutes (each can be switched off), and compares it with the shortest route. The route is drawn on the map. <b>Send to autopilot</b> puts a waypoint in every system so the autopilot follows that exact path. Only systems on the map and watched systems are checked for danger.</li>
+      <li><b>Route planner</b> (collapsed below the watched systems, or <b>Safe route</b> in the map bar): from where you are (or a system you type) to a destination. It asks EVE for a route that avoids systems with gate camps, kills in the last hour or hostiles reported in intel in the last 15 minutes (each can be switched off), and compares it with the shortest route. The route is drawn on the map. <b>Send to autopilot</b> sets the destination in EVE; your autopilot then plans its own way there (using jump bridges if they're turned on in your autopilot settings in the game). Only systems on the map and watched systems are checked for danger.</li>
       <li><b>Standings from contacts</b>: your personal, corp and alliance contacts are read every 30 minutes. Positive standing counts as friendly and negative as hostile, and your own corp and alliance are always friendly. Names typed under Standings are added on top.</li>
       <li><b>Fleet</b>: when a logged-in character is fleet boss, each member appears on the map as <b>F</b> and a count (and FLEET in the table), checked every 30 seconds. Hover the fleet line under the intel panel for the list. Other fleet members can't see positions; that's EVE's rule.</li>
       <li><b>Ship-aware alerts</b>: the ship you're flying shows next to your location. In a hauler, transport, freighter, mining barge, exhumer, mining frigate, Rorqual or industrial command ship, alerts reach one jump further and gate camps always alert.</li>
@@ -876,7 +876,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
       <li>Systems are laid out like EVE's own star map seen from above: each one where it is in space, so what's north, south, east or west matches the game. Busy clusters are opened out a little so names don't overlap, but every system keeps its place relative to its neighbours. Region names are written faintly over their systems. Lines are stargates. To get the older layout, with systems in rings by jumps from the centre, choose <b>Map layout: Rings by jumps</b> in Alerts and settings.</li>
       <li>Dot color: red is a kill in the last hour, orange a kill in the last 6 hours, blue is ship traffic only, grey is quiet. Bigger dots mean more ship jumps in the last hour.</li>
       <li>When the map reaches into other regions, each region's systems are kept together in their own slice of the map. Other regions are shaded in a faint color with their name in it; your own region is unshaded and its name is grey. Hover a shaded area to see which region it is.</li>
-      <li><b>Jump bridges</b>: paste your alliance's jump bridge list into <b>Alerts and settings → Jump bridges</b> and press <b>Save bridges</b> (any list with two system names per line works). Bridges with both ends on the map are drawn as dashed green curves; a system whose bridge leads off the map gets a green <b>JB</b> tag, and hovering a system names where its bridge goes. Hostile tracks also follow bridges. In the <b>Route planner</b>, tick <b>Use jump bridges</b> to let routes take them: the route list marks each bridge with <b>JB » system</b>, the travel map with <b>JB»</b>, and the note says how many it uses. Take the bridges yourself; EVE's autopilot only flies gates. (EVE's route service accepts 50 bridges per route, so OnGrid uses the 50 nearest the way you're going.) The list stays in this browser (it's included in Copy my settings) and is never sent anywhere.</li>
+      <li><b>Jump bridges</b>: paste your alliance's jump bridge list into <b>Alerts and settings → Jump bridges</b> and press <b>Save bridges</b> (any list with two system names per line works). Bridges with both ends on the map are drawn as dashed green curves; a system whose bridge leads off the map gets a green <b>JB</b> tag, and hovering a system names where its bridge goes. Hostile tracks also follow bridges. In the <b>Route planner</b>, tick <b>Use jump bridges</b> to let routes take them: the route list marks each bridge with <b>JB » system</b>, the travel map with <b>JB»</b>, and the note says how many it uses. EVE's autopilot takes them too when jump bridges are turned on in its settings in the game. (EVE's route service accepts 50 bridges per route, so OnGrid uses the 50 nearest the way you're going.) The list stays in this browser (it's included in Copy my settings) and is never sent anywhere.</li>
       <li>Green glow is ratting: NPC kills in the last hour. The label shows rats per hour.</li>
       <li>A purple ring is a system named in intel in the last 15 minutes. It pulses for the first 3 minutes. A number in brackets is the reported pilot count. When every pilot named in a system's latest report has since been sighted in another system, that ring goes away and the systems table shows "moved", so the rings follow the hostiles. Reports that don't name pilots (like "5 nv") keep their ring for the full 15 minutes.</li>
       <li>A dashed ring and YOU mark where your character is.</li>
@@ -951,6 +951,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.67</b> Send to autopilot just sets the destination in EVE; the game’s autopilot plans the way there itself (and uses jump bridges when they’re turned on in the game).</li>
       <li><b>2.66</b> Jump bridges: paste your alliance’s list in Alerts and settings; bridges show on the Gate map as dashed green curves (JB tag when the other end is off the map), hostile tracks follow them, and the Route planner uses them when <b>Use jump bridges</b> is ticked.</li>
       <li><b>2.65</b> Windows app 1.5.3: the chat logs folder is reopened by itself when the app starts, no more pressing Reconnect folder.</li>
       <li><b>2.64</b> Windows app 1.5.2: reopens every window you had open, in the same places, the next time it starts.</li>
@@ -2595,7 +2596,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.66";
+const APP_VERSION = "2.67";
 // a window left open (an app box window, a pinned tab) would keep running an old copy of the page after an update:
 // every 10 minutes, look at the live page's version; if it's newer, reload while the window isn't being looked at,
 // or show a small bar with a Reload button
@@ -3129,7 +3130,7 @@ async function findRoute() {
     if (avoidedOnPlain.length) msg += ` Avoids ${avoidedOnPlain.map(id => `${nm(id)} (${[...danger.get(id)].join(", ")})`).join("; ")}.`;
     if (stillRisky.length) msg += ` Still passes ${stillRisky.map(id => `${nm(id)} (${[...danger.get(id)].join(", ")})`).join("; ")}.`;
     const jbHops = route.filter((id, i) => i && isBridgeHop(route[i - 1], id)).length;
-    if (cfg.useBridges) msg += !bridges.length ? " (No jump bridges saved yet: paste them in Alerts and settings → Jump bridges.)" : jbHops ? ` Uses ${jbHops} jump bridge${jbHops === 1 ? "" : "s"} (JB): take ${jbHops === 1 ? "it" : "them"} yourself; the autopilot only uses gates.` : " No jump bridge makes it shorter.";
+    if (cfg.useBridges) msg += !bridges.length ? " (No jump bridges saved yet: paste them in Alerts and settings → Jump bridges.)" : jbHops ? ` Uses ${jbHops} jump bridge${jbHops === 1 ? "" : "s"} (JB).` : " No jump bridge makes it shorter.";
     msg += " Only the map and watched systems are checked for danger.";
     say2(msg, !safe || stillRisky.length > 0);
     list.innerHTML = route.map((id, i) => {
@@ -3144,15 +3145,13 @@ async function findRoute() {
 async function sendRoute() {
   const route = state.route; if (!route || route.length < 2) return;
   const c = actingChar("esi-ui.write_waypoint.v1"); if (!c) return needPermission();
-  // a waypoint in every system makes the autopilot follow this exact path
+  // just the destination: EVE's autopilot plans the way itself (and uses jump bridges when they're turned on in the game)
   const btn = $("#routeSend"); btn.disabled = true;
+  const dest = route[route.length - 1];
   try {
-    for (let i = 1; i < route.length; i++) {
-      toast(`Sending to autopilot: ${i}/${route.length - 1}…`);
-      await esiCall(c, "POST", "/ui/autopilot/waypoint/", { add_to_beginning: false, clear_other_waypoints: i === 1, destination_id: route[i] });
-    }
-    toast(`Route sent to ${c.name}'s autopilot: ${route.length - 1} jumps.`);
-  } catch (e) { toast("Couldn't send the route: " + e.message + `. Is ${c.name} logged in to EVE?`, true); }
+    await esiCall(c, "POST", "/ui/autopilot/waypoint/", { add_to_beginning: false, clear_other_waypoints: true, destination_id: dest });
+    toast(`Destination set for ${c.name}: ${nm(dest)}.`);
+  } catch (e) { toast("Couldn't set the destination: " + e.message + `. Is ${c.name} logged in to EVE?`, true); }
   btn.disabled = false;
 }
 $("#routeForm").addEventListener("submit", e => { e.preventDefault(); findRoute(); });
