@@ -28,7 +28,7 @@ module.exports = function setupJabber({ prefs, savePrefs, userData, send }) {
   const roomJid = r => { r = String(r).trim().toLowerCase(); if (!r) return ""; if (r.includes("@")) return r; const d = bare(cfg().jid).split("@")[1] || ""; return d ? `${r}@conference.${d}` : ""; };
 
   function setStatus(state, text) { status = { state, text }; send({ type: "status", status }); }
-  function convSummary(c) { const last = c.msgs[c.msgs.length - 1]; return { id: c.id, kind: c.kind, title: c.title, unread: c.unread, joined: !!c.joined, last: last ? { t: last.t, body: last.body.slice(0, 80) } : null }; }
+  function convSummary(c) { const last = c.msgs[c.msgs.length - 1]; return { id: c.id, kind: c.kind, title: c.title, unread: c.unread, joined: !!c.joined, subject: c.subject || "", subjectBy: c.subjectBy || "", last: last ? { t: last.t, body: last.body.slice(0, 80) } : null }; }
   function conv(id, kind, title) {
     let c = convs.get(id);
     if (!c) { c = { id, kind, title: title || id, msgs: [], unread: 0, joined: false }; convs.set(id, c); }
@@ -61,6 +61,9 @@ module.exports = function setupJabber({ prefs, savePrefs, userData, send }) {
     if (st.is("message")) {
       const type = st.attrs.type || "normal", from = st.attrs.from || "", body = st.getChildText("body");
       if (type === "error") { const c = convs.get(bare(from)); if (c) addMsg(c, { t: Date.now(), from: "", nick: "", body: "Couldn't send: " + (errText(st) || "the server refused the message"), sys: true }); return; }
+      // a room's subject (its topic or MOTD): sent when you join, and again when someone changes it
+      const subj = type === "groupchat" ? st.getChild("subject") : null;
+      if (subj && body == null) { const c = conv(bare(from), "room", localOf(from) || bare(from)); c.subject = subj.text().slice(0, 8000); c.subjectBy = resOf(from); send({ type: "convs", convs: [...convs.values()].map(convSummary) }); return; }
       if (body == null || !body.trim()) return;
       const stamp = st.getChild("delay", "urn:xmpp:delay")?.attrs?.stamp || st.getChild("x", "jabber:x:delay")?.attrs?.stamp;
       const t = stamp ? (Date.parse(stamp) || Date.now()) : Date.now(), old = !!stamp && Date.now() - t > 10 * 60e3;
