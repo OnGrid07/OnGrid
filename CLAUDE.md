@@ -66,7 +66,7 @@ OnGrid is an intel tool for EVE Online. Everything ships from this repo.
   - They're the alliance's private data: never send them anywhere except as `connections` on ESI route requests.
   - ESI takes at most 100 one-way connections per route, so `bridgeConnections()` sends the 50 bridges nearest the start-to-destination line, both ways.
 - **Alts:** when several characters are logged in, `cfg.mainChar` (or the most recently active one) alone sets your location; intel lines are deduped, and each channel reads one log copy.
-- **Loot tracker** (`#lootPanel`, app only): bounties come from EVE's game logs (Gamelogs folder, IndexedDB `gamedir`), read by one window at a time (Web Lock `ongrid-gamelogs`) into localStorage `lootBounty`; the session and pasted loot are in `loot`, pilots' corp tax in `lootTax`. Loot is priced with ESI `markets/prices` average price.
+- **Loot tracker** (`#lootPanel`, app only): bounties come from EVE's game logs (Gamelogs folder, IndexedDB `gamedir`), read by one window at a time (Web Lock `ongrid-gamelogs`) into localStorage `lootBounty`; the session and pasted loot are in `loot`, pilots' corp tax in `lootTax`, ESS payouts (wallet journal `ess_escrow_transfer`, one window via Web Lock `ongrid-ess`) in `lootEss`, finished sessions in `lootHistory` (backed up). Loot is priced with ESI `markets/prices` average price.
 - **Hostile tracks** are colored per group (alliance, else corp, else pilot), with stacked ticker labels on the map. There are no group chips in the Hostile tracker.
 
 ## Testing

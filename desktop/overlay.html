@@ -126,6 +126,7 @@
     const h = Math.floor(d.ms / 36e5), m = Math.floor(d.ms / 60e3) % 60;
     root.innerHTML = `<div class="box hud"><div class="head"><span class="ttl">Loot</span><span class="sys">${isk(d.total)} ISK</span><span class="lvl LOW" style="color:var(--ok)">${isk(d.perHour)}/h</span></div>
       <div class="row"><span class="k">Bounties after tax</span><span>${isk(d.bounty)}</span></div>
+      ${d.ess ? `<div class="row"><span class="k">ESS payouts</span><span>${isk(d.ess)}</span></div>` : ""}
       <div class="row"><span class="k">Loot</span><span>${isk(d.loot)}</span></div>
       <div class="row"><span class="k">${d.paused ? "Paused" : "Running"}</span><span>${h}h ${String(m).padStart(2, "0")}m</span></div></div>`;
     fit();
