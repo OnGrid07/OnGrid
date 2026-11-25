@@ -97,7 +97,7 @@ function show() { if (!win) return; if (win.isMinimized()) win.restore(); win.sh
 let launcher = null;
 const boxWins = new Map(); // box id -> its window
 const BOX_SIZE = { specPanel: [560, 420], mapPanel: [760, 820], sysPanel: [900, 600], intelPanel: [620, 700], watchPanel: [900, 420], scanPanel: [900, 760], hostilePanel: [760, 520],
-  lootPanel: [560, 680], timerPanel: [640, 560], routePanel: [560, 640], notifPanel: [640, 640], killPanel: [700, 720], settings: [980, 820], about: [760, 820] };
+  lootPanel: [560, 680], jabberPanel: [760, 640], timerPanel: [640, 560], routePanel: [560, 640], notifPanel: [640, 640], killPanel: [700, 720], settings: [980, 820], about: [760, 820] };
 function createLauncher(quiet) {
   const size = prefs.launcherSize || 340, p = prefs.launcherPos;
   const onScreen = p && screen.getAllDisplays().some(d => p.x >= d.workArea.x - 100 && p.y >= d.workArea.y - 100 && p.x < d.workArea.x + d.workArea.width && p.y < d.workArea.y + d.workArea.height);
@@ -339,6 +339,21 @@ function overlayItems() {
     { label: "Put overlays back in place", click: () => setOverlays({ reset: true }) }
   ];
 }
+
+/* ---------- Jabber: pings and chat (jabber.js). Page windows see messages, never the password. ---------- */
+const jabber = require("./jabber")({ prefs, savePrefs, userData: app.getPath("userData"),
+  send: ev => { for (const w of [win, ...boxWins.values()]) if (w && !w.isDestroyed()) w.webContents.send("jab:ev", ev); } });
+const jabHandle = (name, fn) => ipcMain.handle("jab:" + name, (e, ...a) => fromSite(e) ? fn(...a) : null);
+jabHandle("state", () => jabber.state());
+jabHandle("connect", o => jabber.connect(o && typeof o === "object" ? o : {}));
+jabHandle("disconnect", () => jabber.disconnect());
+jabHandle("forget", () => jabber.forget());
+jabHandle("send", (id, body) => jabber.sendMsg(String(id || ""), String(body || "")));
+jabHandle("open", (id, kind) => jabber.open(String(id || ""), kind === "room" ? "room" : "chat"));
+jabHandle("leave", id => jabber.leave(String(id || "")));
+jabHandle("read", id => jabber.read(String(id || "")));
+jabHandle("history", id => jabber.history(String(id || "")));
+jabHandle("clearPings", () => jabber.clearPings());
 
 // only for automated tests of the overlays (not used in normal running)
 if (process.env.ONGRID_TEST) global.__ongridTest = {

@@ -11,6 +11,10 @@ OnGrid is an intel tool for EVE Online. Everything ships from this repo.
     - The HUDs and the mini map only take data from the full page window.
   - Never read game memory, inject into the client or automate input: that's against CCP's rules.
   - The ring and its symbols are original artwork. Don't copy another franchise's or app's art into it.
+  - Jabber (`jabber.js`, `@xmpp/client`, loaded with `import()` because it's ESM): the app holds the connection; page windows talk to it only through `window.ongridApp.jabber` and get messages as `jab:ev` events.
+    - The password is encrypted with `safeStorage` in the app's prefs (memory only if Windows can't protect it). It never goes to the page, localStorage, backups, the phone relay or anywhere but the Jabber server.
+    - It is only sent over TLS with a valid certificate (the `credentials` hook refuses an unencrypted stream). Don't add a way to skip either check.
+    - Pings are kept in `jabber-pings.json` in the app's data folder; chat is in memory only. Pings and chat never go to the phone relay.
 - **`.github/workflows/desktop.yml`**: builds the Windows app on `windows-latest` when anything in `desktop/` changes on `main`, and publishes the release `v<version>`. Installed copies update themselves from these releases (`latest.yml`).
 
 ## Rules for every change
@@ -66,6 +70,7 @@ OnGrid is an intel tool for EVE Online. Everything ships from this repo.
   - They're the alliance's private data: never send them anywhere except as `connections` on ESI route requests.
   - ESI takes at most 100 one-way connections per route, so `bridgeConnections()` sends the 50 bridges nearest the start-to-destination line, both ways.
 - **Alts:** when several characters are logged in, `cfg.mainChar` (or the most recently active one) alone sets your location; intel lines are deduped, and each channel reads one log copy.
+- **Jabber box** (`#jabberPanel`, app only, a `NO_MAP` window): pings raise `fireAlert` with keys `jp…`, direct messages and mentions with `jm…` (shown as info); neither is sent to the phone relay.
 - **Loot tracker** (`#lootPanel`, app only): bounties come from EVE's game logs (Gamelogs folder, IndexedDB `gamedir`), read by one window at a time (Web Lock `ongrid-gamelogs`) into localStorage `lootBounty`; the session and pasted loot are in `loot`, pilots' corp tax in `lootTax`, ESS payouts (wallet journal `ess_escrow_transfer`, one window via Web Lock `ongrid-ess`) in `lootEss`, finished sessions in `lootHistory` (backed up). Loot is priced with ESI `markets/prices` average price.
 - **Keep it light on CPU and memory** (it runs next to EVE):
   - Render functions start with `want("<panel id>")`: a box window draws only its own box, and a hidden window (`winShown` from the app's `win:shown`, or `document.hidden`) draws nothing until it shows again. Don't put alerts or shared state in render functions.

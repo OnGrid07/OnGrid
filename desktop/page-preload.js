@@ -14,6 +14,20 @@ contextBridge.exposeInMainWorld("ongridApp", {
   overlayState: () => ipcRenderer.invoke("ov:get"),
   setOverlay: o => ipcRenderer.send("ov:set", { alert: o?.alert, hud: o?.hud, trip: o?.trip, mini: o?.mini, home: o?.home, loot: o?.loot, miniSize: o?.miniSize, unlocked: o?.unlocked, opacity: o?.opacity, reset: !!o?.reset }),
   onOverlayState: cb => ipcRenderer.on("ov:state", (e, st) => cb(st)),
+  // Jabber (the connection is in the app; the page never gets the saved password back)
+  jabber: {
+    state: () => ipcRenderer.invoke("jab:state"),
+    connect: o => ipcRenderer.invoke("jab:connect", { jid: String(o?.jid ?? ""), password: String(o?.password ?? ""), host: String(o?.host ?? ""), port: String(o?.port ?? ""), rooms: String(o?.rooms ?? ""), pingFrom: String(o?.pingFrom ?? ""), pingRooms: String(o?.pingRooms ?? ""), auto: !!o?.auto, alertChat: !!o?.alertChat }),
+    disconnect: () => ipcRenderer.invoke("jab:disconnect"),
+    forget: () => ipcRenderer.invoke("jab:forget"),
+    send: (id, body) => ipcRenderer.invoke("jab:send", String(id), String(body)),
+    open: (id, kind) => ipcRenderer.invoke("jab:open", String(id), kind === "room" ? "room" : "chat"),
+    leave: id => ipcRenderer.invoke("jab:leave", String(id)),
+    read: id => ipcRenderer.invoke("jab:read", String(id)),
+    history: id => ipcRenderer.invoke("jab:history", String(id)),
+    clearPings: () => ipcRenderer.invoke("jab:clearPings"),
+    onEvent: cb => ipcRenderer.on("jab:ev", (e, ev) => cb(ev))
+  },
   // whether this window can be seen (hidden in the tray or minimized: the page skips drawing)
   onShown: cb => ipcRenderer.on("win:shown", (e, v) => cb(!!v))
 });

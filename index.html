@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.79
+  OnGrid (formerly Local Intel), version 2.80
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -297,6 +297,49 @@ html.wco #boxHost { top: calc(env(titlebar-area-height, 32px) + 8px); }
 #board #mapPanel > svg { flex: 1 1 0; min-height: 120px; }
 #board thead th { position: sticky; top: 0; background: var(--panel); z-index: 1; }
 .fbox > .rsz { display: none; }
+/* Jabber */
+#jabberPanel { gap: 6px; }
+.jabtop { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.jabtop h2 { margin: 0; }
+.jabst { font-size: 12px; color: var(--muted); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jabst.online { color: var(--ok); } .jabst.error { color: var(--hot); } .jabst.connecting { color: var(--warm); }
+.jabacct { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; font-size: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; flex-shrink: 0; }
+.jabacct .note, .jabacct .wide { grid-column: 1 / -1; }
+.jabacct label { display: flex; flex-direction: column; gap: 2px; color: var(--muted); }
+.jabacct label.chk { flex-direction: row; align-items: center; gap: 6px; color: var(--fg); }
+.jabacct input:not([type=checkbox]) { font: 12px var(--mono); background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: 4px 6px; }
+.jabbtns { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.jabbtns button, .jabsend button, .jabside .add button { font: 12px var(--mono); background: var(--bg); color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 3px 10px; cursor: pointer; }
+.jabbody { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 180px 1fr; gap: 8px; }
+.jabside { overflow: auto; display: flex; flex-direction: column; gap: 2px; font-size: 12px; border-right: 1px solid var(--line); padding-right: 6px; }
+.jabside .grp { color: var(--muted); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; margin: 8px 0 2px; }
+.jabside button.cv { display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; background: none; border: 0; border-radius: 4px; color: var(--fg); font: 12px var(--body); padding: 4px 6px; cursor: pointer; }
+.jabside button.cv:hover { background: var(--bg); } .jabside button.cv.on { background: var(--bg); box-shadow: inset 2px 0 0 var(--accent); }
+.jabside button.cv span:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jabside .badge { background: var(--accent); color: var(--bg); border-radius: 8px; padding: 0 6px; font: 600 10px var(--mono); }
+.jabside .badge.hot { background: var(--hot); color: #fff; }
+.jabside .off { color: var(--muted); }
+.jabside .add { display: flex; gap: 4px; margin-top: 4px; }
+.jabside .add input { flex: 1; min-width: 0; font: 11px var(--mono); background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: 3px 5px; }
+.jabside .add button { padding: 1px 7px; }
+.jabmain { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
+.jabhead { display: flex; align-items: center; gap: 8px; font: 600 13px var(--body); flex-shrink: 0; }
+.jabhead .note { font-weight: 400; } .jabhead button { margin-left: auto; }
+.jabmsgs { flex: 1 1 auto; min-height: 0; overflow: auto; font-size: 13px; display: flex; flex-direction: column; gap: 3px; }
+.jabmsgs .m { line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; }
+.jabmsgs .m time { color: var(--muted); font: 11px var(--mono); margin-right: 6px; }
+.jabmsgs .m b { margin-right: 6px; }
+.jabmsgs .m.me b { color: var(--accent); } .jabmsgs .m.sys { color: var(--warm); font-style: italic; } .jabmsgs .m.old { opacity: .75; }
+.jabmsgs .day { color: var(--muted); font-size: 11px; text-align: center; margin: 6px 0 2px; }
+.jabmsgs .ping { background: var(--bg); border: 1px solid var(--line); border-left: 3px solid var(--hot); border-radius: 6px; padding: 6px 10px; overflow-wrap: anywhere; }
+.jabmsgs .ping > div:last-child { white-space: pre-wrap; }
+.jabmsgs .ping.old { border-left-color: var(--line); }
+.jabmsgs .ping .ph { display: flex; gap: 8px; color: var(--muted); font-size: 11px; margin-bottom: 3px; } .jabmsgs .ping .ph b { color: var(--fg); }
+.jabmsgs .ping .ph span { margin-left: auto; }
+.jabmsgs .empty { color: var(--muted); font-size: 12px; padding: 10px 2px; }
+.jabmsgs a { color: var(--accent); }
+.jabsend { display: flex; gap: 6px; flex-shrink: 0; }
+.jabsend textarea { flex: 1; font: 13px var(--body); background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px; resize: none; }
 /* loot tracker */
 .lootbody { flex: 1 1 auto; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 8px; }
 .lootsum { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
@@ -661,6 +704,32 @@ footer { font: 11px var(--mono); color: var(--muted); }
     </div>
   </section>
 
+  <!-- Jabber pings and chat (Windows app's launcher ring only: the app holds the connection) -->
+  <section class="panel" id="jabberPanel" data-title="Jabber" hidden>
+    <div class="jabtop"><h2>Jabber</h2><span class="jabst" id="jabStatus">Not connected</span><button type="button" class="mini" id="jabAcctBtn">Account</button></div>
+    <form class="jabacct" id="jabAcct" autocomplete="off" hidden>
+      <div class="note">Your alliance or corp Jabber account, the one your auth site gave you. The password is kept encrypted by Windows on this PC and only sent to your Jabber server, over an encrypted connection.</div>
+      <label>Jabber ID <input id="jabJid" placeholder="name@yourserver.com" spellcheck="false"></label>
+      <label>Password <input id="jabPw" type="password" autocomplete="new-password" placeholder="password"></label>
+      <label>Server <input id="jabHost" placeholder="optional, e.g. jabber.yourserver.com" spellcheck="false"></label>
+      <label>Port <input id="jabPort" placeholder="5222" inputmode="numeric" spellcheck="false"></label>
+      <label class="wide">Rooms to join <input id="jabRooms" placeholder="e.g. fleet, intel@conference.yourserver.com" spellcheck="false"></label>
+      <label class="wide">Ping rooms <input id="jabPingRooms" placeholder="rooms where every message is a ping (optional)" spellcheck="false"></label>
+      <label class="wide">Ping senders <input id="jabPingFrom" spellcheck="false"></label>
+      <label class="wide chk"><input type="checkbox" id="jabAuto"> Connect when OnGrid starts</label>
+      <label class="wide chk"><input type="checkbox" id="jabAlertChat"> Alert me for direct messages and when my name is said in a room</label>
+      <div class="wide jabbtns"><button type="submit">Connect</button><button type="button" id="jabOff">Disconnect</button><button type="button" id="jabForget">Forget password</button><span class="note" id="jabAcctNote"></span></div>
+    </form>
+    <div class="jabbody">
+      <nav class="jabside" id="jabSide" aria-label="Pings and conversations"></nav>
+      <div class="jabmain">
+        <div class="jabhead" id="jabHead"></div>
+        <div class="jabmsgs" id="jabMsgs" role="log" aria-live="polite"></div>
+        <form class="jabsend" id="jabSend" autocomplete="off" hidden><textarea id="jabText" rows="2" placeholder="Message (Enter sends, Shift+Enter for a new line)"></textarea><button type="submit">Send</button></form>
+      </div>
+    </div>
+  </section>
+
   <section class="panel collapsible" id="hostilePanel" data-title="Hostile tracker">
     <div class="phead"><h2>Hostile tracker</h2></div>
     <div class="note">Pilots named in intel in the last hour, where they were reported, and whether they're getting closer to you. Click a pilot to highlight their path on the map. Friendly pilots are left out.</div>
@@ -835,7 +904,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.79</span>
+    <span class="ver" id="aboutVer">Version 2.80</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -900,8 +969,13 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <h3>Windows app</h3>
     <p><b>OnGrid for Windows</b> is this page in its own app window. Download <code>OnGrid-Setup-….exe</code> from <a href="https://github.com/OnGrid07/OnGrid/releases/latest" target="_blank" rel="noopener">the releases page</a> and run it; it installs in a few seconds and adds a Start menu shortcut.</p>
     <ul>
-      <li><b>The launcher</b> (app 1.3 and later): the app opens to a round gate ring. Each symbol on the ring opens one box in its own window: Gate map, Wormholes and sov fights (Thera/Turnur connections and sov fights in range), Intel and location, Local and D-scan, Hostile tracker, Watched systems, Systems, Kills, Character notifications, Loot tracker, Timers, Route planner, Alerts and settings, and About; the power symbol quits. Hover a symbol to see its name in the middle. A small blue dot under a symbol means its window is open; clicking the symbol again closes that window. Click the middle of the ring to open the full OnGrid window. Drag the ring from anywhere, even from a symbol, to move it (it remembers where you put it), and press <b>hide</b> (or Esc) to tuck it into the tray. Each box window remembers its size and place, and (in the app only) has <b>⋮</b> (Settings) in its title bar, next to the minimize button, that shows only the settings for that window (the Gate map's map and jump bridge settings, the Intel window's alerts, characters and phone relay, and so on); in the full window it opens Alerts and settings. When you quit the app, it remembers which windows were open (the ring, the full window and each box) and where they were, maximized or not, and puts them all back next time it starts; a window that was on a screen that's no longer connected opens on the main screen. The Gate map window shows just the map. In its title row, the small <b>2j</b>-style picker changes how many jumps the map shows, and the <b>☰</b> button shows or hides System, Jumps, Load, presets and the summary above it. Every window shows the same intel, rings, tracks and alerts: the window that reads your chat logs (or the phone relay) shares them with the others. To start with the full window instead, untick <b>Open to the launcher</b> in the tray menu. <b>Launcher size</b> in the tray menu makes the ring small, medium (the usual) or large.</li>
+      <li><b>The launcher</b> (app 1.3 and later): the app opens to a round gate ring. Each symbol on the ring opens one box in its own window: Gate map, Wormholes and sov fights (Thera/Turnur connections and sov fights in range), Intel and location, Local and D-scan, Hostile tracker, Watched systems, Systems, Kills, Character notifications, Jabber, Loot tracker, Timers, Route planner, Alerts and settings, and About; the power symbol quits. Hover a symbol to see its name in the middle. A small blue dot under a symbol means its window is open; clicking the symbol again closes that window. Click the middle of the ring to open the full OnGrid window. Drag the ring from anywhere, even from a symbol, to move it (it remembers where you put it), and press <b>hide</b> (or Esc) to tuck it into the tray. Each box window remembers its size and place, and (in the app only) has <b>⋮</b> (Settings) in its title bar, next to the minimize button, that shows only the settings for that window (the Gate map's map and jump bridge settings, the Intel window's alerts, characters and phone relay, and so on); in the full window it opens Alerts and settings. When you quit the app, it remembers which windows were open (the ring, the full window and each box) and where they were, maximized or not, and puts them all back next time it starts; a window that was on a screen that's no longer connected opens on the main screen. The Gate map window shows just the map. In its title row, the small <b>2j</b>-style picker changes how many jumps the map shows, and the <b>☰</b> button shows or hides System, Jumps, Load, presets and the summary above it. Every window shows the same intel, rings, tracks and alerts: the window that reads your chat logs (or the phone relay) shares them with the others. To start with the full window instead, untick <b>Open to the launcher</b> in the tray menu. <b>Launcher size</b> in the tray menu makes the ring small, medium (the usual) or large.</li>
       <li><b>Overlays</b> (app 1.4 and later): two see-through windows that float on top of EVE when the game runs in windowed or fixed-window mode. They are separate windows and never touch the game client. The <b>alert banner</b> flashes at the top of the screen whenever OnGrid alerts you (hostiles in range, watched systems, big ships, camps, sov, timers) and fades after about nine seconds; several at once show a +count. The <b>intel HUD</b> stays up and shows your system and its security, a danger rating (HIGH: a hostile reported within 1 jump in the last 5 minutes, or a camp next door; MEDIUM: hostiles within 3 jumps, kills where you are, camps or big ships nearby; LOW: quiet), the nearest reported hostile with jumps, pilots and minutes ago, how many systems within 3 jumps have hostiles reported, big ships, and kills where you are. The <b>travel HUD</b> appears only while a trip is on: destination and jumps left, then your system and the next five jumps with their security, kills in the last hour (✕), intel (with pilot count) and a pulsing ring on camps, plus a warning for the first camp ahead. The <b>mini map</b> is a small see-through copy of the gate map (small, medium or large), showing at most 3 jumps even when the Gate map shows more, with the intel rings, hostile tracks and your YOU ring; to stay readable it only names systems with intel, kills, you or hostile groups. The <b>home HUD</b> watches the home system you type under <b>Overlays over the game</b> and everything within 3 jumps of it, wherever you are: a danger rating, the nearest hostile reported near home, how many systems near home have hostiles, kills in your home system in the last hour, and camps. Clicks pass straight through all of them to EVE. Switch them in <b>Alerts and settings → Overlays over the game</b> (or the tray menu): turn each one on or off, <b>Move overlays</b> to drag them where you want (they get a yellow dashed outline; untick it to lock them again), <b>Overlay background</b> to make them lighter or more solid, and <b>Put overlays back in place</b>. <b>Test alert</b> in Alerts and settings shows the banner.</li>
+      <li><b>Jabber</b> (app 1.8 and later): the speech-bubble symbol on the ring. Press <b>Account</b> and type your Jabber ID (name@server, the one your alliance or corp auth site gave you) and password, then <b>Connect</b>. If your auth site gives a separate server name or port, type them under <b>Server</b> and <b>Port</b>; otherwise leave them empty. The password is kept encrypted by Windows on your PC, is only sent to your Jabber server over an encrypted connection, and OnGrid won't connect to a server whose certificate isn't valid. With <b>Connect when OnGrid starts</b> on, it connects by itself; <b>Disconnect</b> keeps it off until you connect again, and <b>Forget password</b> removes the saved password.
+        <ul>
+          <li><b>Pings</b>: broadcasts from your ping bot show under 📣 Pings, newest first, with an alert (sound, Windows pop-up and the banner over the game, following your alert settings). A message counts as a ping when it's a server broadcast, comes from one of the <b>Ping senders</b> (directorbot, pingbot and similar names to start with; add your alliance's bot if it has another name), says "This was a broadcast from", or is said in one of your <b>Ping rooms</b>. Pings are kept on your PC; pings you missed while offline show without an alert. <b>Clear</b> empties the list. Pings never go to the phone relay.</li>
+          <li><b>Chat</b>: rooms under <b>Rooms to join</b> are joined when you connect (a short name like <code>fleet</code> means fleet@conference.yourserver). Join another with the box under Rooms, or start a chat with someone under Chats (your Jabber contacts are suggested). Enter sends, Shift+Enter starts a new line. With <b>Alert me for direct messages…</b> on, a direct message or your name said in a room gives a quieter alert, unless you're reading that conversation. Chat isn't saved: it starts fresh (with the room's recent messages) each time OnGrid starts.</li>
+        </ul></li>
       <li><b>Loot tracker</b> (app 1.7 and later): the crate symbol on the ring. Press <b>Connect game logs folder</b> once and pick <code>Documents\EVE\logs\Gamelogs</code> (next to the Chatlogs folder); the app opens it by itself after that. Every bounty is counted the moment you kill the rat, without waiting for the 20-minute payout, for all your characters logged in at once. A session starts by itself with your first bounty or loot paste (or press <b>Start</b>); <b>Pause</b> stops the clock and the counting, <b>Resume</b> carries on, and <b>New session</b> clears it. For loot, select the items in your cargo hold or a wreck, press Ctrl+C, then paste them into the Loot box: they're priced at EVE's estimated value (the same as the game's Est. price) and added up; click a paste to see its items, or × to remove it. Bounties are shown after each pilot's corp tax, looked up by itself; type a number in <b>Tax on bounties</b> to use your own percentage instead. <b>ESS payouts</b> (your share of the ESS bank, paid into your wallet) are added too: they aren't in the game logs, so OnGrid reads them from the wallet of each character you're logged in with under <b>EVE login</b> (press <b>Allow new features</b> there once so it may read the wallet). CCP updates the wallet about once an hour, so they can show up to an hour late; a payout counts for the session it arrives in. <b>ISK per hour</b> is bounties after tax plus ESS payouts plus loot, divided by the time the session has run (pauses left out). The <b>loot HUD</b> over the game shows total ISK, ISK per hour, bounties and loot while a session runs; turn it on or off in <b>Overlays over the game</b> (the ⋮ in the Loot tracker window) or the tray menu. <b>Past sessions</b>: pressing <b>New session</b> keeps the finished session in the history. Pick two dates (or press <b>7 days</b> or <b>30 days</b>) to add up every session between them: total ISK, time, ISK per hour, and bounties, ESS and loot. Each day is listed with its total; click a day to see its sessions, and × deletes one. The history is in your backups.</li>
       <li>It keeps running in the system tray, and alerts and Windows notifications keep working while it's minimized or behind the game. Closing the window hides it to the tray; quit from the tray icon.</li>
       <li>Right-click the tray icon for <b>Always on top</b>, <b>Keep running when closed</b> and <b>Start with Windows</b>.</li>
@@ -1036,6 +1110,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.80</b> Windows app 1.8: Jabber. Your alliance or corp pings come in with an alert and the banner over the game, and you can chat in Jabber rooms and with people without a separate Jabber program.</li>
       <li><b>2.79</b> Uses much less CPU and memory, most of all in the Windows app (app 1.7.2). Only one OnGrid window reads the chat logs and shares them with the others; each window only draws its own box, and a window that is hidden or minimized draws nothing until it shows again; the About, Loot tracker, notifications and settings windows don't load the map at all; overlay windows only exist while they have something to show; and the ring's ripple only moves while the mouse is over it.</li>
       <li><b>2.78</b> Loot tracker: ESS payouts are added (read from your wallet; press <b>Allow new features</b> in EVE login once). Past sessions are kept, and you can add them up between two dates.</li>
       <li><b>2.77</b> Windows app 1.7: a Loot tracker on the launcher ring. It counts bounties as you kill rats (from EVE's game logs), totals pasted loot at EVE's estimated prices, and shows total ISK and ISK per hour after corp tax. A loot HUD over the game shows the same.</li>
@@ -1190,7 +1265,7 @@ const cache = {
    draws just its own box, and a hidden window (the app's full page while it's in the tray, a background tab) draws
    nothing; everything is drawn once it shows again. Alerts, intel and the overlays don't depend on drawing. */
 const BOXID = new URLSearchParams(location.search).get("box");
-const NO_MAP = ["about", "lootPanel", "notifPanel", "settings"].includes(BOXID); // these windows never need the map or kills
+const NO_MAP = ["about", "lootPanel", "jabberPanel", "notifPanel", "settings"].includes(BOXID); // these windows never need the map or kills
 let winShown = true, mapDirty = true;
 const dirtyBoxes = new Set();
 function want(id) { if (winShown && !document.hidden && (!BOXID || BOXID === id)) return true; dirtyBoxes.add(id); return false; }
@@ -2027,7 +2102,7 @@ if (navigator.windowControlsOverlay?.visible) {
    from Alerts and settings (so they stay one set of settings) and put back when the box closes. */
 const BOX_SETTINGS = { specPanel: ["Map", "Alerts"], mapPanel: ["Map", "Jump bridges"], sysPanel: ["Map"], intelPanel: ["Alerts", "Characters in Intel and location", "Phone relay"],
   watchPanel: ["Alerts"], scanPanel: ["Standings"], hostilePanel: ["Standings", "Alerts"], timerPanel: ["Alerts"], routePanel: ["Jump bridges"],
-  notifPanel: ["EVE login"], killPanel: ["Map", "Standings"], lootPanel: ["Overlays over the game"] };
+  notifPanel: ["EVE login"], killPanel: ["Map", "Standings"], lootPanel: ["Overlays over the game"], jabberPanel: ["Alerts"] };
 const borrowed = [];
 function closeBoxSettings() {
   for (const { el, mark } of borrowed.splice(0)) mark.replaceWith(el);
@@ -2186,13 +2261,13 @@ function fireAlert(key, title, body, speech, force) {
     try { localStorage.setItem("alertedShared", JSON.stringify(shared)); } catch {}
   }
   if (cfg.alSound) beep();
-  try { window.ongridApp?.alert({ title, body, level: /^(tm|timer)/.test(key) ? "info" : "alert" }); } catch {} // Windows app: the alert banner over the game
+  try { window.ongridApp?.alert({ title, body, level: /^(tm|timer|jm)/.test(key) ? "info" : "alert" }); } catch {} // Windows app: the alert banner over the game
   if (cfg.alDesktop && "Notification" in window && Notification.permission === "granted") {
     try { const n = new Notification(title, { body, tag: key }); n.onclick = () => { window.focus(); n.close(); }; } catch {}
   }
   if (cfg.alSpeak && "speechSynthesis" in window) { try { speechSynthesis.speak(new SpeechSynthesisUtterance(speech || title)); } catch {} }
   if (document.hidden || force) flashTitle(title);
-  if (!force) relayPush(title, body);
+  if (!force && !/^j[mp]/.test(key)) relayPush(title, body); // Jabber pings and chat stay off the phone relay
 }
 function flashTitle(msg) {
   clearInterval(flashTimer);
@@ -2573,6 +2648,129 @@ $("#lootDir").addEventListener("click", async () => {
 });
 if (!/^#(scan|s)=/.test(location.hash)) setTimeout(() => glResume(false), 1500);
 renderLoot();
+/* ---------- Jabber: pings and chat (Windows app) ----------
+   The app holds the connection (desktop/jabber.js) and sends every OnGrid window the messages; this draws the Jabber
+   box and raises alerts for new pings (and for direct messages and mentions, if wanted). Alerts are shared between
+   windows, so each sounds once. The password goes from the Account form straight to the app and never comes back. */
+const jabApi = window.ongridApp?.jabber;
+const J = { status: { state: "off", text: "Not connected" }, cfg: {}, convs: new Map(), roster: [], pings: [], cur: "pings", msgs: [], seenPings: 0 };
+const jabTime = t => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+const jabDay = t => new Date(t).toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" });
+const jabLink = s => esc(s).replace(/\bhttps:\/\/[^\s<>"']+/g, u => `<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`);
+const jabNickColor = n => { let h = 0; for (const c of String(n)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return `hsl(${h % 360} 55% 68%)`; };
+const jabShowing = () => /[?&]box=jabberPanel\b/.test(location.search);
+// a conversation someone is reading right now doesn't need an alert
+function jabFocused(id) { try { const f = JSON.parse(localStorage.getItem("jabFocus") || "null"); return f && f.id === id && Date.now() - f.at < 15e3; } catch { return false; } }
+function jabMarkFocus() { if (!jabShowing()) return; try { if (document.hasFocus() && J.cur !== "pings") localStorage.setItem("jabFocus", JSON.stringify({ id: J.cur, at: Date.now() })); else if (J.cur === "pings" || !document.hasFocus()) localStorage.removeItem("jabFocus"); } catch {} }
+
+function renderJabStatus() {
+  const s = J.status, el = $("#jabStatus"); el.textContent = s.text || s.state; el.className = "jabst " + s.state;
+  $("#jabOff").disabled = s.state === "off"; $("#jabSend").hidden = J.cur === "pings" || s.state !== "online";
+}
+function renderJabSide() {
+  const rooms = [...J.convs.values()].filter(c => c.kind === "room").sort((a, b) => a.title.localeCompare(b.title));
+  const chats = [...J.convs.values()].filter(c => c.kind === "chat").sort((a, b) => (b.last?.t || 0) - (a.last?.t || 0));
+  const newPings = Math.max(0, J.pings.length - J.seenPings);
+  const btn = c => `<button type="button" class="cv${J.cur === c.id ? " on" : ""}" data-cv="${esc(c.id)}" title="${esc(c.id)}"><span class="${c.kind === "room" && !c.joined ? "off" : ""}">${c.kind === "room" ? "#" : ""}${esc(c.title)}</span>${c.unread ? `<span class="badge">${c.unread}</span>` : ""}</button>`;
+  $("#jabSide").innerHTML = `<button type="button" class="cv${J.cur === "pings" ? " on" : ""}" data-cv="pings"><span>📣 Pings</span>${newPings ? `<span class="badge hot">${newPings}</span>` : ""}</button>
+    <div class="grp">Rooms</div>${rooms.map(btn).join("") || `<span class="note">none yet</span>`}
+    <form class="add" data-add="room"><input placeholder="join a room" aria-label="Room to join" spellcheck="false"><button type="submit" title="Join">+</button></form>
+    <div class="grp">Chats</div>${chats.map(btn).join("") || `<span class="note">none yet</span>`}
+    <form class="add" data-add="chat"><input list="jabRoster" placeholder="chat with…" aria-label="Chat with" spellcheck="false"><button type="submit" title="Start a chat">+</button></form>
+    <datalist id="jabRoster">${J.roster.slice(0, 500).map(r => `<option value="${esc(r.jid)}">${esc(r.name)}</option>`).join("")}</datalist>`;
+}
+function jabMsgHtml(m, prev) {
+  const day = !prev || jabDay(prev.t) !== jabDay(m.t) ? `<div class="day">${jabDay(m.t)}</div>` : "";
+  if (m.sys) return day + `<div class="m sys"><time>${jabTime(m.t)}</time>${esc(m.body)}</div>`;
+  return day + `<div class="m${m.me ? " me" : ""}${m.old ? " old" : ""}"><time>${jabTime(m.t)}</time><b style="${m.me ? "" : `color:${jabNickColor(m.nick)}`}">${esc(m.nick || m.from)}</b>${jabLink(m.body)}</div>`;
+}
+function renderJabMain(scroll = true) {
+  if (!jabShowing()) return;
+  const box = $("#jabMsgs"), near = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+  if (J.cur === "pings") {
+    $("#jabHead").innerHTML = `📣 Pings <span class="note">${J.pings.length ? "newest first" : ""}</span>${J.pings.length ? `<button type="button" class="mini" id="jabClearPings">Clear</button>` : ""}`;
+    box.innerHTML = J.pings.length ? J.pings.slice().reverse().map(p => `<div class="ping${p.old ? " old" : ""}"><div class="ph"><b>${esc(p.from)}</b><span>${jabDay(p.t)} ${jabTime(p.t)}</span></div><div>${jabLink(p.body)}</div></div>`).join("")
+      : `<div class="empty">${J.status.state === "online" ? "No pings yet. Pings show here as they come in, with an alert." : "Connect your Jabber account (Account, above) to get pings here."}</div>`;
+    box.scrollTop = 0; J.seenPings = J.pings.length; try { localStorage.setItem("jabSeenPings", String(J.pings.length ? J.pings[J.pings.length - 1].t : 0)); } catch {}
+  } else {
+    const c = J.convs.get(J.cur);
+    $("#jabHead").innerHTML = c ? `${c.kind === "room" ? "#" : ""}${esc(c.title)} <span class="note">${esc(c.id)}${c.kind === "room" && !c.joined ? " · not joined" : ""}</span><button type="button" class="mini" id="jabLeave">${c.kind === "room" ? "Leave" : "Close"}</button>` : "";
+    box.innerHTML = J.msgs.length ? J.msgs.map((m, i) => jabMsgHtml(m, J.msgs[i - 1])).join("") : `<div class="empty">No messages yet.</div>`;
+    if (scroll || near) box.scrollTop = box.scrollHeight;
+  }
+  renderJabStatus();
+}
+function renderJabAcct() {
+  const c = J.cfg;
+  for (const [id, k] of [["jabJid", "jid"], ["jabHost", "host"], ["jabPort", "port"], ["jabRooms", "rooms"], ["jabPingRooms", "pingRooms"], ["jabPingFrom", "pingFrom"]]) if (document.activeElement !== $("#" + id)) $("#" + id).value = c[k] || "";
+  $("#jabAuto").checked = c.auto !== false; $("#jabAlertChat").checked = c.alertChat !== false;
+  $("#jabPw").placeholder = c.hasPassword ? "saved (type to change)" : "password";
+  $("#jabForget").hidden = !c.hasPassword;
+  $("#jabAcctNote").textContent = c.canStore === false ? "Windows can't protect a saved password here, so it's kept only until OnGrid quits." : "";
+}
+async function jabOpen(id) {
+  J.cur = id; J.msgs = id === "pings" ? [] : (await jabApi.history(id)) || [];
+  if (id !== "pings") jabApi.read(id);
+  jabMarkFocus(); renderJabSide(); renderJabMain(true);
+  if (id !== "pings") $("#jabText")?.focus();
+}
+if (jabApi) {
+  jabApi.state().then(st => {
+    if (!st) return;
+    J.status = st.status; J.cfg = st.cfg; J.roster = st.roster || []; J.pings = st.pings || [];
+    J.convs = new Map((st.convs || []).map(c => [c.id, c]));
+    let seen = 0; try { seen = +localStorage.getItem("jabSeenPings") || 0; } catch {}
+    J.seenPings = J.pings.filter(p => p.t <= seen).length;
+    if (jabShowing()) { renderJabAcct(); renderJabSide(); renderJabMain(); if (!J.cfg.jid) $("#jabAcct").hidden = false; }
+  }).catch(() => {});
+  jabApi.onEvent(ev => {
+    if (ev.type === "status") { J.status = ev.status; if (ev.status.state === "online") { $("#jabAcct").hidden = true; jabApi.state().then(st => { if (st) { J.cfg = st.cfg; renderJabAcct(); } }).catch(() => {}); } }
+    else if (ev.type === "convs") J.convs = new Map(ev.convs.map(c => [c.id, c]));
+    else if (ev.type === "roster") J.roster = ev.roster;
+    else if (ev.type === "pings") J.pings = ev.pings;
+    else if (ev.type === "msg") {
+      J.convs.set(ev.conv.id, ev.conv);
+      if (J.cur === ev.conv.id) { J.msgs.push(ev.msg); if (J.msgs.length > 300) J.msgs.shift(); if (jabShowing() && document.hasFocus()) jabApi.read(ev.conv.id); }
+    } else if (ev.type === "ping") {
+      J.pings.push(ev.ping); if (J.pings.length > 300) J.pings.shift();
+      if (!ev.ping.old) fireAlert("jp" + ev.ping.t + ev.ping.from, `Ping from ${ev.ping.from}`, ev.ping.body.replace(/\s+/g, " ").slice(0, 240), `Jabber ping from ${ev.ping.from}`);
+      if (jabShowing() && J.cur === "pings" && document.hasFocus()) J.seenPings = J.pings.length;
+    } else if ((ev.type === "direct" || ev.type === "mention") && J.cfg.alertChat !== false && !jabFocused(ev.conv.id)) {
+      fireAlert("jm" + ev.msg.t + ev.conv.id + ev.msg.body.length, ev.type === "direct" ? `Jabber: ${ev.msg.nick}` : `Jabber: ${ev.msg.nick} in ${ev.conv.title}`, ev.msg.body.replace(/\s+/g, " ").slice(0, 200), `Jabber message from ${ev.msg.nick}`);
+    }
+    if (!jabShowing()) return;
+    renderJabSide();
+    if (ev.type === "msg" ? J.cur === ev.conv.id : ev.type === "ping" ? J.cur === "pings" : ev.type !== "roster") renderJabMain(false);
+    else renderJabStatus();
+  });
+  $("#jabAcctBtn").addEventListener("click", () => { $("#jabAcct").hidden = !$("#jabAcct").hidden; });
+  $("#jabAcct").addEventListener("submit", async e => {
+    e.preventDefault(); unlockAudio();
+    const o = { jid: $("#jabJid").value, password: $("#jabPw").value, host: $("#jabHost").value, port: $("#jabPort").value, rooms: $("#jabRooms").value, pingRooms: $("#jabPingRooms").value, pingFrom: $("#jabPingFrom").value, auto: $("#jabAuto").checked, alertChat: $("#jabAlertChat").checked };
+    $("#jabPw").value = ""; // the page doesn't keep it
+    try { J.cfg = await jabApi.connect(o) || J.cfg; } catch (err) { J.status = { state: "error", text: "Couldn't connect: " + err.message }; }
+    renderJabAcct(); renderJabStatus();
+  });
+  $("#jabOff").addEventListener("click", () => jabApi.disconnect());
+  $("#jabForget").addEventListener("click", async () => { if (!confirm("Forget the saved Jabber password and disconnect?")) return; J.cfg = await jabApi.forget() || J.cfg; renderJabAcct(); });
+  $("#jabSide").addEventListener("click", e => { const b = e.target.closest("[data-cv]"); if (b) jabOpen(b.dataset.cv); });
+  $("#jabSide").addEventListener("submit", async e => {
+    e.preventDefault(); const f = e.target.closest("[data-add]"), v = f?.querySelector("input").value.trim(); if (!v) return;
+    const id = await jabApi.open(v, f.dataset.add); f.querySelector("input").value = ""; if (id) setTimeout(() => jabOpen(id), 300);
+  });
+  $("#jabMsgs").addEventListener("click", e => { if (e.target.id === "jabClearPings" && confirm("Clear all pings?")) jabApi.clearPings(); });
+  $("#jabHead").addEventListener("click", e => {
+    if (e.target.id === "jabClearPings") { if (confirm("Clear all pings?")) jabApi.clearPings(); }
+    else if (e.target.id === "jabLeave") { const id = J.cur; jabApi.leave(id); jabOpen("pings"); }
+  });
+  $("#jabSend").addEventListener("submit", async e => {
+    e.preventDefault(); const t = $("#jabText"), body = t.value; if (!body.trim() || J.cur === "pings") return;
+    t.value = ""; if (!(await jabApi.send(J.cur, body))) { t.value = body; J.status = { ...J.status, text: "Not sent: not connected" }; renderJabStatus(); }
+  });
+  $("#jabText").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); $("#jabSend").requestSubmit(); } });
+  addEventListener("focus", jabMarkFocus); addEventListener("blur", jabMarkFocus);
+  setInterval(jabMarkFocus, 10e3);
+}
 // the overlay switches in Alerts and settings (Windows app only)
 if (window.ongridApp?.overlayState) {
   $("#ovSet").hidden = false;
@@ -3072,7 +3270,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.79";
+const APP_VERSION = "2.80";
 // a window left open (an app box window, a pinned tab) would keep running an old copy of the page after an update:
 // every 10 minutes, look at the live page's version; if it's newer, reload while the window isn't being looked at,
 // or show a small bar with a Reload button
