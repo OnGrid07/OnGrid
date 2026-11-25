@@ -71,7 +71,7 @@
 <div id="root"></div>
 <div class="hint">drag to move · lock in the tray menu</div>
 <script>
-  const kind = ["hud", "trip", "mini", "home"].includes(new URLSearchParams(location.search).get("kind")) ? new URLSearchParams(location.search).get("kind") : "alert";
+  const kind = ["hud", "trip", "mini", "home", "loot"].includes(new URLSearchParams(location.search).get("kind")) ? new URLSearchParams(location.search).get("kind") : "alert";
   const api = window.overlay || { onData: () => {}, onMode: () => {}, dragStart: () => {}, dragMove: () => {}, dragEnd: () => {}, resize: () => {} };
   const root = document.getElementById("root");
   const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -119,6 +119,17 @@
       <div class="chain">${steps.join("")}</div>${d.onRoute ? "" : `<div class="stale">you're not on the route yet</div>`}</div>`;
     fit();
   }
+  // loot HUD: what this ratting session has made, and ISK per hour
+  const isk = v => { const a = Math.abs(v || 0); return a >= 1e9 ? (v / 1e9).toFixed(2) + "b" : a >= 1e6 ? (v / 1e6).toFixed(1) + "m" : a >= 1e3 ? Math.round(v / 1e3) + "k" : String(Math.round(v || 0)); };
+  function drawLoot(d) {
+    if (!d) { root.innerHTML = `<div class="box hud"><div class="head"><span class="ttl">Loot</span><span class="sys">ISK tracker</span></div><div class="k">Shows while a loot session runs</div></div>`; return fit(); }
+    const h = Math.floor(d.ms / 36e5), m = Math.floor(d.ms / 60e3) % 60;
+    root.innerHTML = `<div class="box hud"><div class="head"><span class="ttl">Loot</span><span class="sys">${isk(d.total)} ISK</span><span class="lvl LOW" style="color:var(--ok)">${isk(d.perHour)}/h</span></div>
+      <div class="row"><span class="k">Bounties after tax</span><span>${isk(d.bounty)}</span></div>
+      <div class="row"><span class="k">Loot</span><span>${isk(d.loot)}</span></div>
+      <div class="row"><span class="k">${d.paused ? "Paused" : "Running"}</span><span>${h}h ${String(m).padStart(2, "0")}m</span></div></div>`;
+    fit();
+  }
   let miniCss = "";
   function drawMini(d) {
     if (!d || !d.svg) { root.innerHTML = `<div class="box mini"><div class="empty">Mini map: waiting for the gate map…</div></div>`; return; }
@@ -140,6 +151,7 @@
     if (kind === "alert") { if (d && d.title) showAlert(d); }
     else if (kind === "trip") { last = d; drawTrip(d); }
     else if (kind === "mini") { last = d; drawMini(d); }
+    else if (kind === "loot") { last = d; drawLoot(d); }
     else { last = d; drawHud(d); } // the intel HUD and the home HUD look the same (the home one says HOME)
   });
   api.onMode(m => {
@@ -148,11 +160,13 @@
     if (kind === "alert") drawAlert(unlocked && !hideTimer ? { title: "Alert banner", body: "" } : last, unlocked && !hideTimer);
     else if (kind === "trip") drawTrip(last);
     else if (kind === "mini") drawMini(last);
+    else if (kind === "loot") drawLoot(last);
     else drawHud(last);
   });
   if (kind === "hud" || kind === "home") { drawHud(null); setInterval(() => drawHud(last), 15e3); }
   else if (kind === "trip") drawTrip(null);
   else if (kind === "mini") drawMini(null);
+  else if (kind === "loot") drawLoot(null);
   else drawAlert(null, true);
 
   // moving: only while unlocked (locked overlays let clicks through to EVE)

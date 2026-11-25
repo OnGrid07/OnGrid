@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.76
+  OnGrid (formerly Local Intel), version 2.77
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -297,6 +297,27 @@ html.wco #boxHost { top: calc(env(titlebar-area-height, 32px) + 8px); }
 #board #mapPanel > svg { flex: 1 1 0; min-height: 120px; }
 #board thead th { position: sticky; top: 0; background: var(--panel); z-index: 1; }
 .fbox > .rsz { display: none; }
+/* loot tracker */
+.lootbody { flex: 1 1 auto; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 8px; }
+.lootsum { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.lootsum div { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; }
+.lootsum b { display: block; font: 600 20px var(--display); color: var(--fg); }
+.lootsum .big b { color: var(--ok); }
+.lootsum span { color: var(--muted); font-size: 11px; }
+.lootctl { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12px; }
+.lootctl button { font: 12px var(--mono); background: var(--bg); color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 3px 10px; cursor: pointer; }
+.lootctl input { width: 6em; font: 12px var(--mono); background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: 3px 6px; }
+#lootIn { font: 12px var(--mono); background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px; width: 100%; box-sizing: border-box; resize: vertical; min-height: 3.5em; }
+.lootlist { font-size: 12px; }
+.lootlist table { width: 100%; border-collapse: collapse; }
+.lootlist td { padding: 2px 6px; border-bottom: 1px solid var(--line); }
+.lootlist td.n { text-align: right; white-space: nowrap; font-family: var(--mono); }
+.lootlist details summary { cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 3px 0; border-bottom: 1px solid var(--line); }
+.lootlist details summary > span { flex: 1; }
+.lootlist details summary > b { font: 600 12px var(--mono); }
+.lootlist details table { margin: 2px 0 6px 14px; width: calc(100% - 14px); }
+.lootlist .x { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 14px; }
+.lootlist .x:hover { color: var(--hot); }
 /* one box in its own window (?box=<id>, used by the Windows app's launcher) */
 html.boxonly body { overflow: hidden; }
 html.boxonly .wrap > :not(#boxHost) { display: none !important; }
@@ -613,6 +634,22 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <div class="specials specstack" id="specBody"></div>
   </section>
 
+  <!-- Loot tracker: bounties (from EVE's game logs) and pasted loot, with ISK per hour (Windows app's launcher ring only) -->
+  <section class="panel" id="lootPanel" data-title="Loot tracker" hidden>
+    <h2>Loot tracker</h2>
+    <div class="lootbody">
+      <div class="lootsum" id="lootSum"></div>
+      <div class="lootctl"><button type="button" id="lootGo">Start</button><button type="button" id="lootReset">New session</button><span class="note" id="lootState"></span></div>
+      <div class="lootctl"><button type="button" id="lootDir">Connect game logs folder</button><span class="note" id="lootDirNote"></span></div>
+      <div class="lootctl"><label for="lootTax">Tax on bounties</label><input id="lootTax" type="number" min="0" max="100" step="0.1" placeholder="auto" aria-label="Tax on bounties, percent"><span class="note">% (empty: each pilot's corp tax)</span></div>
+      <div class="scanhead"><label class="lbl" for="lootIn">Loot</label></div>
+      <textarea id="lootIn" rows="3" placeholder="Select items in your cargo or a wreck, press Ctrl+C, then paste here (Ctrl+V)" spellcheck="false"></textarea>
+      <div class="note" id="lootNote"></div>
+      <div id="lootList" class="lootlist"></div>
+      <div id="lootPilots" class="lootlist"></div>
+    </div>
+  </section>
+
   <section class="panel collapsible" id="hostilePanel" data-title="Hostile tracker">
     <div class="phead"><h2>Hostile tracker</h2></div>
     <div class="note">Pilots named in intel in the last hour, where they were reported, and whether they're getting closer to you. Click a pilot to highlight their path on the map. Friendly pilots are left out.</div>
@@ -706,6 +743,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
         <label><input type="checkbox" id="ovHome"> Home HUD: danger around your home system, wherever you are</label>
         <label>Home system <input type="text" id="homeSys" placeholder="e.g. C-J6MT" autocomplete="off" spellcheck="false"></label>
         <div class="note" id="homeNote"></div>
+        <label><input type="checkbox" id="ovLoot"> Loot HUD: total ISK and ISK per hour while a loot tracker session runs</label>
         <label><input type="checkbox" id="ovMini"> Mini map: a small see-through gate map <select id="ovMiniSize" aria-label="Mini map size"><option value="240">small</option><option value="320">medium</option><option value="420">large</option></select></label>
         <label><input type="checkbox" id="ovUnlock"> Move overlays: unlock, then drag them where you want (yellow dashed outline); untick to lock</label>
         <label>Background <select id="ovOpacity"><option value="0.55">Light</option><option value="0.8">Medium</option><option value="0.95">Solid</option></select></label>
@@ -786,7 +824,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.76</span>
+    <span class="ver" id="aboutVer">Version 2.77</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -851,8 +889,9 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <h3>Windows app</h3>
     <p><b>OnGrid for Windows</b> is this page in its own app window. Download <code>OnGrid-Setup-….exe</code> from <a href="https://github.com/OnGrid07/OnGrid/releases/latest" target="_blank" rel="noopener">the releases page</a> and run it; it installs in a few seconds and adds a Start menu shortcut.</p>
     <ul>
-      <li><b>The launcher</b> (app 1.3 and later): the app opens to a round gate ring. Each symbol on the ring opens one box in its own window: Gate map, Wormholes and sov fights (Thera/Turnur connections and sov fights in range), Intel and location, Local and D-scan, Hostile tracker, Watched systems, Systems, Kills, Character notifications, Timers, Route planner, Alerts and settings, and About; the power symbol quits. Hover a symbol to see its name in the middle. A small blue dot under a symbol means its window is open; clicking the symbol again closes that window. Click the middle of the ring to open the full OnGrid window. Drag the ring from anywhere, even from a symbol, to move it (it remembers where you put it), and press <b>hide</b> (or Esc) to tuck it into the tray. Each box window remembers its size and place, and (in the app only) has <b>⋮</b> (Settings) in its title bar, next to the minimize button, that shows only the settings for that window (the Gate map's map and jump bridge settings, the Intel window's alerts, characters and phone relay, and so on); in the full window it opens Alerts and settings. When you quit the app, it remembers which windows were open (the ring, the full window and each box) and where they were, maximized or not, and puts them all back next time it starts; a window that was on a screen that's no longer connected opens on the main screen. The Gate map window shows just the map. In its title row, the small <b>2j</b>-style picker changes how many jumps the map shows, and the <b>☰</b> button shows or hides System, Jumps, Load, presets and the summary above it. Every window shows the same intel, rings, tracks and alerts: the window that reads your chat logs (or the phone relay) shares them with the others. To start with the full window instead, untick <b>Open to the launcher</b> in the tray menu. <b>Launcher size</b> in the tray menu makes the ring small, medium (the usual) or large.</li>
+      <li><b>The launcher</b> (app 1.3 and later): the app opens to a round gate ring. Each symbol on the ring opens one box in its own window: Gate map, Wormholes and sov fights (Thera/Turnur connections and sov fights in range), Intel and location, Local and D-scan, Hostile tracker, Watched systems, Systems, Kills, Character notifications, Loot tracker, Timers, Route planner, Alerts and settings, and About; the power symbol quits. Hover a symbol to see its name in the middle. A small blue dot under a symbol means its window is open; clicking the symbol again closes that window. Click the middle of the ring to open the full OnGrid window. Drag the ring from anywhere, even from a symbol, to move it (it remembers where you put it), and press <b>hide</b> (or Esc) to tuck it into the tray. Each box window remembers its size and place, and (in the app only) has <b>⋮</b> (Settings) in its title bar, next to the minimize button, that shows only the settings for that window (the Gate map's map and jump bridge settings, the Intel window's alerts, characters and phone relay, and so on); in the full window it opens Alerts and settings. When you quit the app, it remembers which windows were open (the ring, the full window and each box) and where they were, maximized or not, and puts them all back next time it starts; a window that was on a screen that's no longer connected opens on the main screen. The Gate map window shows just the map. In its title row, the small <b>2j</b>-style picker changes how many jumps the map shows, and the <b>☰</b> button shows or hides System, Jumps, Load, presets and the summary above it. Every window shows the same intel, rings, tracks and alerts: the window that reads your chat logs (or the phone relay) shares them with the others. To start with the full window instead, untick <b>Open to the launcher</b> in the tray menu. <b>Launcher size</b> in the tray menu makes the ring small, medium (the usual) or large.</li>
       <li><b>Overlays</b> (app 1.4 and later): two see-through windows that float on top of EVE when the game runs in windowed or fixed-window mode. They are separate windows and never touch the game client. The <b>alert banner</b> flashes at the top of the screen whenever OnGrid alerts you (hostiles in range, watched systems, big ships, camps, sov, timers) and fades after about nine seconds; several at once show a +count. The <b>intel HUD</b> stays up and shows your system and its security, a danger rating (HIGH: a hostile reported within 1 jump in the last 5 minutes, or a camp next door; MEDIUM: hostiles within 3 jumps, kills where you are, camps or big ships nearby; LOW: quiet), the nearest reported hostile with jumps, pilots and minutes ago, how many systems within 3 jumps have hostiles reported, big ships, and kills where you are. The <b>travel HUD</b> appears only while a trip is on: destination and jumps left, then your system and the next five jumps with their security, kills in the last hour (✕), intel (with pilot count) and a pulsing ring on camps, plus a warning for the first camp ahead. The <b>mini map</b> is a small see-through copy of the gate map (small, medium or large), showing at most 3 jumps even when the Gate map shows more, with the intel rings, hostile tracks and your YOU ring; to stay readable it only names systems with intel, kills, you or hostile groups. The <b>home HUD</b> watches the home system you type under <b>Overlays over the game</b> and everything within 3 jumps of it, wherever you are: a danger rating, the nearest hostile reported near home, how many systems near home have hostiles, kills in your home system in the last hour, and camps. Clicks pass straight through all of them to EVE. Switch them in <b>Alerts and settings → Overlays over the game</b> (or the tray menu): turn each one on or off, <b>Move overlays</b> to drag them where you want (they get a yellow dashed outline; untick it to lock them again), <b>Overlay background</b> to make them lighter or more solid, and <b>Put overlays back in place</b>. <b>Test alert</b> in Alerts and settings shows the banner.</li>
+      <li><b>Loot tracker</b> (app 1.7 and later): the crate symbol on the ring. Press <b>Connect game logs folder</b> once and pick <code>Documents\EVE\logs\Gamelogs</code> (next to the Chatlogs folder); the app opens it by itself after that. Every bounty is counted the moment you kill the rat, without waiting for the 20-minute payout, for all your characters logged in at once. A session starts by itself with your first bounty or loot paste (or press <b>Start</b>); <b>Pause</b> stops the clock and the counting, <b>Resume</b> carries on, and <b>New session</b> clears it. For loot, select the items in your cargo hold or a wreck, press Ctrl+C, then paste them into the Loot box: they're priced at EVE's estimated value (the same as the game's Est. price) and added up; click a paste to see its items, or × to remove it. Bounties are shown after each pilot's corp tax, looked up by itself; type a number in <b>Tax on bounties</b> to use your own percentage instead (for example to include the ESS share in null-sec). <b>ISK per hour</b> is bounties after tax plus loot, divided by the time the session has run (pauses left out). The <b>loot HUD</b> over the game shows total ISK, ISK per hour, bounties and loot while a session runs; turn it on or off in <b>Overlays over the game</b> (the ⋮ in the Loot tracker window) or the tray menu.</li>
       <li>It keeps running in the system tray, and alerts and Windows notifications keep working while it's minimized or behind the game. Closing the window hides it to the tray; quit from the tray icon.</li>
       <li>Right-click the tray icon for <b>Always on top</b>, <b>Keep running when closed</b> and <b>Start with Windows</b>.</li>
       <li>It remembers your chat logs folder, so there's no permission prompt each time.</li>
@@ -986,6 +1025,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.77</b> Windows app 1.7: a Loot tracker on the launcher ring. It counts bounties as you kill rats (from EVE's game logs), totals pasted loot at EVE's estimated prices, and shows total ISK and ISK per hour after corp tax. A loot HUD over the game shows the same.</li>
       <li><b>2.76</b> Windows app 1.6: a home HUD over the game for your home system. A Main character setting for when alts are logged in. Fixed intel reports showing more than once with several alts in the same intel channel.</li>
       <li><b>2.75</b> Share link always makes a short link (about 50 characters) for Discord and fleet chat; it lasts 12 hours.</li>
       <li><b>2.74</b> Windows app 1.5.7: the launcher ring is smaller, and Launcher size in the tray menu sets it to small, medium or large.</li>
@@ -1949,7 +1989,7 @@ if (navigator.windowControlsOverlay?.visible) {
    from Alerts and settings (so they stay one set of settings) and put back when the box closes. */
 const BOX_SETTINGS = { specPanel: ["Map", "Alerts"], mapPanel: ["Map", "Jump bridges"], sysPanel: ["Map"], intelPanel: ["Alerts", "Characters in Intel and location", "Phone relay"],
   watchPanel: ["Alerts"], scanPanel: ["Standings"], hostilePanel: ["Standings", "Alerts"], timerPanel: ["Alerts"], routePanel: ["Jump bridges"],
-  notifPanel: ["EVE login"], killPanel: ["Map", "Standings"] };
+  notifPanel: ["EVE login"], killPanel: ["Map", "Standings"], lootPanel: ["Overlays over the game"] };
 const borrowed = [];
 function closeBoxSettings() {
   for (const { el, mark } of borrowed.splice(0)) mark.replaceWith(el);
@@ -1972,6 +2012,7 @@ $("#boxSet").addEventListener("close", () => { if (!$("#boxSet").open) for (cons
 // Windows app: it calls this right after starting (as if you'd clicked), so the chat logs folder you picked before is
 // opened again without pressing Reconnect folder. The browser itself still asks for that one click.
 window.ongridResumeFolder = async () => {
+  glResume(true); // the game logs folder (loot tracker), asked for in the same click
   if (intel.dir) return true;
   const h = intel.pending || await kvGet("dir"); if (!h) return false;
   try {
@@ -2256,16 +2297,195 @@ function hudSummary() {
   out.danger = (n && n.d <= 1 && fresh) || (out.camp && out.camp.d <= 1) ? "HIGH" : (n && n.d <= range) || out.k1 || out.camp || out.big.length ? "MEDIUM" : "LOW";
   return out;
 }
+/* ---------- loot tracker (Windows app's launcher ring) ----------
+   Bounties come from EVE's game logs (Documents\EVE\logs\Gamelogs): every kill writes "(bounty) … ISK added to next
+   bounty payout", so they count straight away instead of waiting for the 20-minute payout. Only one OnGrid window reads
+   the game logs at a time (a Web Lock); it keeps the last day's bounties in localStorage "lootBounty". The session
+   (start, pauses, pasted loot, tax) is in "loot", and pilots' corp tax rates in "lootTax". Every window shows the same. */
+const lootRead = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
+function lootGet() {
+  let L = lootRead("loot", null);
+  if (!L || typeof L !== "object") { L = { resetAt: Date.now(), start: null, end: null, pauses: [], pastes: [], tax: "" }; ls.set("loot", JSON.stringify(L)); }
+  L.pauses ||= []; L.pastes ||= [];
+  return L;
+}
+const lootPut = L => { ls.set("loot", JSON.stringify(L)); renderLoot(); };
+function lootCalc(now = Date.now()) {
+  const L = lootGet(), B = lootRead("lootBounty", []).filter(b => b.t >= L.resetAt), rates = lootRead("lootTax", {});
+  const first = B.length ? Math.min(...B.map(b => b.t)) : null;
+  const start = L.start ?? (first ?? (L.pastes.length ? L.pastes[0].t : null));
+  if (start == null) return { running: false, L, rates, pilots: [] };
+  const off = t => (L.end && t >= L.end) || L.pauses.some(([a, b]) => t >= a && t < b);
+  const by = new Map();
+  for (const b of B) { if (b.t < start || off(b.t)) continue; const p = by.get(b.who) || { who: b.who, gross: 0, n: 0, last: 0 }; p.gross += b.amt; p.n++; p.last = Math.max(p.last, b.t); by.set(b.who, p); }
+  const custom = L.tax !== "" && L.tax != null && isFinite(+L.tax);
+  const pilots = [...by.values()].map(p => { const r = custom ? +L.tax / 100 : rates[p.who]?.rate; return { ...p, rate: r, net: p.gross * (1 - (r ?? 0)) }; });
+  const bounty = pilots.reduce((a, p) => a + p.net, 0), gross = pilots.reduce((a, p) => a + p.gross, 0), loot = L.pastes.reduce((a, x) => a + (x.total || 0), 0);
+  const ms = Math.max(0, (L.end || now) - start - L.pauses.reduce((a, [x, y]) => a + (y - x), 0));
+  const total = bounty + loot;
+  return { running: !L.end, paused: !!L.end, start, ms, bounty, gross, loot, total, perHour: ms >= 60e3 ? total / (ms / 36e5) : 0, pilots, L, rates, custom };
+}
+function lootSummary() { const c = lootCalc(); return c.start == null ? null : { total: c.total, perHour: c.perHour, bounty: c.bounty, loot: c.loot, ms: c.ms, paused: c.paused }; }
+const iskFull = v => Math.round(v || 0).toLocaleString("en-US");
+function renderLoot() {
+  if (!/[?&]box=lootPanel\b/.test(location.search)) return; // the box only shows in its own window
+  const c = lootCalc(), L = c.L, hm = ms => `${Math.floor(ms / 36e5)}h ${String(Math.floor(ms / 60e3) % 60).padStart(2, "0")}m`;
+  $("#lootSum").innerHTML = `<div class="big"><span>Total</span><b>${c.start == null ? "–" : isk(c.total)}</b><span>ISK</span></div>
+    <div class="big"><span>ISK per hour</span><b>${c.perHour ? isk(c.perHour) : "–"}</b><span>${c.start == null ? "not started" : (c.paused ? "paused · " : "") + hm(c.ms)}</span></div>
+    <div><span>Bounties after tax</span><b>${c.bounty ? isk(c.bounty) : "–"}</b><span>${c.gross ? isk(c.gross) + " before tax" : "from the game logs"}</span></div>
+    <div><span>Loot</span><b>${c.loot ? isk(c.loot) : "–"}</b><span>${L.pastes.length} paste${L.pastes.length === 1 ? "" : "s"}, EVE's estimated value</span></div>`;
+  $("#lootGo").textContent = c.start == null || c.paused ? (c.paused ? "Resume" : "Start") : "Pause";
+  $("#lootState").textContent = c.start == null ? "Starts by itself with your first bounty or loot paste." : c.paused ? "Paused: bounties are not counted until you resume." : "Running since " + new Date(c.start).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + ".";
+  if (document.activeElement !== $("#lootTax")) $("#lootTax").value = L.tax ?? "";
+  const B = lootRead("lootBounty", []), last = B.length ? Math.max(...B.map(b => b.t)) : 0;
+  navigator.locks?.query?.().then(q => { const o = !gl.held && q.held.some(x => x.name === "ongrid-gamelogs"); if (o !== !!gl.other) { gl.other = o; renderLoot(); } }).catch(() => {});
+  $("#lootDir").hidden = (!!gl.dir && !gl.pending) || !!gl.other;
+  $("#lootDir").textContent = gl.pending ? "Reconnect game logs folder" : "Connect game logs folder";
+  $("#lootDirNote").textContent = gl.dir && !gl.pending ? `Reading game logs.${last ? " Last bounty " + Math.max(0, Math.round((Date.now() - last) / 60e3)) + " min ago." : ""}`
+    : gl.other ? `Your other OnGrid window is reading the game logs.${last ? " Last bounty " + Math.max(0, Math.round((Date.now() - last) / 60e3)) + " min ago." : ""}` : "Pick Documents\\EVE\\logs\\Gamelogs so bounties are counted as you kill rats.";
+  $("#lootList").innerHTML = L.pastes.map((x, i) => `<details><summary><span>${new Date(x.t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · ${x.items.length} item type${x.items.length === 1 ? "" : "s"}${x.miss?.length ? ` · <span class="err">${x.miss.length} not recognised</span>` : ""}</span><b>${iskFull(x.total)} ISK</b><button type="button" class="x" data-del="${i}" title="Remove this loot" aria-label="Remove this loot">×</button></summary>
+      <table>${x.items.map(([n, q, p]) => `<tr><td>${esc(n)}</td><td class="n">${iskFull(q)}</td><td class="n">${p ? isk(p * q) : "–"}</td></tr>`).join("")}${(x.miss || []).map(n => `<tr><td class="err">${esc(n)}</td><td class="n" colspan="2">not recognised</td></tr>`).join("")}</table></details>`).reverse().join("");
+  $("#lootPilots").innerHTML = c.pilots.length ? `<table>${c.pilots.map(p => `<tr><td>${esc(p.who)}</td><td class="n">${p.n} bount${p.n === 1 ? "y" : "ies"}</td><td class="n">${c.custom ? "" : p.rate == null ? "tax: checking…" : "corp tax " + (Math.round(p.rate * 1000) / 10) + "%"}</td><td class="n">${iskFull(p.net)} ISK</td></tr>`).join("")}</table>` : "";
+  lootRates(c.pilots.map(p => p.who));
+}
+// each pilot's corp tax, from public ESI (kept for a day)
+async function lootRates(names) {
+  const rates = lootRead("lootTax", {}), need = names.filter(n => !rates[n] || Date.now() - rates[n].at > 864e5);
+  if (!need.length || lootRates.busy || Date.now() - (lootRates.failed || 0) < 5 * 60e3) return; lootRates.busy = true;
+  try {
+    const r = await getJSON(`${ESI}/universe/ids/?${DS}`, POSTJSON(need));
+    for (const ch of r.characters || []) {
+      const info = await getJSON(`${ESI}/characters/${ch.id}/?${DS}`), corp = await getJSON(`${ESI}/corporations/${info.corporation_id}/?${DS}`);
+      const all = lootRead("lootTax", {}); all[need.find(n => n.toLowerCase() === ch.name.toLowerCase()) || ch.name] = { rate: +corp.tax_rate || 0, at: Date.now() }; ls.set("lootTax", JSON.stringify(all));
+    }
+  } catch { lootRates.failed = Date.now(); } finally { lootRates.busy = false; }
+  renderLoot();
+}
+// pasted loot: lines from an inventory (name, tab, quantity, …), or "Name x 3", "3 x Name", or just a name
+function parseLoot(text) {
+  const items = new Map();
+  for (let line of text.split(/\r?\n/)) {
+    line = line.replace(/ /g, " ").trim(); if (!line) continue;
+    let name, qty = 1, m;
+    const cols = line.split("\t");
+    if (cols.length > 1) { name = cols[0]; const q = cols[1].replace(/[\s,.']/g, ""); if (/^\d+$/.test(q)) qty = +q; }
+    else if ((m = line.match(/^(.+?)\s+x\s*([\d][\d,.' ]*)$/i))) { name = m[1]; qty = +m[2].replace(/\D/g, ""); }
+    else if ((m = line.match(/^([\d][\d,.']*)\s*x\s+(.+)$/i))) { name = m[2]; qty = +m[1].replace(/\D/g, ""); }
+    else if ((m = line.match(/^(.+?)\s{2,}([\d][\d,.']*)$/))) { name = m[1]; qty = +m[2].replace(/\D/g, ""); }
+    else name = line;
+    name = name.replace(/\*+$/, "").trim(); if (!name || !qty) continue;
+    const k = name.toLowerCase(), had = items.get(k); items.set(k, { name: had?.name || name, qty: (had?.qty || 0) + qty });
+  }
+  return [...items.values()];
+}
+let lootPrices = null;
+async function addLoot(text) {
+  const items = parseLoot(text), note = $("#lootNote");
+  if (!items.length) { note.textContent = "No items found in that paste."; note.className = "note err"; return; }
+  note.textContent = `Pricing ${items.length} item type${items.length === 1 ? "" : "s"}…`; note.className = "note";
+  try {
+    if (!lootPrices || Date.now() - lootPrices.at > 36e5) { const arr = await getJSON(`${ESI}/markets/prices/?${DS}`); lootPrices = { at: Date.now(), map: new Map(arr.map(x => [x.type_id, x.average_price || x.adjusted_price || 0])) }; }
+    const ids = new Map(), names = items.map(i => i.name);
+    for (let i = 0; i < names.length; i += 500) { const r = await getJSON(`${ESI}/universe/ids/?${DS}`, POSTJSON(names.slice(i, i + 500))); for (const t of r.inventory_types || []) ids.set(t.name.toLowerCase(), t); }
+    const got = [], miss = [];
+    for (const it of items) { const t = ids.get(it.name.toLowerCase()); if (t) got.push([t.name, it.qty, Math.round((lootPrices.map.get(t.id) || 0) * 100) / 100]); else miss.push(it.name); }
+    got.sort((a, b) => b[1] * b[2] - a[1] * a[2]);
+    const total = got.reduce((a, [, q, p]) => a + q * p, 0), L = lootGet();
+    if (L.start == null && !lootCalc().start) L.start = Date.now();
+    L.pastes.push({ t: Date.now(), total, items: got.slice(0, 400), miss: miss.slice(0, 50) }); lootPut(L);
+    note.textContent = `Added ${iskFull(total)} ISK of loot${miss.length ? `; ${miss.length} line${miss.length === 1 ? "" : "s"} not recognised` : ""}.`; note.className = miss.length ? "note err" : "note";
+    $("#lootIn").value = "";
+  } catch (e) { note.textContent = "Couldn't price the loot: " + e.message; note.className = "note err"; }
+}
+$("#lootIn").addEventListener("paste", () => setTimeout(() => addLoot($("#lootIn").value), 0));
+$("#lootIn").addEventListener("keydown", e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) addLoot($("#lootIn").value); });
+$("#lootList").addEventListener("click", e => { const b = e.target.closest("[data-del]"); if (!b) return; e.preventDefault(); const L = lootGet(); L.pastes.splice(+b.dataset.del, 1); lootPut(L); });
+$("#lootGo").addEventListener("click", () => {
+  const L = lootGet(), c = lootCalc(), now = Date.now();
+  if (c.start == null) L.start = now;
+  else if (L.end) { L.pauses.push([L.end, now]); L.end = null; if (L.start == null) L.start = c.start; }
+  else { L.end = now; if (L.start == null) L.start = c.start; }
+  lootPut(L);
+});
+$("#lootReset").addEventListener("click", () => {
+  const c = lootCalc(); if (c.start != null && !confirm(`Start a new session? This one (${iskFull(c.total)} ISK) is cleared.`)) return;
+  lootPut({ resetAt: Date.now(), start: null, end: null, pauses: [], pastes: [], tax: lootGet().tax ?? "" });
+});
+$("#lootTax").addEventListener("change", e => { const L = lootGet(), v = e.target.value.trim(); L.tax = v === "" ? "" : String(Math.min(100, Math.max(0, +v || 0))); lootPut(L); });
+addEventListener("storage", e => { if (e.key === "loot" || e.key === "lootBounty" || e.key === "lootTax") renderLoot(); });
+setInterval(renderLoot, 10e3);
+
+// reading the game logs
+const gl = { dir: null, pending: null, files: new Map(), held: false };
+function bountyLine(line) {
+  const m = line.match(/^\[\s*(\d{4})\.(\d\d)\.(\d\d) (\d\d):(\d\d):(\d\d)\s*\]\s*\(bounty\)\s*(.*)$/); if (!m) return null;
+  const txt = m[7].replace(/<[^>]*>/g, ""), a = txt.match(/(\d[\d,.\s  ']*)\s*ISK/i); if (!a) return null;
+  let n = a[1].trim(); if (/[.,]\d{2}$/.test(n)) n = n.slice(0, -3);
+  const amt = +n.replace(/\D/g, ""); if (!amt) return null;
+  return { t: Date.UTC(+m[1], m[2] - 1, +m[3], +m[4], +m[5], +m[6]), amt };
+}
+async function glScan() {
+  if (!gl.dir) return;
+  const cut = Date.now() - 864e5;
+  for await (const [name, h] of gl.dir.entries()) {
+    if (h.kind !== "file" || !/^\d{8}_\d{6}(?:_\d+)?\.txt$/i.test(name) || gl.files.has(name)) continue;
+    const f = await h.getFile(); if (f.lastModified < cut) continue;
+    gl.files.set(name, { h, off: 0, size: -1, n: 0, who: null, enc: null });
+  }
+  await glPoll();
+}
+async function glPoll() {
+  const add = [];
+  for (const [name, f] of gl.files) {
+    let file; try { file = await f.h.getFile(); } catch { gl.files.delete(name); continue; }
+    if (file.size === f.size) continue; f.size = file.size;
+    const buf = new Uint8Array(await file.slice(f.off).arrayBuffer()); if (!buf.length) continue;
+    if (f.enc == null) f.enc = buf[0] === 0xff && buf[1] === 0xfe ? "utf-16le" : "utf-8";
+    let end = -1; // only whole lines; the rest is read next time
+    if (f.enc === "utf-8") end = buf.lastIndexOf(10); else for (let i = buf.length - 2; i >= 0; i -= 1) if (buf[i] === 10 && buf[i + 1] === 0 && i % 2 === 0) { end = i + 1; break; }
+    if (end < 0) continue;
+    const text = new TextDecoder(f.enc).decode(buf.subarray(0, end + 1)); f.off += end + 1;
+    for (const line of text.split(/\r?\n/)) {
+      if (!line) continue; f.n++;
+      const who = line.match(/^\s*Listener:\s*(.+?)\s*$/); if (who) { f.who = who[1]; continue; }
+      const b = bountyLine(line); if (b) add.push({ k: name + "#" + f.n, t: b.t, who: f.who || "You", amt: b.amt });
+    }
+  }
+  if (!add.length) return;
+  const cut = Date.now() - 864e5, have = lootRead("lootBounty", []).filter(b => b.t >= cut), keys = new Set(have.map(b => b.k));
+  for (const b of add) if (!keys.has(b.k) && b.t >= cut) have.push(b);
+  ls.set("lootBounty", JSON.stringify(have.slice(-20000))); renderLoot();
+}
+function glStart(h) {
+  gl.dir = h; gl.pending = null; renderLoot();
+  if (gl.held) return;
+  const run = () => new Promise(() => { gl.held = true; glScan().catch(() => {}); setInterval(() => glPoll().catch(() => {}), 3000); setInterval(() => glScan().catch(() => {}), 30e3); });
+  navigator.locks ? navigator.locks.request("ongrid-gamelogs", run) : run(); // one window reads them; another takes over if it closes
+}
+async function glResume(ask) {
+  if (gl.dir || !window.showDirectoryPicker) return;
+  const h = gl.pending || await kvGet("gamedir"); if (!h) return;
+  try { const p = ask ? await h.requestPermission({ mode: "read" }) : await h.queryPermission({ mode: "read" }); if (p === "granted") glStart(h); else { gl.pending = h; renderLoot(); } } catch {}
+}
+$("#lootDir").addEventListener("click", async () => {
+  if (gl.pending) return glResume(true);
+  if (!window.showDirectoryPicker) { $("#lootDirNote").textContent = "Reading the game logs needs Chrome, Edge or the Windows app."; return; }
+  try { const h = await showDirectoryPicker({ id: "evegamelogs", mode: "read" }); await kvSet("gamedir", h); glStart(h); }
+  catch (e) { if (e.name !== "AbortError") $("#lootDirNote").textContent = "Couldn't open the folder: " + e.message; }
+});
+if (!/^#(scan|s)=/.test(location.hash)) setTimeout(() => glResume(false), 1500);
+renderLoot();
 // the overlay switches in Alerts and settings (Windows app only)
 if (window.ongridApp?.overlayState) {
   $("#ovSet").hidden = false;
-  const show = st => { if (!st) return; $("#ovAlert").checked = st.alert; $("#ovHud").checked = st.hud; $("#ovTrip").checked = !!st.trip; $("#ovMini").checked = !!st.mini; $("#ovHome").checked = !!st.home; if (st.miniSize) $("#ovMiniSize").value = String(st.miniSize); $("#ovUnlock").checked = st.unlocked; $("#ovOpacity").value = String([0.55, 0.8, 0.95].reduce((a, b) => Math.abs(b - st.opacity) < Math.abs(a - st.opacity) ? b : a)); };
+  const show = st => { if (!st) return; $("#ovAlert").checked = st.alert; $("#ovHud").checked = st.hud; $("#ovTrip").checked = !!st.trip; $("#ovMini").checked = !!st.mini; $("#ovHome").checked = !!st.home; $("#ovLoot").checked = !!st.loot; if (st.miniSize) $("#ovMiniSize").value = String(st.miniSize); $("#ovUnlock").checked = st.unlocked; $("#ovOpacity").value = String([0.55, 0.8, 0.95].reduce((a, b) => Math.abs(b - st.opacity) < Math.abs(a - st.opacity) ? b : a)); };
   window.ongridApp.overlayState().then(show).catch(() => {}); window.ongridApp.onOverlayState?.(show);
   $("#ovAlert").addEventListener("change", e => window.ongridApp.setOverlay({ alert: e.target.checked }));
   $("#ovHud").addEventListener("change", e => window.ongridApp.setOverlay({ hud: e.target.checked }));
   $("#ovTrip").addEventListener("change", e => window.ongridApp.setOverlay({ trip: e.target.checked }));
   $("#ovMini").addEventListener("change", e => window.ongridApp.setOverlay({ mini: e.target.checked }));
   $("#ovHome").addEventListener("change", e => window.ongridApp.setOverlay({ home: e.target.checked }));
+  $("#ovLoot").addEventListener("change", e => window.ongridApp.setOverlay({ loot: e.target.checked }));
   $("#ovMiniSize").addEventListener("change", e => window.ongridApp.setOverlay({ miniSize: +e.target.value }));
   $("#ovUnlock").addEventListener("change", e => window.ongridApp.setOverlay({ unlocked: e.target.checked }));
   $("#ovOpacity").addEventListener("change", e => window.ongridApp.setOverlay({ opacity: +e.target.value }));
@@ -2353,6 +2573,7 @@ if (window.ongridApp?.hud && !/[?&]box=/.test(location.search)) setInterval(() =
   try { window.ongridApp.hud(hudSummary()); } catch {}
   try { window.ongridApp.trip?.(tripOverlay()); } catch {}
   try { window.ongridApp.home?.(homeSummary()); } catch {}
+  try { window.ongridApp.loot?.(lootSummary()); } catch {}
   try { const m = miniMapData(); if (m && m.svg !== lastMini) { lastMini = m.svg; window.ongridApp.mini?.(m); } } catch {}
 }, 3000);
 function distFromYou(toId) {
@@ -2747,7 +2968,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.76";
+const APP_VERSION = "2.77";
 // a window left open (an app box window, a pinned tab) would keep running an old copy of the page after an update:
 // every 10 minutes, look at the live page's version; if it's newer, reload while the window isn't being looked at,
 // or show a small bar with a Reload button
