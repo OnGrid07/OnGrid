@@ -6,8 +6,8 @@ OnGrid is an intel tool for EVE Online. Everything ships from this repo.
 - **`desktop/`**: "OnGrid for Windows", an Electron shell that loads the live site. Its app ID is `com.ongrid.app`.
   - It opens to a launcher, `launcher.html` with `launcher-preload.js`: a gate ring whose symbols open single boxes in their own windows. Those windows load the page with `?box=<panel id>`, or `?box=about`.
   - The full page always runs, hidden, so alerts keep working.
-  - Overlays (`overlay.html`, `overlay-preload.js`): an alert banner, an intel HUD, a travel HUD (only during a trip) and a mini map. They're separate click-through windows above EVE and never touch the game client.
-    - The page reaches them only through `page-preload.js` (`window.ongridApp.alert`, `.hud`, `.trip`, `.mini`).
+  - Overlays (`overlay.html`, `overlay-preload.js`): an alert banner, an intel HUD, a home HUD (danger within 3 jumps of the home system, `cfg.homeSys`), a travel HUD (only during a trip) and a mini map. They're separate click-through windows above EVE and never touch the game client.
+    - The page reaches them only through `page-preload.js` (`window.ongridApp.alert`, `.hud`, `.home`, `.trip`, `.mini`).
     - The HUDs and the mini map only take data from the full page window.
   - Never read game memory, inject into the client or automate input: that's against CCP's rules.
   - The ring and its symbols are original artwork. Don't copy another franchise's or app's art into it.
@@ -65,6 +65,7 @@ OnGrid is an intel tool for EVE Online. Everything ships from this repo.
 - **Jump bridges** (`bridges` in localStorage, pasted in settings):
   - They're the alliance's private data: never send them anywhere except as `connections` on ESI route requests.
   - ESI takes at most 100 one-way connections per route, so `bridgeConnections()` sends the 50 bridges nearest the start-to-destination line, both ways.
+- **Alts:** when several characters are logged in, `cfg.mainChar` (or the most recently active one) alone sets your location; intel lines are deduped, and each channel reads one log copy.
 - **Hostile tracks** are colored per group (alliance, else corp, else pilot), with stacked ticker labels on the map. There are no group chips in the Hostile tracker.
 
 ## Testing

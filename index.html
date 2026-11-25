@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.75
+  OnGrid (formerly Local Intel), version 2.76
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -703,6 +703,9 @@ footer { font: 11px var(--mono); color: var(--muted); }
         <label><input type="checkbox" id="ovAlert"> Alert banner: flashes at the top of the screen for every alert</label>
         <label><input type="checkbox" id="ovHud"> Intel HUD: your system, danger and the nearest hostile</label>
         <label><input type="checkbox" id="ovTrip"> Travel HUD: next jumps and danger on your route (shows only during a trip)</label>
+        <label><input type="checkbox" id="ovHome"> Home HUD: danger around your home system, wherever you are</label>
+        <label>Home system <input type="text" id="homeSys" placeholder="e.g. C-J6MT" autocomplete="off" spellcheck="false"></label>
+        <div class="note" id="homeNote"></div>
         <label><input type="checkbox" id="ovMini"> Mini map: a small see-through gate map <select id="ovMiniSize" aria-label="Mini map size"><option value="240">small</option><option value="320">medium</option><option value="420">large</option></select></label>
         <label><input type="checkbox" id="ovUnlock"> Move overlays: unlock, then drag them where you want (yellow dashed outline); untick to lock</label>
         <label>Background <select id="ovOpacity"><option value="0.55">Light</option><option value="0.8">Medium</option><option value="0.95">Solid</option></select></label>
@@ -712,6 +715,8 @@ footer { font: 11px var(--mono); color: var(--muted); }
         <legend>Characters in Intel and location</legend>
         <div class="note">Which of your characters are listed above the intel reports. Click a name to hide it (crossed out), again to show it. Hidden characters still count for your location, alerts and the map.</div>
         <div class="youpick" id="youPick"><span class="note">Your characters show here once the page knows where they are (EVE login or chat logs).</span></div>
+        <label>Main character <select id="mainChar"><option value="">Automatic (whoever moved last)</option></select></label>
+        <div class="note">With alts logged in, only the main character's location moves the map and counts for distances, alerts and "closing in".</div>
       </fieldset>
       <fieldset>
         <legend>Phone relay</legend>
@@ -781,7 +786,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.75</span>
+    <span class="ver" id="aboutVer">Version 2.76</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -847,7 +852,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <p><b>OnGrid for Windows</b> is this page in its own app window. Download <code>OnGrid-Setup-….exe</code> from <a href="https://github.com/OnGrid07/OnGrid/releases/latest" target="_blank" rel="noopener">the releases page</a> and run it; it installs in a few seconds and adds a Start menu shortcut.</p>
     <ul>
       <li><b>The launcher</b> (app 1.3 and later): the app opens to a round gate ring. Each symbol on the ring opens one box in its own window: Gate map, Wormholes and sov fights (Thera/Turnur connections and sov fights in range), Intel and location, Local and D-scan, Hostile tracker, Watched systems, Systems, Kills, Character notifications, Timers, Route planner, Alerts and settings, and About; the power symbol quits. Hover a symbol to see its name in the middle. A small blue dot under a symbol means its window is open; clicking the symbol again closes that window. Click the middle of the ring to open the full OnGrid window. Drag the ring from anywhere, even from a symbol, to move it (it remembers where you put it), and press <b>hide</b> (or Esc) to tuck it into the tray. Each box window remembers its size and place, and (in the app only) has <b>⋮</b> (Settings) in its title bar, next to the minimize button, that shows only the settings for that window (the Gate map's map and jump bridge settings, the Intel window's alerts, characters and phone relay, and so on); in the full window it opens Alerts and settings. When you quit the app, it remembers which windows were open (the ring, the full window and each box) and where they were, maximized or not, and puts them all back next time it starts; a window that was on a screen that's no longer connected opens on the main screen. The Gate map window shows just the map. In its title row, the small <b>2j</b>-style picker changes how many jumps the map shows, and the <b>☰</b> button shows or hides System, Jumps, Load, presets and the summary above it. Every window shows the same intel, rings, tracks and alerts: the window that reads your chat logs (or the phone relay) shares them with the others. To start with the full window instead, untick <b>Open to the launcher</b> in the tray menu. <b>Launcher size</b> in the tray menu makes the ring small, medium (the usual) or large.</li>
-      <li><b>Overlays</b> (app 1.4 and later): two see-through windows that float on top of EVE when the game runs in windowed or fixed-window mode. They are separate windows and never touch the game client. The <b>alert banner</b> flashes at the top of the screen whenever OnGrid alerts you (hostiles in range, watched systems, big ships, camps, sov, timers) and fades after about nine seconds; several at once show a +count. The <b>intel HUD</b> stays up and shows your system and its security, a danger rating (HIGH: a hostile reported within 1 jump in the last 5 minutes, or a camp next door; MEDIUM: hostiles within 3 jumps, kills where you are, camps or big ships nearby; LOW: quiet), the nearest reported hostile with jumps, pilots and minutes ago, how many systems within 3 jumps have hostiles reported, big ships, and kills where you are. The <b>travel HUD</b> appears only while a trip is on: destination and jumps left, then your system and the next five jumps with their security, kills in the last hour (✕), intel (with pilot count) and a pulsing ring on camps, plus a warning for the first camp ahead. The <b>mini map</b> is a small see-through copy of the gate map (small, medium or large), showing at most 3 jumps even when the Gate map shows more, with the intel rings, hostile tracks and your YOU ring; to stay readable it only names systems with intel, kills, you or hostile groups. Clicks pass straight through all of them to EVE. Switch them in <b>Alerts and settings → Overlays over the game</b> (or the tray menu): turn each one on or off, <b>Move overlays</b> to drag them where you want (they get a yellow dashed outline; untick it to lock them again), <b>Overlay background</b> to make them lighter or more solid, and <b>Put overlays back in place</b>. <b>Test alert</b> in Alerts and settings shows the banner.</li>
+      <li><b>Overlays</b> (app 1.4 and later): two see-through windows that float on top of EVE when the game runs in windowed or fixed-window mode. They are separate windows and never touch the game client. The <b>alert banner</b> flashes at the top of the screen whenever OnGrid alerts you (hostiles in range, watched systems, big ships, camps, sov, timers) and fades after about nine seconds; several at once show a +count. The <b>intel HUD</b> stays up and shows your system and its security, a danger rating (HIGH: a hostile reported within 1 jump in the last 5 minutes, or a camp next door; MEDIUM: hostiles within 3 jumps, kills where you are, camps or big ships nearby; LOW: quiet), the nearest reported hostile with jumps, pilots and minutes ago, how many systems within 3 jumps have hostiles reported, big ships, and kills where you are. The <b>travel HUD</b> appears only while a trip is on: destination and jumps left, then your system and the next five jumps with their security, kills in the last hour (✕), intel (with pilot count) and a pulsing ring on camps, plus a warning for the first camp ahead. The <b>mini map</b> is a small see-through copy of the gate map (small, medium or large), showing at most 3 jumps even when the Gate map shows more, with the intel rings, hostile tracks and your YOU ring; to stay readable it only names systems with intel, kills, you or hostile groups. The <b>home HUD</b> watches the home system you type under <b>Overlays over the game</b> and everything within 3 jumps of it, wherever you are: a danger rating, the nearest hostile reported near home, how many systems near home have hostiles, kills in your home system in the last hour, and camps. Clicks pass straight through all of them to EVE. Switch them in <b>Alerts and settings → Overlays over the game</b> (or the tray menu): turn each one on or off, <b>Move overlays</b> to drag them where you want (they get a yellow dashed outline; untick it to lock them again), <b>Overlay background</b> to make them lighter or more solid, and <b>Put overlays back in place</b>. <b>Test alert</b> in Alerts and settings shows the banner.</li>
       <li>It keeps running in the system tray, and alerts and Windows notifications keep working while it's minimized or behind the game. Closing the window hides it to the tray; quit from the tray icon.</li>
       <li>Right-click the tray icon for <b>Always on top</b>, <b>Keep running when closed</b> and <b>Start with Windows</b>.</li>
       <li>It remembers your chat logs folder, so there's no permission prompt each time.</li>
@@ -938,7 +943,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
       <li>Big-ship words (titan, super, dread, carrier, fax, lancer, rorq, dictor, hic, blops, caps, cyno) and ship names like "Sabre" get tagged.</li>
       <li>ESS words (ess, linking, main bank, reserve bank, bank) get an ESS tag.</li>
       <li><b>Show</b> lists all intel, or only messages about systems on the map or watched.</li>
-      <li>Above the intel, each of your characters is listed with where it is. Choose which ones are listed under <b>Characters in Intel and location</b> in Alerts and settings: click a name to hide it (it's crossed out) and again to show it. This only changes the list; hidden characters still count for your location, alerts and the YOU ring on the map. The choice is saved.</li>
+      <li>Above the intel, each of your characters is listed with where it is. Choose which ones are listed under <b>Characters in Intel and location</b> in Alerts and settings: click a name to hide it (it's crossed out) and again to show it. This only changes the list; hidden characters still count for your location, alerts and the YOU ring on the map. The choice is saved. With alts logged in, also pick your <b>Main character</b> there: only that character's location moves the map and counts for distances, alerts and "closing in" (Automatic follows whoever moved last). Several alts in the same intel channel each log the same lines; OnGrid reads one copy and shows each report once.</li>
       <li>Your location comes from your EVE login (see below) or from your Local chat log, whichever saw your latest jump. Each source is named next to your system. With several characters, each one is shown. A character the EVE login reports as offline isn't shown.</li>
     </ul>
 
@@ -981,6 +986,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.76</b> Windows app 1.6: a home HUD over the game for your home system. A Main character setting for when alts are logged in. Fixed intel reports showing more than once with several alts in the same intel channel.</li>
       <li><b>2.75</b> Share link always makes a short link (about 50 characters) for Discord and fleet chat; it lasts 12 hours.</li>
       <li><b>2.74</b> Windows app 1.5.7: the launcher ring is smaller, and Launcher size in the tray menu sets it to small, medium or large.</li>
       <li><b>2.73</b> Jump bridge lists in the "number  A --> B (FADE)" layout now import, and # comment lines are skipped.</li>
@@ -1705,6 +1711,9 @@ function parseLine(line, f) {
   const t = Date.UTC(+m[1], m[2] - 1, +m[3], +m[4], +m[5], +m[6]); // EVE time is UTC
   if (Date.now() - t > 36e5 || m[7] === "EVE System") return;
   const r = { t, who: m[7], msg: m[8].trim(), ch: f.ch, live: !!f.primed };
+  // several alts in the same intel channel each log the same lines: keep one of each
+  const k = r.t + "|" + r.who + "|" + r.msg; if (intel.seen?.has(k)) return; (intel.seen ||= new Set()).add(k);
+  if (intel.seen.size > 5000) intel.seen = new Set([...intel.seen].slice(-2500));
   intel.reports.push(r);
   if (f.primed) { maybeAlert(r); relayQueue(r); }
 }
@@ -1736,8 +1745,12 @@ async function scanFiles() {
     }
     if (!want.includes(m[1].toLowerCase())) continue;
     const file = await h.getFile();
-    const ch = m[1], cur = best.get(ch.toLowerCase());
-    if (!cur || file.lastModified > cur.mod) best.set(ch.toLowerCase(), { h, name, ch, mod: file.lastModified });
+    const ch = m[1], cur = best.get(ch.toLowerCase()), using = intel.files.get(ch.toLowerCase())?.name === name;
+    // alts each have their own copy of the channel's log: keep reading the copy already in use while it's still being
+    // written (all copies get the same lines); move to another only when it goes quiet (that character logged off)
+    const live = x => Date.now() - x.mod < 5 * 60e3;
+    const better = !cur || (using && live({ mod: file.lastModified })) || (!(cur.using && live(cur)) && file.lastModified > cur.mod);
+    if (better) best.set(ch.toLowerCase(), { h, name, ch, mod: file.lastModified, using });
   }
   for (const [key, b] of best) {
     const ex = intel.files.get(key);
@@ -1854,6 +1867,9 @@ function renderYou() {
   const all = new Map();
   for (const p of presences()) all.set(p.name.toLowerCase(), p.name);
   for (const e of (state.esiLoc || new Map()).values()) all.set(e.name.toLowerCase(), e.name);
+  const mc = $("#mainChar"), mcNames = [...all.values()].sort((a, b) => a.localeCompare(b));
+  if (cfg.mainChar && !mcNames.some(n => n.toLowerCase() === cfg.mainChar.toLowerCase())) mcNames.push(cfg.mainChar);
+  if (mc.dataset.list !== mcNames.join("|")) { mc.dataset.list = mcNames.join("|"); mc.innerHTML = `<option value="">Automatic (whoever moved last)</option>` + mcNames.map(n => `<option>${esc(n)}</option>`).join(""); mc.value = cfg.mainChar || ""; }
   $("#youPick").innerHTML = all.size ? `${[...all.values()].sort((a, b) => a.localeCompare(b)).map(n =>
     `<button type="button" class="youchip${shown(n) ? " on" : ""}" data-you="${esc(n)}" aria-pressed="${shown(n)}" title="${shown(n) ? "Hide" : "Show"} ${esc(n)} here">${esc(n)}</button>`).join("")}` : `<span class="note">Your characters show here once the page knows where they are (EVE login or chat logs).</span>`;
   const rows = presences().filter(p => shown(p.name)).map(p => {
@@ -2014,7 +2030,7 @@ $("#intelChannels").addEventListener("input", () => ls.set("intelChannels", $("#
 $("#intelChannels").addEventListener("change", () => { ls.set("intelChannels", $("#intelChannels").value); if (intel.dir) startIntel(); });
 
 /* ---------- settings ---------- */
-const SETTINGS_DEFAULT = { alRange: "1", alFrom: "you", alSound: true, alDesktop: false, alSpeak: false, alKills: false, alBig: true, follow: false, locEsi: true, killCap: "1000", intelFilter: "all", showRats: true, showSov: true, alSov: true, watch: "", alWatch: true, alTimers: true, relaySend: false, relayRecv: false, relayEvery: "60", relayAll: false, relayPush: false, relayCode: "", ssoClient: "", stdEsi: true, shipAware: true, routeFlag: "shortest", avCamps: true, avKills: true, avIntel: true, alNotif: true, alNotifWarn: true, showWh: true, friends: "", enemies: "", hideFriendly: false, youHide: [], mapLayout: "eve", useBridges: false };
+const SETTINGS_DEFAULT = { alRange: "1", alFrom: "you", alSound: true, alDesktop: false, alSpeak: false, alKills: false, alBig: true, follow: false, locEsi: true, killCap: "1000", intelFilter: "all", showRats: true, showSov: true, alSov: true, watch: "", alWatch: true, alTimers: true, relaySend: false, relayRecv: false, relayEvery: "60", relayAll: false, relayPush: false, relayCode: "", ssoClient: "", stdEsi: true, shipAware: true, routeFlag: "shortest", avCamps: true, avKills: true, avIntel: true, alNotif: true, alNotifWarn: true, showWh: true, friends: "", enemies: "", hideFriendly: false, youHide: [], mapLayout: "eve", useBridges: false, mainChar: "", homeSys: "" };
 let cfg;
 try { cfg = { ...SETTINGS_DEFAULT, ...JSON.parse(ls.get("settings", "{}")) }; } catch { cfg = { ...SETTINGS_DEFAULT }; }
 if (ls.get("settings", null) == null && ls.get("intelAlert", null) != null) cfg.alRange = ls.get("intelAlert"); // older version's setting
@@ -2044,6 +2060,8 @@ function onSetting(k) {
   if (/^relay/.test(k) && k !== "relayCode") relaySetup();
   if (k === "killCap") refreshKills();
   if (k === "mapLayout") renderMap();
+  if (k === "mainChar") { computeIntel(); renderAll(); checkFollow(); }
+  if (k === "homeSys") loadHomeArea();
   if (k === "useBridges" && $("#routeTo").value.trim() && $("#routeList").innerHTML) findRoute();
   if (k === "stdEsi") loadContacts();
   if (k === "shipAware") renderIntel();
@@ -2187,8 +2205,11 @@ function presences() {
   return [...out.values()];
 }
 function youNow() {
+  const ps = presences();
+  // with alts logged in: the main character chosen in Alerts and settings is "you" (map, distances, alerts, closing in)
+  if (cfg.mainChar) { const m = ps.find(p => p.name.toLowerCase() === cfg.mainChar.toLowerCase()); if (m) return m; }
   let best = null;
-  for (const p of presences()) if (!best || p.since > best.since) best = p;
+  for (const p of ps) if (!best || p.since > best.since) best = p;
   return best;
 }
 const bfsMemo = { key: null, d: null };
@@ -2238,18 +2259,62 @@ function hudSummary() {
 // the overlay switches in Alerts and settings (Windows app only)
 if (window.ongridApp?.overlayState) {
   $("#ovSet").hidden = false;
-  const show = st => { if (!st) return; $("#ovAlert").checked = st.alert; $("#ovHud").checked = st.hud; $("#ovTrip").checked = !!st.trip; $("#ovMini").checked = !!st.mini; if (st.miniSize) $("#ovMiniSize").value = String(st.miniSize); $("#ovUnlock").checked = st.unlocked; $("#ovOpacity").value = String([0.55, 0.8, 0.95].reduce((a, b) => Math.abs(b - st.opacity) < Math.abs(a - st.opacity) ? b : a)); };
+  const show = st => { if (!st) return; $("#ovAlert").checked = st.alert; $("#ovHud").checked = st.hud; $("#ovTrip").checked = !!st.trip; $("#ovMini").checked = !!st.mini; $("#ovHome").checked = !!st.home; if (st.miniSize) $("#ovMiniSize").value = String(st.miniSize); $("#ovUnlock").checked = st.unlocked; $("#ovOpacity").value = String([0.55, 0.8, 0.95].reduce((a, b) => Math.abs(b - st.opacity) < Math.abs(a - st.opacity) ? b : a)); };
   window.ongridApp.overlayState().then(show).catch(() => {}); window.ongridApp.onOverlayState?.(show);
   $("#ovAlert").addEventListener("change", e => window.ongridApp.setOverlay({ alert: e.target.checked }));
   $("#ovHud").addEventListener("change", e => window.ongridApp.setOverlay({ hud: e.target.checked }));
   $("#ovTrip").addEventListener("change", e => window.ongridApp.setOverlay({ trip: e.target.checked }));
   $("#ovMini").addEventListener("change", e => window.ongridApp.setOverlay({ mini: e.target.checked }));
+  $("#ovHome").addEventListener("change", e => window.ongridApp.setOverlay({ home: e.target.checked }));
   $("#ovMiniSize").addEventListener("change", e => window.ongridApp.setOverlay({ miniSize: +e.target.value }));
   $("#ovUnlock").addEventListener("change", e => window.ongridApp.setOverlay({ unlocked: e.target.checked }));
   $("#ovOpacity").addEventListener("change", e => window.ongridApp.setOverlay({ opacity: +e.target.value }));
   $("#ovReset").addEventListener("click", () => window.ongridApp.setOverlay({ reset: true }));
   $("#ovTest").addEventListener("click", () => window.ongridApp.alert({ title: "Alert banner", body: "This is where OnGrid alerts show over the game." }));
 }
+/* Windows app: the home HUD. The systems within 3 jumps of your home system are mapped once (and remembered), so
+   it works wherever you are, even when home isn't on the gate map. */
+state.home = null;
+async function loadHomeArea() {
+  const name = (cfg.homeSys || "").trim(), note = $("#homeNote");
+  if (!name) { state.home = null; note.textContent = ""; return; }
+  try {
+    const h = await idOf(name); if (!h) { state.home = null; note.textContent = `No system named "${name}".`; note.className = "note err"; return; }
+    const dist = new Map([[h.id, 0]]), sys = new Map(); let front = [h.id];
+    for (let d = 0; d <= 3; d++) {
+      const infos = (await pool(front, 6, id => systemInfo(id).catch(() => null))).filter(Boolean), next = [];
+      for (const x of infos) { sys.set(x.id, x); state.names.set(x.id, x.name); if (d < 3) for (const n of x.neighbors) if (!dist.has(n)) { dist.set(n, d + 1); next.push(n); } }
+      front = next;
+    }
+    state.home = { id: h.id, name: sys.get(h.id)?.name || h.name, sec: sys.get(h.id)?.sec ?? null, dist, names: new Map([...sys.values()].map(x => [x.name.toUpperCase(), x.id])) };
+    note.textContent = `Home: ${state.home.name}, watching the ${dist.size} systems within 3 jumps.`; note.className = "note";
+  } catch (e) { note.textContent = "Couldn't map the home system: " + e.message; note.className = "note err"; }
+}
+function homeSummary() {
+  const H = state.home; if (!H) return null;
+  const now = Date.now(), find = msg => { const out = new Set(); for (const t of msg.toUpperCase().split(/[^A-Z0-9-]+/)) { if (!t) continue; if (H.names.has(t)) { out.add(H.names.get(t)); continue; }
+    if (t.length >= 3 && /[-0-9]/.test(t)) { const c = [...H.names.keys()].filter(n => n.startsWith(t)); if (c.length === 1) out.add(H.names.get(c[0])); } } return [...out]; };
+  const out = { at: now, title: "Home", sys: H.name, sec: H.sec, range: 3, nearest: null, reports: 0, pilots: 0, big: [], k1: 0, camp: null, danger: "LOW" };
+  const latest = new Map(); // each system's latest report
+  for (const r of intel.reports) {
+    if (now - r.t > 15 * 60e3) continue;
+    const ids = find(r.msg), n = ids.length === 1 ? parseCount(r.msg) : null;
+    for (const id of ids) { const cur = latest.get(id); if (!cur || r.t > cur.t) latest.set(id, { t: r.t, clear: isClear(r.msg), n }); }
+  }
+  for (const [id, x] of latest) {
+    if (x.clear) continue; const d = H.dist.get(id);
+    out.reports++; out.pilots += x.n || 0;
+    if (!out.nearest || d < out.nearest.d || (d === out.nearest.d && x.t > out.nearest.t)) out.nearest = { name: nm(id), d, t: x.t, pilots: x.n };
+  }
+  const km = state.hourly?.km, kills = id => { const k = km?.get(id); return k ? (k.ship_kills || 0) + (k.pod_kills || 0) : 0; };
+  out.k1 = kills(H.id);
+  for (const id of H.dist.keys()) if (state.camps?.has(id) && (!out.camp || H.dist.get(id) < out.camp.d)) out.camp = { name: nm(id), d: H.dist.get(id) };
+  const big = new Set(); for (const id of H.dist.keys()) { const s = state.systems.get(id); if (s) bigTags(s).forEach(b => big.add(b)); } out.big = [...big].slice(0, 4);
+  const n = out.nearest, fresh = n && now - n.t < 5 * 60e3;
+  out.danger = (n && n.d <= 1 && fresh) || out.k1 || (out.camp && out.camp.d <= 1) ? "HIGH" : n || out.camp || out.big.length ? "MEDIUM" : "LOW";
+  return out;
+}
+setTimeout(loadHomeArea, 2000);
 // Windows app: the travel HUD (only while a trip is on) and the mini map over the game
 function tripOverlay() {
   const t = state.trip; if (!t?.route?.length) return null;
@@ -2287,6 +2352,7 @@ function miniMapData() { // the gate map as it is drawn now, with its styles, fo
 if (window.ongridApp?.hud && !/[?&]box=/.test(location.search)) setInterval(() => {
   try { window.ongridApp.hud(hudSummary()); } catch {}
   try { window.ongridApp.trip?.(tripOverlay()); } catch {}
+  try { window.ongridApp.home?.(homeSummary()); } catch {}
   try { const m = miniMapData(); if (m && m.svg !== lastMini) { lastMini = m.svg; window.ongridApp.mini?.(m); } } catch {}
 }, 3000);
 function distFromYou(toId) {
@@ -2681,7 +2747,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.75";
+const APP_VERSION = "2.76";
 // a window left open (an app box window, a pinned tab) would keep running an old copy of the page after an update:
 // every 10 minutes, look at the live page's version; if it's newer, reload while the window isn't being looked at,
 // or show a small bar with a Reload button
