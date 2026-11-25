@@ -44,6 +44,10 @@ function guard(w) {
     shell.openExternal(url); return { action: "deny" };
   });
   w.webContents.on("will-navigate", (e, url) => { if (!isOurs(url)) { e.preventDefault(); shell.openExternal(url); } });
+  // tell the page whether anyone can see it, so a hidden or minimized window doesn't spend CPU drawing
+  const tell = () => { if (!w.isDestroyed()) w.webContents.send("win:shown", w.isVisible() && !w.isMinimized()); };
+  for (const ev of ["show", "hide", "minimize", "restore"]) w.on(ev, tell);
+  w.webContents.on("did-finish-load", tell);
 }
 
 // a saved window place is only used if most of the window is still on a screen (a monitor may have been unplugged)
@@ -60,7 +64,7 @@ function createWindow(visible = true) {
     minWidth: 420, minHeight: 500,
     title: "OnGrid", icon: ICON, backgroundColor: "#0b0f14",
     alwaysOnTop: prefs.alwaysOnTop, autoHideMenuBar: true, ...TITLE_BAR,
-    webPreferences: { preload: path.join(__dirname, "page-preload.js"), backgroundThrottling: false, contextIsolation: true, sandbox: true } // keep timers and alerts running when hidden
+    webPreferences: { preload: path.join(__dirname, "page-preload.js"), backgroundThrottling: false, contextIsolation: true, spellcheck: false, sandbox: true } // keep timers and alerts running when hidden
   });
   if (prefs.maximized) win.maximize();
   if (visible) win.show();
@@ -101,7 +105,7 @@ function createLauncher(quiet) {
     width: size, height: size, x: onScreen ? p.x : undefined, y: onScreen ? p.y : undefined,
     frame: false, transparent: true, resizable: false, maximizable: false, fullscreenable: false, hasShadow: false,
     alwaysOnTop: prefs.alwaysOnTop, title: "OnGrid", icon: ICON, backgroundColor: "#00000000", show: !quiet,
-    webPreferences: { preload: path.join(__dirname, "launcher-preload.js"), contextIsolation: true, sandbox: true }
+    webPreferences: { preload: path.join(__dirname, "launcher-preload.js"), contextIsolation: true, spellcheck: false, sandbox: true }
   });
   launcher.loadFile(path.join(__dirname, "launcher.html"));
   if (quiet) launcher.once("ready-to-show", () => launcher.showInactive());
@@ -131,7 +135,7 @@ function openBox(id, quiet) { // quiet: reopened after a restart, so don't take 
     width: b?.width || w, height: b?.height || h, x: here ? b.x : undefined, y: here ? b.y : undefined, minWidth: 360, minHeight: 260,
     title: "OnGrid", icon: ICON, backgroundColor: "#0b0f14", autoHideMenuBar: true, alwaysOnTop: prefs.alwaysOnTop, show: false,
     ...(id !== "settings" && id !== "about" ? TITLE_BAR : {}), // the settings and About windows keep a plain title bar
-    webPreferences: { preload: path.join(__dirname, "page-preload.js"), backgroundThrottling: false, contextIsolation: true, sandbox: true }
+    webPreferences: { preload: path.join(__dirname, "page-preload.js"), backgroundThrottling: false, contextIsolation: true, spellcheck: false, sandbox: true }
   });
   if (b?.max) bw.maximize();
   if (quiet) bw.once("ready-to-show", () => bw.showInactive()); else bw.show();
@@ -247,7 +251,7 @@ function createOverlay(kind) {
   const ov = new BrowserWindow({
     width: w, height: h, x: p.x, y: p.y, frame: false, transparent: true, resizable: false, movable: true, minimizable: false, maximizable: false,
     fullscreenable: false, skipTaskbar: true, focusable: false, hasShadow: false, show: false, backgroundColor: "#00000000", title: "OnGrid " + kind,
-    webPreferences: { preload: path.join(__dirname, "overlay-preload.js"), contextIsolation: true, sandbox: true, backgroundThrottling: false }
+    webPreferences: { preload: path.join(__dirname, "overlay-preload.js"), contextIsolation: true, spellcheck: false, sandbox: true, backgroundThrottling: false }
   });
   ov.setAlwaysOnTop(true, "screen-saver"); // above EVE's window
   ov.setVisibleOnAllWorkspaces(true);
@@ -255,22 +259,29 @@ function createOverlay(kind) {
   ov.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   ov.webContents.on("will-navigate", e => e.preventDefault());
   ov.webContents.on("did-finish-load", () => { ovMode(ov); const d = { hud: lastHud, trip: lastTrip, mini: lastMini, home: lastHome, loot: lastLoot }[kind]; if (kind !== "alert") ov.webContents.send("ov:data", d ?? null); applyOverlayState(kind); });
-  ov.on("closed", () => { overlays[kind] = null; });
+  ov.on("closed", () => { if (overlays[kind] === ov) overlays[kind] = null; });
   overlays[kind] = ov;
 }
+// the banner only shows while an alert is up, the travel HUD only during a trip, the home HUD once a home is set and the
+// loot HUD during a loot session (or while you place them)
+function ovWanted(kind) {
+  if (!prefs.overlays?.[kind]?.on) return false;
+  return !!(prefs.overlayUnlocked || kind === "hud" || kind === "mini" || (kind === "trip" && lastTrip) || (kind === "home" && lastHome) || (kind === "loot" && lastLoot));
+}
+// An overlay's window only exists while it's needed: each one is a separate process, so the ones that aren't showing
+// are closed to save memory (the alert banner stays once it has been used, as it comes and goes often).
 function applyOverlayState(kind) { // show or hide, and whether clicks go through
-  const ov = overlays[kind]; if (!ov || ov.isDestroyed()) return;
-  const on = prefs.overlays?.[kind]?.on;
+  const ov = overlays[kind];
+  if (!ov || ov.isDestroyed()) { if (ovWanted(kind)) createOverlay(kind); return; }
   ov.setIgnoreMouseEvents(!prefs.overlayUnlocked);
   ov.setFocusable(!!prefs.overlayUnlocked); // unlocked: fully interactive so it can be dragged; locked: never takes focus from EVE
   ovMode(ov);
-  if (!on) return ov.hide();
-  // the banner only shows while an alert is up and the travel HUD only during a trip (or while you place them)
-  if (prefs.overlayUnlocked || kind === "hud" || kind === "mini" || (kind === "trip" && lastTrip) || (kind === "home" && lastHome) || (kind === "loot" && lastLoot)) ov.showInactive();
-  else ov.hide();
+  if (ovWanted(kind)) ov.showInactive();
+  else if (kind === "alert" && prefs.overlays.alert.on) ov.hide();
+  else { overlays[kind] = null; ov.destroy(); }
 }
 function setupOverlays() {
-  for (const kind of OV_KINDS) if (prefs.overlays?.[kind]?.on && !overlays[kind]) createOverlay(kind);
+  for (const kind of OV_KINDS) if (ovWanted(kind) && !overlays[kind]) createOverlay(kind);
 }
 const fromSite = e => { try { return new URL(e.senderFrame?.url || e.sender.getURL()).origin === SITE_ORIGIN; } catch { return false; } };
 ipcMain.on("page:alert", (e, a) => {
@@ -303,7 +314,7 @@ ipcMain.on("ov:hide", e => { const [kind, ov] = ovOf(e); if (ov && kind === "ale
 function setOverlays(o) {
   for (const kind of OV_KINDS) if (typeof o[kind] === "boolean") {
     prefs.overlays[kind] = { ...prefs.overlays[kind], on: o[kind] };
-    if (o[kind] && !overlays[kind]) createOverlay(kind); else applyOverlayState(kind);
+    applyOverlayState(kind);
   }
   if (typeof o.unlocked === "boolean") { prefs.overlayUnlocked = o.unlocked; for (const k of Object.keys(overlays)) applyOverlayState(k); }
   if (Number.isFinite(o.opacity) && o.opacity >= 0.3 && o.opacity <= 1) { prefs.overlayOpacity = o.opacity; for (const w of Object.values(overlays)) ovMode(w); }

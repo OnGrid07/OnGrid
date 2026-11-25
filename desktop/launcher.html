@@ -20,10 +20,12 @@
   .sym.open::after { content: ""; position: absolute; bottom: 1px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px var(--accent); }
   .core { position: absolute; left: 50%; top: 50%; width: 66.5%; height: 66.5%; transform: translate(-50%, -50%); border-radius: 50%; border: 0; cursor: pointer;
     background: radial-gradient(circle at 50% 50%, rgba(79,179,217,.55) 0%, rgba(40,110,160,.45) 35%, rgba(12,30,48,.75) 68%, rgba(8,14,22,.92) 100%); box-shadow: inset 0 0 40px rgba(79,179,217,.35); overflow: hidden; }
-  .core::before, .core::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(160,220,245,.35); animation: ripple 4s ease-out infinite; }
-  .core::after { animation-delay: 2s; }
+  /* the ripple only runs while the pointer is over the ring (a constantly animating window costs CPU and GPU while you play) */
+  .core::before, .core::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(160,220,245,.35); opacity: 0; }
+  body.live .core::before, body.live .core::after { animation: ripple 4s ease-out infinite; }
+  body.live .core::after { animation-delay: 2s; }
   @keyframes ripple { 0% { transform: scale(.15); opacity: 0; } 30% { opacity: .9; } 100% { transform: scale(1); opacity: 0; } }
-  @media (prefers-reduced-motion: reduce) { .core::before, .core::after { animation: none; opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { body.live .core::before, body.live .core::after { animation: none; opacity: 0; } }
   .core:hover { box-shadow: inset 0 0 60px rgba(120,210,245,.6); }
   .label { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; color: var(--fg); text-shadow: 0 0 8px #000, 0 0 3px #000; }
   .label b { display: block; font: 600 calc(22px * var(--s)) "Segoe UI", system-ui, sans-serif; letter-spacing: .06em; }
@@ -90,6 +92,8 @@
   }
   document.getElementById("cells").innerHTML = cells; document.getElementById("clamps").innerHTML = clamps;
   const what = document.getElementById("what"), box = document.getElementById("gate");
+  let calm; const live = on => { clearTimeout(calm); if (on) document.body.classList.add("live"); else calm = setTimeout(() => document.body.classList.remove("live"), 1500); };
+  box.addEventListener("pointerenter", () => live(true)); box.addEventListener("pointerleave", () => live(false));
   // positions are in ring units (400 across); the symbols' size is relative to the large ring
   const place = () => { const s = box.clientWidth / 400; document.documentElement.style.setProperty("--s", (box.clientWidth / 440).toFixed(3)); document.querySelectorAll(".sym").forEach((b, i) => { const [x, y] = at(ang(i), R); b.style.left = x * s + "px"; b.style.top = y * s + "px"; }); };
   document.getElementById("syms").innerHTML = ITEMS.map(([id, name, icon]) => `<button class="sym" data-id="${id}" title="${name}" aria-label="${name}"><svg viewBox="0 0 24 24">${icon}</svg></button>`).join("");

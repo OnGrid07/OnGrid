@@ -13,5 +13,7 @@ contextBridge.exposeInMainWorld("ongridApp", {
   // overlay switches, so they can be set from Alerts and settings as well as the tray menu
   overlayState: () => ipcRenderer.invoke("ov:get"),
   setOverlay: o => ipcRenderer.send("ov:set", { alert: o?.alert, hud: o?.hud, trip: o?.trip, mini: o?.mini, home: o?.home, loot: o?.loot, miniSize: o?.miniSize, unlocked: o?.unlocked, opacity: o?.opacity, reset: !!o?.reset }),
-  onOverlayState: cb => ipcRenderer.on("ov:state", (e, st) => cb(st))
+  onOverlayState: cb => ipcRenderer.on("ov:state", (e, st) => cb(st)),
+  // whether this window can be seen (hidden in the tray or minimized: the page skips drawing)
+  onShown: cb => ipcRenderer.on("win:shown", (e, v) => cb(!!v))
 });

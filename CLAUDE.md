@@ -67,6 +67,12 @@ OnGrid is an intel tool for EVE Online. Everything ships from this repo.
   - ESI takes at most 100 one-way connections per route, so `bridgeConnections()` sends the 50 bridges nearest the start-to-destination line, both ways.
 - **Alts:** when several characters are logged in, `cfg.mainChar` (or the most recently active one) alone sets your location; intel lines are deduped, and each channel reads one log copy.
 - **Loot tracker** (`#lootPanel`, app only): bounties come from EVE's game logs (Gamelogs folder, IndexedDB `gamedir`), read by one window at a time (Web Lock `ongrid-gamelogs`) into localStorage `lootBounty`; the session and pasted loot are in `loot`, pilots' corp tax in `lootTax`, ESS payouts (wallet journal `ess_escrow_transfer`, one window via Web Lock `ongrid-ess`) in `lootEss`, finished sessions in `lootHistory` (backed up). Loot is priced with ESI `markets/prices` average price.
+- **Keep it light on CPU and memory** (it runs next to EVE):
+  - Render functions start with `want("<panel id>")`: a box window draws only its own box, and a hidden window (`winShown` from the app's `win:shown`, or `document.hidden`) draws nothing until it shows again. Don't put alerts or shared state in render functions.
+  - One window reads each local source, using a Web Lock: chat logs (`ongrid-chatlogs`, shared to other windows over BroadcastChannel), game logs and ESS. `hasOwnIntel()` means "holds the chat-log lock".
+  - `NO_MAP` box windows (About, Loot tracker, notifications, settings) never load the map or kills.
+  - The overlay loop only feeds overlays that are switched on, and the mini map only when the map changed (`mapDirty`).
+  - The app closes overlay windows that aren't showing (`ovWanted`), and the ring only animates while hovered.
 - **Hostile tracks** are colored per group (alliance, else corp, else pilot), with stacked ticker labels on the map. There are no group chips in the Hostile tracker.
 
 ## Testing

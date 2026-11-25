@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.78
+  OnGrid (formerly Local Intel), version 2.79
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -835,7 +835,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.78</span>
+    <span class="ver" id="aboutVer">Version 2.79</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -1036,6 +1036,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.79</b> Uses much less CPU and memory, most of all in the Windows app (app 1.7.2). Only one OnGrid window reads the chat logs and shares them with the others; each window only draws its own box, and a window that is hidden or minimized draws nothing until it shows again; the About, Loot tracker, notifications and settings windows don't load the map at all; overlay windows only exist while they have something to show; and the ring's ripple only moves while the mouse is over it.</li>
       <li><b>2.78</b> Loot tracker: ESS payouts are added (read from your wallet; press <b>Allow new features</b> in EVE login once). Past sessions are kept, and you can add them up between two dates.</li>
       <li><b>2.77</b> Windows app 1.7: a Loot tracker on the launcher ring. It counts bounties as you kill rats (from EVE's game logs), totals pasted loot at EVE's estimated prices, and shows total ISK and ISK per hour after corp tax. A loot HUD over the game shows the same.</li>
       <li><b>2.76</b> Windows app 1.6: a home HUD over the game for your home system. A Main character setting for when alts are logged in. Fixed intel reports showing more than once with several alts in the same intel channel.</li>
@@ -1185,6 +1186,17 @@ const cache = {
   get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
 };
+/* Using as little CPU as possible: a window only draws the boxes someone can see. A box window (?box=, Windows app)
+   draws just its own box, and a hidden window (the app's full page while it's in the tray, a background tab) draws
+   nothing; everything is drawn once it shows again. Alerts, intel and the overlays don't depend on drawing. */
+const BOXID = new URLSearchParams(location.search).get("box");
+const NO_MAP = ["about", "lootPanel", "notifPanel", "settings"].includes(BOXID); // these windows never need the map or kills
+let winShown = true, mapDirty = true;
+const dirtyBoxes = new Set();
+function want(id) { if (winShown && !document.hidden && (!BOXID || BOXID === id)) return true; dirtyBoxes.add(id); return false; }
+function shownAgain() { if (!dirtyBoxes.size) return; dirtyBoxes.clear(); try { renderAll(); } catch {} }
+document.addEventListener("visibilitychange", () => { if (!document.hidden) shownAgain(); });
+try { window.ongridApp?.onShown?.(v => { winShown = !!v; if (winShown) shownAgain(); }); } catch {}
 function secColor(s) {
   const r = Math.round(s * 10) / 10;
   if (r >= 0.5) return "#57c47a"; if (r > 0) return "#f2a33a"; return "#ff5a3c";
@@ -1587,6 +1599,7 @@ function regionSvg(pos) {
 }
 
 function renderMap(asString) { // asString: just return the drawing (used for the mini map), don't touch the page
+  if (!asString) { mapDirty = true; if (!want("mapPanel")) return ""; }
   const attacked = attackedSystems(), fleetBy = fleetBySys(), notifSov = cfg.showSov ? notifSovEvents() : new Map();
   const svg = $("#map"), pos = layout(), whBySys = whMap(), sovBySys = sovMap(), fightBySys = fightMap();
   const maxJ = Math.max(1, ...[...state.systems.values()].map(s => s.jumps || 0));
@@ -1655,6 +1668,7 @@ function renderMap(asString) { // asString: just return the drawing (used for th
 }
 
 function renderTable() {
+  if (!want("sysPanel")) return;
   const { k, dir } = state.sort;
   const rows = [...state.systems.values()].sort((a, b) => {
     const x = a[k], y = b[k];
@@ -1683,6 +1697,7 @@ function renderTable() {
 }
 
 function renderFeed() {
+  if (!want("killPanel")) return;
   let list = [...state.kills.values()].filter(k => state.systems.has(k.sys) || state.watch.has(k.sys));
   if (cfg.hideFriendly) list = list.filter(k => !(state.friends.has(k.alliance) || state.friends.has(k.corp)));
   if (state.sel) list = list.filter(k => k.sys === state.sel);
@@ -1849,7 +1864,7 @@ async function pollIntel() {
    This matters most in the Windows app, where each box on the launcher ring is its own window. */
 function isBoxWindow() { return /[?&]box=/.test(location.search); }
 const intelBC = typeof BroadcastChannel === "function" ? new BroadcastChannel("ongrid-intel") : null;
-const hasOwnIntel = () => !!intel.dir || !!relay?.on;
+const hasOwnIntel = () => (navigator.locks ? !!intel.reading : !!intel.dir) || !!relay?.on;
 function shareIntel() {
   if (!intelBC || !hasOwnIntel()) return;
   const cut = Date.now() - 36e5;
@@ -1870,7 +1885,17 @@ if (intelBC) intelBC.onmessage = e => {
 };
 if (intelBC) setTimeout(() => intelBC.postMessage({ type: "hello" }), 300);
 
+// Only one OnGrid window reads the chat logs (a Web Lock); it shares what it reads with the others. A window waiting
+// for the lock takes over by itself if the reading window closes.
 function startIntel() {
+  if (navigator.locks && !intel.reading) {
+    $("#intelReconnect").hidden = true;
+    if (!intel.waiting) { intel.waiting = true; navigator.locks.request("ongrid-chatlogs", () => new Promise(() => { intel.waiting = false; intel.reading = true; readIntel(); })); }
+    return;
+  }
+  readIntel();
+}
+function readIntel() {
   clearInterval(intel.poll); clearInterval(intel.scan);
   $("#intelReconnect").hidden = true;
   intel.files = new Map(); intel.locals = new Map(); intel.reports = [];
@@ -1955,6 +1980,7 @@ function intelCell(s) {
 
 function renderIntel() {
   renderYou();
+  if (!want("intelPanel")) return;
   if (!intel.dir && !relay?.on && !intel.remote) return; // intel comes from chat logs, the phone relay, or another OnGrid window
   const lim = +cfg.alRange, fromYou = cfg.alFrom === "you" && youNow();
   const onMap = cfg.intelFilter === "map";
@@ -2081,6 +2107,8 @@ $("#intelReconnect").addEventListener("click", async () => {
 });
 $("#intelChannels").addEventListener("input", () => ls.set("intelChannels", $("#intelChannels").value));
 $("#intelChannels").addEventListener("change", () => { ls.set("intelChannels", $("#intelChannels").value); if (intel.dir) startIntel(); });
+// channel names changed in another window: the window reading the logs picks them up
+addEventListener("storage", e => { if (e.key === "intelChannels" && e.newValue != null) { $("#intelChannels").value = e.newValue; if (intel.reading) startIntel(); } });
 
 /* ---------- settings ---------- */
 const SETTINGS_DEFAULT = { alRange: "1", alFrom: "you", alSound: true, alDesktop: false, alSpeak: false, alKills: false, alBig: true, follow: false, locEsi: true, killCap: "1000", intelFilter: "all", showRats: true, showSov: true, alSov: true, watch: "", alWatch: true, alTimers: true, relaySend: false, relayRecv: false, relayEvery: "60", relayAll: false, relayPush: false, relayCode: "", ssoClient: "", stdEsi: true, shipAware: true, routeFlag: "shortest", avCamps: true, avKills: true, avIntel: true, alNotif: true, alNotifWarn: true, showWh: true, friends: "", enemies: "", hideFriendly: false, youHide: [], mapLayout: "eve", useBridges: false, mainChar: "", homeSys: "" };
@@ -2314,7 +2342,9 @@ function hudSummary() {
    bounty payout", so they count straight away instead of waiting for the 20-minute payout. Only one OnGrid window reads
    the game logs at a time (a Web Lock); it keeps the last day's bounties in localStorage "lootBounty". The session
    (start, pauses, pasted loot, tax) is in "loot", and pilots' corp tax rates in "lootTax". Every window shows the same. */
-const lootRead = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
+const lootMemo = new Map(); // parse each key again only when it changed
+const lootRead = (k, d) => { try { const raw = localStorage.getItem(k); let m = lootMemo.get(k); if (!m || m.raw !== raw) lootMemo.set(k, m = { raw, v: JSON.parse(raw) });
+  return (k === "lootBounty" || k === "lootEss" ? m.v : structuredClone(m.v)) ?? d; } catch { return d; } }; // the two long lists are only read, never changed in place
 function lootGet() {
   let L = lootRead("loot", null);
   if (!L || typeof L !== "object") { L = { resetAt: Date.now(), start: null, end: null, pauses: [], pastes: [], tax: "" }; ls.set("loot", JSON.stringify(L)); }
@@ -2635,15 +2665,21 @@ function miniMapData() { // the gate map as it is drawn now, with its styles, fo
     let h = ""; try { h = renderMap(true); } finally { state.systems = full; state.radius = R; layout(); }
     return { svg: h, viewBox: "0 0 600 600", css: mapCss };
   }
-  return { svg: $("#map").innerHTML, viewBox: "0 0 600 600", css: mapCss };
+  return { svg: renderMap(true), viewBox: "0 0 600 600", css: mapCss };
 }
-if (window.ongridApp?.hud && !/[?&]box=/.test(location.search)) setInterval(() => {
-  try { window.ongridApp.hud(hudSummary()); } catch {}
-  try { window.ongridApp.trip?.(tripOverlay()); } catch {}
-  try { window.ongridApp.home?.(homeSummary()); } catch {}
-  try { window.ongridApp.loot?.(lootSummary()); } catch {}
-  try { const m = miniMapData(); if (m && m.svg !== lastMini) { lastMini = m.svg; window.ongridApp.mini?.(m); } } catch {}
-}, 3000);
+let ovOn = null; // which overlays are switched on (null: not known yet, so send them all)
+if (window.ongridApp?.hud && !/[?&]box=/.test(location.search)) {
+  window.ongridApp.overlayState?.().then(st => { ovOn = st || null; }).catch(() => {});
+  window.ongridApp.onOverlayState?.(st => { const mini = !ovOn?.mini && st?.mini; ovOn = st || null; if (mini) mapDirty = true; });
+  const on = k => !ovOn || ovOn[k] || ovOn.unlocked;
+  setInterval(() => {
+    if (on("hud")) try { window.ongridApp.hud(hudSummary()); } catch {}
+    if (on("trip")) try { window.ongridApp.trip?.(tripOverlay()); } catch {}
+    if (on("home")) try { window.ongridApp.home?.(homeSummary()); } catch {}
+    if (on("loot")) try { window.ongridApp.loot?.(lootSummary()); } catch {}
+    if (on("mini") && mapDirty) try { mapDirty = false; const m = miniMapData(); if (m && m.svg !== lastMini) { lastMini = m.svg; window.ongridApp.mini?.(m); } } catch {}
+  }, 3000);
+}
 function distFromYou(toId) {
   const me = youNow(); if (!me) return null;
   const meSys = [...state.systems.values()].find(s => s.name.toUpperCase() === me.system.toUpperCase());
@@ -3036,7 +3072,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.78";
+const APP_VERSION = "2.79";
 // a window left open (an app box window, a pinned tab) would keep running an old copy of the page after an update:
 // every 10 minutes, look at the live page's version; if it's newer, reload while the window isn't being looked at,
 // or show a small bar with a Reload button
@@ -3111,6 +3147,7 @@ function matchWatch(msg) {
   return [...out];
 }
 function renderWatch() {
+  if (!want("watchPanel")) return;
   const grid = $("#watchGrid"); if (!grid) return;
   const now = Date.now(), me = youNow();
   grid.innerHTML = [...state.watch.values()].map(w => {
@@ -3448,7 +3485,7 @@ $("#ssoChars").addEventListener("click", e => {
 if (location.protocol === "file:") ssoMsg("To log in, the page must be on a web address (GitHub Pages or http://localhost). The About window explains how.");
 renderChars(); renderNotifs();
 ssoCallback().then(loadNotifs);
-setInterval(pollLocation, 10e3);
+if (!NO_MAP) setInterval(pollLocation, 10e3);
 setInterval(loadNotifs, 5 * 60e3);
 
 /* ---------- things the EVE login can do: autopilot, route planner, contacts, fleet, ship, fatigue, info windows ---------- */
@@ -3871,7 +3908,7 @@ function missingScopes(c) { return SCOPES.split(" ").filter(x => !scopesOf(c).in
 loadContacts();
 setInterval(loadContacts, 30 * 60e3);
 loadFleet();
-setInterval(loadFleet, 30e3);
+if (!NO_MAP) setInterval(loadFleet, 30e3);
 
 /* ---------- 1. timers board: every upcoming timer from notifications, plus your own ---------- */
 const TIMER_LABEL = { decloakTime: "command nodes appear", readyTime: "moon chunk ready", autoTime: "chunk breaks automatically", reinforceExitTime: "leaves reinforcement", timeLeft: "timer ends", vulnerableTime: "vulnerable", startDate: "starts", endDate: "ends", expireTime: "expires" };
@@ -3910,6 +3947,7 @@ function parseWhen(txt) {
   return null;
 }
 function renderTimers() {
+  if (!want("timerPanel")) return;
   const now = Date.now(), list = allTimers(), box = $("#timerList");
   if (!list.length) { box.innerHTML = `<div class="empty">No timers. They appear here from your notifications (reinforcements, sov nodes, moon chunks), or add your own above.</div>`; renderDock(); return; }
   box.innerHTML = list.map(t => {
@@ -3994,6 +4032,7 @@ function hostileTracks() {
   return [...tracks.values()].sort((a, b) => b.seen[b.seen.length - 1].t - a.seen[a.seen.length - 1].t);
 }
 function renderHostiles() {
+  if (!want("hostilePanel")) return;
   const box = $("#hostileList"), list = hostileTracks(), groups = hostileGroups(list);
   if (state.selGroup && !groups.has(state.selGroup)) state.selGroup = null;
   if (!list.length) { box.innerHTML = `<div class="empty">${intel.dir || relay.on || intel.remote ? "No pilots named in intel in the last hour." : "Connect your chat logs (or receive intel from your PC) to track pilots named in intel."}</div>`; return; }
@@ -5040,6 +5079,7 @@ const o0 = (qp.get("system") || ls.get("origin", "")).toUpperCase(), r0 = Math.m
 $("#origin").value = o0; $("#radius").value = r0;
 (async () => {
   if (SCAN_ONLY) return; // a share link only shows the scan
+  if (NO_MAP) return; // About, Loot tracker, notifications and settings windows: intel comes from the other windows
   // 1) link's system, 2) where you are now (if the chat log folder is still allowed), 3) last system you loaded
   if (!state.pinned && window.showDirectoryPicker) {
     const h = await kvGet("dir");
