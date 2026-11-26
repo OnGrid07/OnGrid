@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.81
+  OnGrid (formerly Local Intel), version 2.82
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -300,7 +300,7 @@ html.wco #boxHost { top: calc(env(titlebar-area-height, 32px) + 8px); }
 /* EVE channel MOTDs in Intel and location */
 #intelMotd { display: flex; flex-direction: column; gap: 4px; margin: 4px 0; }
 #intelMotd .motd { background: var(--bg); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 6px; padding: 4px 10px; font-size: 12px; }
-#intelMotd .motd summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+#intelMotd .motd > b { color: var(--accent); }
 #intelMotd .motd > div { white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 4px; max-height: 14em; overflow: auto; }
 #intelMotd a { color: var(--accent); }
 /* Jabber */
@@ -338,7 +338,7 @@ html.wco #boxHost { top: calc(env(titlebar-area-height, 32px) + 8px); }
 .jabmsgs .m.me b { color: var(--accent); } .jabmsgs .m.sys { color: var(--warm); font-style: italic; } .jabmsgs .m.old { opacity: .75; }
 .jabmsgs .day { color: var(--muted); font-size: 11px; text-align: center; margin: 6px 0 2px; }
 .jabmsgs .motd { position: sticky; top: 0; z-index: 1; background: var(--bg); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 6px; padding: 4px 10px; font-size: 12px; margin-bottom: 4px; }
-.jabmsgs .motd summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+.jabmsgs .motd > b { color: var(--accent); }
 .jabmsgs .motd > div { white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 4px; max-height: 10em; overflow: auto; }
 .jabmsgs .ping { background: var(--bg); border: 1px solid var(--line); border-left: 3px solid var(--hot); border-radius: 6px; padding: 6px 10px; overflow-wrap: anywhere; }
 .jabmsgs .ping > div:last-child { white-space: pre-wrap; }
@@ -914,7 +914,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.81</span>
+    <span class="ver" id="aboutVer">Version 2.82</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -984,7 +984,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
       <li><b>Jabber</b> (app 1.8 and later): the speech-bubble symbol on the ring. Press <b>Account</b> and type your Jabber ID (name@server, the one your alliance or corp auth site gave you) and password, then <b>Connect</b>. If your auth site gives a separate server name or port, type them under <b>Server</b> and <b>Port</b>; otherwise leave them empty. The password is kept encrypted by Windows on your PC, is only sent to your Jabber server over an encrypted connection, and OnGrid won't connect to a server whose certificate isn't valid. With <b>Connect when OnGrid starts</b> on, it connects by itself; <b>Disconnect</b> keeps it off until you connect again, and <b>Forget password</b> removes the saved password.
         <ul>
           <li><b>Pings</b>: broadcasts from your ping bot show under 📣 Pings, newest first, with an alert (sound, Windows pop-up and the banner over the game, following your alert settings). A message counts as a ping when it's a server broadcast, comes from one of the <b>Ping senders</b> (directorbot, pingbot and similar names to start with; add your alliance's bot if it has another name), says "This was a broadcast from", or is said in one of your <b>Ping rooms</b>. Pings are kept on your PC; pings you missed while offline show without an alert. <b>Clear</b> empties the list. Pings never go to the phone relay.</li>
-          <li><b>Chat</b>: rooms under <b>Rooms to join</b> are joined when you connect (a short name like <code>fleet</code> means fleet@conference.yourserver). Join another with the box under Rooms, or start a chat with someone under Chats (your Jabber contacts are suggested). Each room shows its <b>MOTD</b> (the room's topic) at the top, with who set it; click it to fold it away. Enter sends, Shift+Enter starts a new line. With <b>Alert me for direct messages…</b> on, a direct message or your name said in a room gives a quieter alert, unless you're reading that conversation. Chat isn't saved: it starts fresh (with the room's recent messages) each time OnGrid starts.</li>
+          <li><b>Chat</b>: rooms under <b>Rooms to join</b> are joined when you connect (a short name like <code>fleet</code> means fleet@conference.yourserver). Join another with the box under Rooms: it's added to Rooms to join, so it's joined again every time you connect, and <b>Leave</b> takes it off the list. Start a chat with someone under Chats (your Jabber contacts are suggested). Each room always shows its <b>MOTD</b> (the room's topic) at the top, with who set it; the last one is remembered, so it shows even before you connect. Enter sends, Shift+Enter starts a new line. With <b>Alert me for direct messages…</b> on, a direct message or your name said in a room gives a quieter alert, unless you're reading that conversation. Chat isn't saved: it starts fresh (with the room's recent messages) each time OnGrid starts.</li>
         </ul></li>
       <li><b>Loot tracker</b> (app 1.7 and later): the crate symbol on the ring. Press <b>Connect game logs folder</b> once and pick <code>Documents\EVE\logs\Gamelogs</code> (next to the Chatlogs folder); the app opens it by itself after that. Every bounty is counted the moment you kill the rat, without waiting for the 20-minute payout, for all your characters logged in at once. A session starts by itself with your first bounty or loot paste (or press <b>Start</b>); <b>Pause</b> stops the clock and the counting, <b>Resume</b> carries on, and <b>New session</b> clears it. For loot, select the items in your cargo hold or a wreck, press Ctrl+C, then paste them into the Loot box: they're priced at EVE's estimated value (the same as the game's Est. price) and added up; click a paste to see its items, or × to remove it. Bounties are shown after each pilot's corp tax, looked up by itself; type a number in <b>Tax on bounties</b> to use your own percentage instead. <b>ESS payouts</b> (your share of the ESS bank, paid into your wallet) are added too: they aren't in the game logs, so OnGrid reads them from the wallet of each character you're logged in with under <b>EVE login</b> (press <b>Allow new features</b> there once so it may read the wallet). CCP updates the wallet about once an hour, so they can show up to an hour late; a payout counts for the session it arrives in. <b>ISK per hour</b> is bounties after tax plus ESS payouts plus loot, divided by the time the session has run (pauses left out). The <b>loot HUD</b> over the game shows total ISK, ISK per hour, bounties and loot while a session runs; turn it on or off in <b>Overlays over the game</b> (the ⋮ in the Loot tracker window) or the tray menu. <b>Past sessions</b>: pressing <b>New session</b> keeps the finished session in the history. Pick two dates (or press <b>7 days</b> or <b>30 days</b>) to add up every session between them: total ISK, time, ISK per hour, and bounties, ESS and loot. Each day is listed with its total; click a day to see its sessions, and × deletes one. The history is in your backups.</li>
       <li>It keeps running in the system tray, and alerts and Windows notifications keep working while it's minimized or behind the game. Closing the window hides it to the tray; quit from the tray icon.</li>
@@ -1077,7 +1077,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
       <li>Big-ship words (titan, super, dread, carrier, fax, lancer, rorq, dictor, hic, blops, caps, cyno) and ship names like "Sabre" get tagged.</li>
       <li>ESS words (ess, linking, main bank, reserve bank, bank) get an ESS tag.</li>
       <li><b>Show</b> lists all intel, or only messages about systems on the map or watched.</li>
-      <li>Each intel channel's <b>MOTD</b> (message of the day) shows above the intel, folded: click it to read it. It updates when the channel's MOTD changes. Web links in it can be clicked.</li>
+      <li>Each intel channel's <b>MOTD</b> (message of the day) is always shown above the intel. It updates when the channel's MOTD changes. Web links in it can be clicked.</li>
       <li>Above the intel, each of your characters is listed with where it is. Choose which ones are listed under <b>Characters in Intel and location</b> in Alerts and settings: click a name to hide it (it's crossed out) and again to show it. This only changes the list; hidden characters still count for your location, alerts and the YOU ring on the map. The choice is saved. With alts logged in, also pick your <b>Main character</b> there: only that character's location moves the map and counts for distances, alerts and "closing in" (Automatic follows whoever moved last). Several alts in the same intel channel each log the same lines; OnGrid reads one copy and shows each report once.</li>
       <li>Your location comes from your EVE login (see below) or from your Local chat log, whichever saw your latest jump. Each source is named next to your system. With several characters, each one is shown. A character the EVE login reports as offline isn't shown.</li>
     </ul>
@@ -1121,6 +1121,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.82</b> MOTDs are always shown, no longer folded. Windows app 1.8.2: Jabber rooms you join are saved and joined again every time you connect (Leave takes a room off the list), and each room keeps its last MOTD so it shows even before you connect.</li>
       <li><b>2.81</b> Channel MOTDs: each intel channel's message of the day shows above the intel (click to open it), and in the Windows app each Jabber room shows its MOTD at the top.</li>
       <li><b>2.80</b> Windows app 1.8: Jabber. Your alliance or corp pings come in with an alert and the banner over the game, and you can chat in Jabber rooms and with people without a separate Jabber program.</li>
       <li><b>2.79</b> Uses much less CPU and memory, most of all in the Windows app (app 1.7.2). Only one OnGrid window reads the chat logs and shares them with the others; each window only draws its own box, and a window that is hidden or minimized draws nothing until it shows again; the About, Loot tracker, notifications and settings windows don't load the map at all; overlay windows only exist while they have something to show; and the ring's ripple only moves while the mouse is over it.</li>
@@ -2077,13 +2078,11 @@ function eveText(s) {
     .replace(/<[^>]*>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&").trim();
   return esc(t).replace(/\bhttps:\/\/[^\s<>"']+/g, u => `<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`);
 }
-const motdOpen = new Set(); // which MOTDs you opened (they start folded so the reports stay in view)
 function renderMotd() {
   const box = $("#intelMotd"); if (!box) return;
   const want = new Set(channelList().map(c => c.toLowerCase())), list = [...intel.motd.values()].filter(x => !want.size || want.has(x.ch.toLowerCase()));
-  box.innerHTML = list.map(x => `<details class="motd" data-ch="${esc(x.ch.toLowerCase())}"${motdOpen.has(x.ch.toLowerCase()) ? " open" : ""}><summary>MOTD · ${esc(x.ch)}</summary><div>${eveText(x.text) || '<span class="note">empty</span>'}</div></details>`).join("");
+  box.innerHTML = list.map(x => `<div class="motd"><b>MOTD · ${esc(x.ch)}</b><div>${eveText(x.text) || '<span class="note">empty</span>'}</div></div>`).join("");
 }
-$("#intelMotd").addEventListener("toggle", e => { const d = e.target.closest?.("details[data-ch]"); if (d) d.open ? motdOpen.add(d.dataset.ch) : motdOpen.delete(d.dataset.ch); }, true);
 function renderIntel() {
   renderYou();
   if (!want("intelPanel")) return;
@@ -2727,7 +2726,7 @@ function renderJabMain(scroll = true) {
   } else {
     const c = J.convs.get(J.cur);
     $("#jabHead").innerHTML = c ? `${c.kind === "room" ? "#" : ""}${esc(c.title)} <span class="note">${esc(c.id)}${c.kind === "room" && !c.joined ? " · not joined" : ""}</span><button type="button" class="mini" id="jabLeave">${c.kind === "room" ? "Leave" : "Close"}</button>` : "";
-    const motd = c?.kind === "room" && c.subject ? `<details class="motd"${J.motdShut?.has(c.id) ? "" : " open"} data-room="${esc(c.id)}"><summary>MOTD${c.subjectBy ? ` <span class="note">set by ${esc(c.subjectBy)}</span>` : ""}</summary><div>${jabLink(c.subject)}</div></details>` : "";
+    const motd = c?.kind === "room" && c.subject ? `<div class="motd"><b>MOTD${c.subjectBy ? ` <span class="note">set by ${esc(c.subjectBy)}</span>` : ""}</b><div>${jabLink(c.subject)}</div></div>` : "";
     box.innerHTML = motd + (J.msgs.length ? J.msgs.map((m, i) => jabMsgHtml(m, J.msgs[i - 1])).join("") : `<div class="empty">No messages yet.</div>`);
     if (scroll || near) box.scrollTop = box.scrollHeight;
   }
@@ -2759,6 +2758,7 @@ if (jabApi) {
   jabApi.onEvent(ev => {
     if (ev.type === "status") { J.status = ev.status; if (ev.status.state === "online") { $("#jabAcct").hidden = true; jabApi.state().then(st => { if (st) { J.cfg = st.cfg; renderJabAcct(); } }).catch(() => {}); } }
     else if (ev.type === "convs") J.convs = new Map(ev.convs.map(c => [c.id, c]));
+    else if (ev.type === "cfg") { J.cfg = ev.cfg; if (jabShowing()) renderJabAcct(); }
     else if (ev.type === "roster") J.roster = ev.roster;
     else if (ev.type === "pings") J.pings = ev.pings;
     else if (ev.type === "msg") {
@@ -2791,7 +2791,6 @@ if (jabApi) {
     e.preventDefault(); const f = e.target.closest("[data-add]"), v = f?.querySelector("input").value.trim(); if (!v) return;
     const id = await jabApi.open(v, f.dataset.add); f.querySelector("input").value = ""; if (id) setTimeout(() => jabOpen(id), 300);
   });
-  $("#jabMsgs").addEventListener("toggle", e => { const d = e.target.closest?.("details[data-room]"); if (d) { J.motdShut ||= new Set(); d.open ? J.motdShut.delete(d.dataset.room) : J.motdShut.add(d.dataset.room); } }, true);
   $("#jabMsgs").addEventListener("click", e => { if (e.target.id === "jabClearPings" && confirm("Clear all pings?")) jabApi.clearPings(); });
   $("#jabHead").addEventListener("click", e => {
     if (e.target.id === "jabClearPings") { if (confirm("Clear all pings?")) jabApi.clearPings(); }
@@ -3304,7 +3303,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.81";
+const APP_VERSION = "2.82";
 // a window left open (an app box window, a pinned tab) would keep running an old copy of the page after an update:
 // every 10 minutes, look at the live page's version; if it's newer, reload while the window isn't being looked at,
 // or show a small bar with a Reload button

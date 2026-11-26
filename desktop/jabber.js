@@ -31,9 +31,20 @@ module.exports = function setupJabber({ prefs, savePrefs, userData, send }) {
   function convSummary(c) { const last = c.msgs[c.msgs.length - 1]; return { id: c.id, kind: c.kind, title: c.title, unread: c.unread, joined: !!c.joined, subject: c.subject || "", subjectBy: c.subjectBy || "", last: last ? { t: last.t, body: last.body.slice(0, 80) } : null }; }
   function conv(id, kind, title) {
     let c = convs.get(id);
-    if (!c) { c = { id, kind, title: title || id, msgs: [], unread: 0, joined: false }; convs.set(id, c); }
+    if (!c) {
+      c = { id, kind, title: title || id, msgs: [], unread: 0, joined: false }; convs.set(id, c);
+      const saved = kind === "room" && cfg().subjects?.[id]; if (saved) { c.subject = saved.text; c.subjectBy = saved.by; } // its MOTD from last time, until the room sends it again
+    }
     return c;
   }
+  // the rooms you're in are saved (Rooms to join), so they're joined again every time you connect
+  const savedRooms = () => [...new Set([...list(cfg().rooms), ...list(cfg().pingRooms)].map(roomJid).filter(Boolean))];
+  function saveRoomList(fn) {
+    const c = cfg(), rooms = list(c.rooms).map(roomJid).filter(Boolean), next = fn(rooms);
+    c.rooms = [...new Set(next)].join(", "); prefs.jabber = c; savePrefs(); send({ type: "cfg", cfg: publicCfg() });
+  }
+  const sendConvs = () => send({ type: "convs", convs: [...convs.values()].map(convSummary) });
+  for (const r of savedRooms()) conv(r, "room", localOf(r) || r); // listed (with their MOTDs) even before you connect
   function addMsg(c, m) {
     if (c.msgs.some(x => (m.id && x.id === m.id && x.from === m.from) || (x.old !== undefined && m.old && x.from === m.from && x.body === m.body && Math.abs(x.t - m.t) < 2000))) return null; // room history repeats on rejoin
     c.msgs.push(m); if (c.msgs.length > MAX_MSGS) c.msgs.splice(0, c.msgs.length - MAX_MSGS);
@@ -63,7 +74,11 @@ module.exports = function setupJabber({ prefs, savePrefs, userData, send }) {
       if (type === "error") { const c = convs.get(bare(from)); if (c) addMsg(c, { t: Date.now(), from: "", nick: "", body: "Couldn't send: " + (errText(st) || "the server refused the message"), sys: true }); return; }
       // a room's subject (its topic or MOTD): sent when you join, and again when someone changes it
       const subj = type === "groupchat" ? st.getChild("subject") : null;
-      if (subj && body == null) { const c = conv(bare(from), "room", localOf(from) || bare(from)); c.subject = subj.text().slice(0, 8000); c.subjectBy = resOf(from); send({ type: "convs", convs: [...convs.values()].map(convSummary) }); return; }
+      if (subj && body == null) {
+        const c = conv(bare(from), "room", localOf(from) || bare(from)); c.subject = subj.text().slice(0, 8000); c.subjectBy = resOf(from);
+        const p = cfg(); p.subjects = { ...(p.subjects || {}), [c.id]: { text: c.subject, by: c.subjectBy } }; prefs.jabber = p; savePrefs(); // kept for next time
+        sendConvs(); return;
+      }
       if (body == null || !body.trim()) return;
       const stamp = st.getChild("delay", "urn:xmpp:delay")?.attrs?.stamp || st.getChild("x", "jabber:x:delay")?.attrs?.stamp;
       const t = stamp ? (Date.parse(stamp) || Date.now()) : Date.now(), old = !!stamp && Date.now() - t > 10 * 60e3;
@@ -146,8 +161,10 @@ module.exports = function setupJabber({ prefs, savePrefs, userData, send }) {
       me = addr.toString(); setStatus("online", "Connected as " + bare(me));
       try { await x.send(lib.xml("presence")); } catch {}
       try { const r = await x.iqCaller.get(lib.xml("query", "jabber:iq:roster")); roster = (r?.getChildren("item") || []).map(i => ({ jid: bare(i.attrs.jid), name: i.attrs.name || localOf(i.attrs.jid) })).filter(i => i.jid).slice(0, 2000); send({ type: "roster", roster }); } catch {}
-      for (const cv of convs.values()) if (cv.kind === "room") cv.joined = false;
-      for (const r of new Set([...list(c.rooms), ...list(c.pingRooms)])) joinRoom(r).catch(() => {});
+      const keep = new Set(savedRooms());
+      for (const cv of [...convs.values()]) if (cv.kind === "room") { cv.joined = false; if (!keep.has(cv.id)) convs.delete(cv.id); }
+      for (const r of keep) { conv(r, "room", localOf(r) || r); joinRoom(r).catch(() => {}); }
+      sendConvs();
     });
     x.start().catch(e => { if (x === xmpp && !stopping) setStatus("error", friendly(String(e?.message || e))); });
     return publicCfg();
@@ -176,15 +193,24 @@ module.exports = function setupJabber({ prefs, savePrefs, userData, send }) {
   }
   function open(id, kind) { // start a chat with someone, or join a room
     id = String(id || "").trim(); if (!id) return null;
-    if (kind === "room") { joinRoom(id).catch(() => {}); return roomJid(id); }
+    if (kind === "room") {
+      const room = roomJid(id); if (!room) return null;
+      conv(room, "room", localOf(room) || room); saveRoomList(rs => [...rs, room]); sendConvs();
+      joinRoom(room).catch(() => {}); return room;
+    }
     const j = bare(id.includes("@") ? id : `${id}@${bare(cfg().jid).split("@")[1] || ""}`);
     const c = conv(j, "chat", roster.find(r => r.jid === j)?.name || localOf(j) || j); send({ type: "convs", convs: [...convs.values()].map(convSummary) });
     return c.id;
   }
   function leave(id) {
     const c = convs.get(id); if (!c) return;
-    if (c.kind === "room" && xmpp && c.nick) xmpp.send(lib.xml("presence", { to: `${c.id}/${c.nick}`, type: "unavailable" })).catch(() => {});
-    convs.delete(id); send({ type: "convs", convs: [...convs.values()].map(convSummary) });
+    if (c.kind === "room") {
+      if (xmpp && c.nick) xmpp.send(lib.xml("presence", { to: `${c.id}/${c.nick}`, type: "unavailable" })).catch(() => {});
+      const p = cfg(); p.pingRooms = list(p.pingRooms).filter(r => roomJid(r) !== c.id).join(", ");
+      if (p.subjects) delete p.subjects[c.id];
+      prefs.jabber = p; saveRoomList(rs => rs.filter(r => r !== c.id)); // left on purpose: not joined again
+    }
+    convs.delete(id); sendConvs();
   }
   function read(id) { const c = convs.get(id); if (c && c.unread) { c.unread = 0; send({ type: "convs", convs: [...convs.values()].map(convSummary) }); } }
   function history(id) { return convs.get(id)?.msgs || []; }
