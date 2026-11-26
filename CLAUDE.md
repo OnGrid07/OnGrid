@@ -78,7 +78,9 @@ OnGrid is an intel tool for EVE Online. Everything ships from this repo.
   - `NO_MAP` box windows (About, Loot tracker, notifications, settings) never load the map or kills.
   - The overlay loop only feeds overlays that are switched on, and the mini map only when the map changed (`mapDirty`).
   - The app closes overlay windows that aren't showing (`ovWanted`), and the ring only animates while hovered.
-- **Hostile tracks** are colored per group (alliance, else corp, else pilot), with stacked ticker labels on the map. There are no group chips in the Hostile tracker.
+- **Hostile tracks** are colored per group (alliance, else corp, else pilot; `trackColor()`), with stacked ticker labels on the map. There are no group chips in the Hostile tracker.
+  - A track shows only the last 3 systems (`recentLine()`), starts over when the pilot re-enters a system already on it, and is hidden once the pilot has been in the same system for 5 minutes (the label stays).
+  - Arrowheads and labels are drawn after the systems (`hostileTop`), so intel rings never cover them.
 
 ## Testing
 
