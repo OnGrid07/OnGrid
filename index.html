@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.86
+  OnGrid (formerly Local Intel), version 2.87
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -729,7 +729,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
       <label class="wide">Ping senders <input id="jabPingFrom" spellcheck="false"></label>
       <label class="wide chk"><input type="checkbox" id="jabAuto"> Connect when OnGrid starts</label>
       <label class="wide chk"><input type="checkbox" id="jabAlertChat"> Alert me for direct messages and when my name is said in a room</label>
-      <div class="wide jabbtns"><button type="submit">Connect</button><button type="button" id="jabOff">Disconnect</button><button type="button" id="jabForget">Forget password</button><span class="note" id="jabAcctNote"></span></div>
+      <div class="wide jabbtns"><button type="submit">Connect</button><button type="button" id="jabOff">Disconnect</button><button type="button" id="jabForget">Forget password</button><button type="button" id="jabSonar" title="New pings play this sound (with Sound on in Alerts)">▶ Ping sound</button><span class="note" id="jabAcctNote"></span></div>
     </form>
     <div class="jabbody">
       <nav class="jabside" id="jabSide" aria-label="Pings and conversations"></nav>
@@ -922,7 +922,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.86</span>
+    <span class="ver" id="aboutVer">Version 2.87</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -991,7 +991,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
       <li><b>Overlays</b> (app 1.4 and later): two see-through windows that float on top of EVE when the game runs in windowed or fixed-window mode. They are separate windows and never touch the game client. The <b>alert banner</b> flashes at the top of the screen whenever OnGrid alerts you (hostiles in range, watched systems, big ships, camps, sov, timers) and fades after about nine seconds; several at once show a +count. The <b>intel HUD</b> stays up and shows your system and its security, a danger rating (HIGH: a hostile reported within 1 jump in the last 5 minutes, or a camp next door; MEDIUM: hostiles within 3 jumps, kills where you are, camps or big ships nearby; LOW: quiet), the nearest reported hostile with jumps, pilots and minutes ago, how many systems within 3 jumps have hostiles reported, big ships, and kills where you are. The <b>travel HUD</b> appears only while a trip is on: destination and jumps left, then your system and the next five jumps with their security, kills in the last hour (✕), intel (with pilot count) and a pulsing ring on camps, plus a warning for the first camp ahead. The <b>mini map</b> is a small see-through copy of the gate map (small, medium or large), showing at most 3 jumps even when the Gate map shows more, with the intel rings, hostile tracks and your YOU ring; to stay readable it only names systems with intel, kills, you or hostile groups. The <b>home HUD</b> watches the home system you type under <b>Overlays over the game</b> and everything within 3 jumps of it, wherever you are: a danger rating, the nearest hostile reported near home, how many systems near home have hostiles, kills in your home system in the last hour, and camps. Clicks pass straight through all of them to EVE. Switch them in <b>Alerts and settings → Overlays over the game</b> (or the tray menu): turn each one on or off, <b>Move overlays</b> to drag them where you want (they get a yellow dashed outline; untick it to lock them again), <b>Overlay background</b> to make them lighter or more solid, and <b>Put overlays back in place</b>. <b>Test alert</b> in Alerts and settings shows the banner.</li>
       <li><b>Jabber</b> (app 1.8 and later): the speech-bubble symbol on the ring. Press <b>Account</b> and type your Jabber ID (name@server, the one your alliance or corp auth site gave you) and password, then <b>Connect</b>. If your auth site gives a separate server name or port, type them under <b>Server</b> and <b>Port</b>; otherwise leave them empty. The password is kept encrypted by Windows on your PC, is only sent to your Jabber server over an encrypted connection, and OnGrid won't connect to a server whose certificate isn't valid. With <b>Connect when OnGrid starts</b> on, it connects by itself; <b>Disconnect</b> keeps it off until you connect again, and <b>Forget password</b> removes the saved password.
         <ul>
-          <li><b>Pings</b>: broadcasts from your ping bot show under 📣 Pings, newest first, with an alert (sound, Windows pop-up and the banner over the game, following your alert settings). A message counts as a ping when it's a server broadcast, comes from one of the <b>Ping senders</b> (directorbot, pingbot and similar names to start with; add your alliance's bot if it has another name), says "This was a broadcast from", or is said in one of your <b>Ping rooms</b>. Pings are kept on your PC; pings you missed while offline show without an alert. <b>Clear</b> empties the list. Pings never go to the phone relay.</li>
+          <li><b>Pings</b>: broadcasts from your ping bot show under 📣 Pings, newest first, with an alert (a sonar ping sound, a Windows pop-up and the banner over the game, following your alert settings; <b>▶ Ping sound</b> under Account plays the sound). A message counts as a ping when it's a server broadcast, comes from one of the <b>Ping senders</b> (directorbot, pingbot and similar names to start with; add your alliance's bot if it has another name), says "This was a broadcast from", or is said in one of your <b>Ping rooms</b>. Pings are kept on your PC; pings you missed while offline show without an alert. <b>Clear</b> empties the list. Pings never go to the phone relay.</li>
           <li><b>Chat</b>: rooms under <b>Rooms to join</b> are joined when you connect (a short name like <code>fleet</code> means fleet@conference.yourserver). Join another with the box under Rooms: it's added to Rooms to join, so it's joined again every time you connect, and <b>Leave</b> takes it off the list. Start a chat with someone under Chats (your Jabber contacts are suggested). Each room always shows its <b>MOTD</b> (the room's topic) at the top, with who set it; the last one is remembered, so it shows even before you connect. Enter sends, Shift+Enter starts a new line. With <b>Alert me for direct messages…</b> on, a direct message or your name said in a room gives a quieter alert, unless you're reading that conversation. Chat isn't saved: it starts fresh (with the room's recent messages) each time OnGrid starts.</li>
         </ul></li>
       <li><b>Loot tracker</b> (app 1.7 and later): the crate symbol on the ring. Press <b>Connect game logs folder</b> once and pick <code>Documents\EVE\logs\Gamelogs</code> (next to the Chatlogs folder); the app opens it by itself after that. Every bounty is counted the moment you kill the rat, without waiting for the 20-minute payout, for all your characters logged in at once. A session starts by itself with your first bounty or loot paste (or press <b>Start</b>); <b>Pause</b> stops the clock and the counting, <b>Resume</b> carries on, and <b>New session</b> clears it. For loot, select the items in your cargo hold or a wreck, press Ctrl+C, then paste them into the Loot box: they're priced at EVE's estimated value (the same as the game's Est. price) and added up; click a paste to see its items, or × to remove it. Bounties are shown after each pilot's corp tax, looked up by itself; type a number in <b>Tax on bounties</b> to use your own percentage instead. <b>ESS payouts</b> (your share of the ESS bank, paid into your wallet) are added too: they aren't in the game logs, so OnGrid reads them from the wallet of each character you're logged in with under <b>EVE login</b> (press <b>Allow new features</b> there once so it may read the wallet). CCP updates the wallet about once an hour, so they can show up to an hour late; a payout counts for the session it arrives in. <b>ISK per hour</b> is bounties after tax plus ESS payouts plus loot, divided by the time the session has run (pauses left out). The <b>loot HUD</b> over the game shows total ISK, ISK per hour, bounties and loot while a session runs; turn it on or off in <b>Overlays over the game</b> (the ⋮ in the Loot tracker window) or the tray menu. <b>Past sessions</b>: pressing <b>New session</b> keeps the finished session in the history. Pick two dates (or press <b>7 days</b> or <b>30 days</b>) to add up every session between them: total ISK, time, ISK per hour, and bounties, ESS and loot. Each day is listed with its total; click a day to see its sessions, and × deletes one. The history is in your backups.</li>
@@ -1128,6 +1128,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.87</b> A new Jabber ping plays a sonar ping sound instead of the usual beep (with Sound on in Alerts). <b>▶ Ping sound</b> under Account plays it.</li>
       <li><b>2.86</b> Jabber box fixes: joining or opening a room no longer scrolls the whole box down, so the room list, 📣 Pings and the room's MOTD stay in view, with the message box at the bottom, in any window size. The MOTD stays put above the messages, and a room opens at its newest messages.</li>
       <li><b>2.85</b> Windows app 1.8.4: Jabber room MOTDs stay. They now work with servers that send the MOTD with an extra "has set the subject" line (that line no longer shows as chat), a remembered MOTD isn't wiped when a server sends an empty one while you join, and a room that doesn't send its MOTD shows its topic or description from the room's details.</li>
       <li><b>2.84</b> Windows app 1.8.3: checks for a new version as soon as it starts (an update found then installs straight away), and Alerts and settings has an <b>OnGrid for Windows</b> section with the app's version, what the update check found, and <b>Check for updates</b>.</li>
@@ -2265,9 +2266,28 @@ const alerted = new Set();
 let flashTimer = null;
 const say = n => /[-0-9]/.test(n) ? n.replace(/-/g, " ").split("").join(" ") : n; // spell out names that contain digits or dashes
 const fromYouTxt = () => cfg.alFrom === "you" && youNow() ? " from you" : "";
+// the sound player; the Windows app may play sound without a click first, so it's set up there on first use
+function audioCtx() {
+  if (!intel.audio && window.ongridApp) unlockAudio();
+  if (intel.audio?.state === "suspended") intel.audio.resume().catch?.(() => {});
+  return intel.audio || null;
+}
+// Jabber pings: a sonar ping. A clear high tone that fades slowly and dips a little in pitch, then a quieter echo.
+function sonar() {
+  const a = audioCtx(); if (!a) return;
+  const ping = (t, vol) => {
+    for (const [f, v] of [[1180, vol], [2360, vol * 0.12]]) { // the tone, and a faint overtone that gives it the "ping"
+      const o = a.createOscillator(), g = a.createGain();
+      o.type = "sine"; o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * 0.93, t + 1.4);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.8);
+      o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + 1.9);
+    }
+  };
+  const t = a.currentTime + 0.02; ping(t, 0.3); ping(t + 0.55, 0.07);
+}
 function beep() {
-  if (!intel.audio) return;
-  const a = intel.audio, o = a.createOscillator(), g = a.createGain();
+  const a = audioCtx(); if (!a) return;
+  const o = a.createOscillator(), g = a.createGain();
   o.type = "square"; o.frequency.value = 880; g.gain.value = 0.08;
   o.connect(g); g.connect(a.destination); o.start();
   o.frequency.setValueAtTime(660, a.currentTime + 0.12); o.stop(a.currentTime + 0.3);
@@ -2284,7 +2304,7 @@ function fireAlert(key, title, body, speech, force) {
     for (const k of Object.keys(shared)) if (now - shared[k] > 6 * 36e5) delete shared[k];
     try { localStorage.setItem("alertedShared", JSON.stringify(shared)); } catch {}
   }
-  if (cfg.alSound) beep();
+  if (cfg.alSound) /^jp/.test(key) ? sonar() : beep(); // Jabber pings sound like sonar
   try { window.ongridApp?.alert({ title, body, level: /^(tm|timer|jm)/.test(key) ? "info" : "alert" }); } catch {} // Windows app: the alert banner over the game
   if (cfg.alDesktop && "Notification" in window && Notification.permission === "granted") {
     try { const n = new Notification(title, { body, tag: key }); n.onclick = () => { window.focus(); n.close(); }; } catch {}
@@ -2783,6 +2803,7 @@ if (jabApi) {
     renderJabAcct(); renderJabStatus();
   });
   $("#jabOff").addEventListener("click", () => jabApi.disconnect());
+  $("#jabSonar").addEventListener("click", () => { unlockAudio(); sonar(); });
   $("#jabMsgs").addEventListener("scroll", () => { if (J.rendering || J.cur === "pings") return; const b = $("#jabMsgs"); J.stick = b.scrollHeight - b.scrollTop - b.clientHeight < 60; });
   $("#jabForget").addEventListener("click", async () => { if (!confirm("Forget the saved Jabber password and disconnect?")) return; J.cfg = await jabApi.forget() || J.cfg; renderJabAcct(); });
   $("#jabSide").addEventListener("click", e => { const b = e.target.closest("[data-cv]"); if (b) jabOpen(b.dataset.cv); });
@@ -3320,7 +3341,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.86";
+const APP_VERSION = "2.87";
 // a window left open (an app box window, a pinned tab) would keep running an old copy of the page after an update:
 // every 10 minutes, look at the live page's version; if it's newer, reload while the window isn't being looked at,
 // or show a small bar with a Reload button
