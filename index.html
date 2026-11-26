@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.85
+  OnGrid (formerly Local Intel), version 2.86
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -311,7 +311,11 @@ html.wco #boxHost { top: calc(env(titlebar-area-height, 32px) + 8px); }
 .jabacct input:not([type=checkbox]) { font: 12px var(--mono); background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: 4px 6px; }
 .jabbtns { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .jabbtns button, .jabsend button, .jabside .add button { font: 12px var(--mono); background: var(--bg); color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 3px 10px; cursor: pointer; }
-.jabbody { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 180px 1fr; gap: 8px; }
+/* the box always fits its window: only the message list (and the side list) scroll, so the room list, the MOTD and the
+   message box stay in view */
+.jabbody { flex: 1 1 0; min-height: 0; display: grid; grid-template-columns: 180px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: 8px; }
+@media (max-width: 560px) { .jabbody { grid-template-columns: 130px minmax(0, 1fr); } }
+#jabberPanel { min-height: 0; overflow: hidden; }
 .jabside { overflow: auto; display: flex; flex-direction: column; gap: 2px; font-size: 12px; border-right: 1px solid var(--line); padding-right: 6px; }
 .jabside .grp { color: var(--muted); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; margin: 8px 0 2px; }
 .jabside button.cv { display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; background: none; border: 0; border-radius: 4px; color: var(--fg); font: 12px var(--body); padding: 4px 6px; cursor: pointer; }
@@ -323,7 +327,10 @@ html.wco #boxHost { top: calc(env(titlebar-area-height, 32px) + 8px); }
 .jabside .add { display: flex; gap: 4px; margin-top: 4px; }
 .jabside .add input { flex: 1; min-width: 0; font: 11px var(--mono); background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: 3px 5px; }
 .jabside .add button { padding: 1px 7px; }
-.jabmain { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
+.jabmain { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
+.jabhead .note { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+#jabMotd { flex-shrink: 0; }
+@media (max-height: 560px) { #jabMotd .motd > div { max-height: 4.5em; } }
 .jabhead { display: flex; align-items: center; gap: 8px; font: 600 13px var(--body); flex-shrink: 0; }
 .jabhead .note { font-weight: 400; } .jabhead button { margin-left: auto; }
 .jabmsgs { flex: 1 1 auto; min-height: 0; overflow: auto; font-size: 13px; display: flex; flex-direction: column; gap: 3px; }
@@ -332,9 +339,9 @@ html.wco #boxHost { top: calc(env(titlebar-area-height, 32px) + 8px); }
 .jabmsgs .m b { margin-right: 6px; }
 .jabmsgs .m.me b { color: var(--accent); } .jabmsgs .m.sys { color: var(--warm); font-style: italic; } .jabmsgs .m.old { opacity: .75; }
 .jabmsgs .day { color: var(--muted); font-size: 11px; text-align: center; margin: 6px 0 2px; }
-.jabmsgs .motd { position: sticky; top: 0; z-index: 1; background: var(--bg); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 6px; padding: 4px 10px; font-size: 12px; margin-bottom: 4px; }
-.jabmsgs .motd > b { color: var(--accent); }
-.jabmsgs .motd > div { white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 4px; max-height: 10em; overflow: auto; }
+#jabMotd .motd { background: var(--bg); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 6px; padding: 4px 10px; font-size: 12px; margin-bottom: 4px; }
+#jabMotd .motd > b { color: var(--accent); }
+#jabMotd .motd > div { white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 4px; max-height: 10em; overflow: auto; }
 .jabmsgs .ping { background: var(--bg); border: 1px solid var(--line); border-left: 3px solid var(--hot); border-radius: 6px; padding: 6px 10px; overflow-wrap: anywhere; }
 .jabmsgs .ping > div:last-child { white-space: pre-wrap; }
 .jabmsgs .ping.old { border-left-color: var(--line); }
@@ -728,6 +735,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
       <nav class="jabside" id="jabSide" aria-label="Pings and conversations"></nav>
       <div class="jabmain">
         <div class="jabhead" id="jabHead"></div>
+        <div id="jabMotd"></div>
         <div class="jabmsgs" id="jabMsgs" role="log" aria-live="polite"></div>
         <form class="jabsend" id="jabSend" autocomplete="off" hidden><textarea id="jabText" rows="2" placeholder="Message (Enter sends, Shift+Enter for a new line)"></textarea><button type="submit">Send</button></form>
       </div>
@@ -914,7 +922,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.85</span>
+    <span class="ver" id="aboutVer">Version 2.86</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -1120,6 +1128,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.86</b> Jabber box fixes: joining or opening a room no longer scrolls the whole box down, so the room list, 📣 Pings and the room's MOTD stay in view, with the message box at the bottom, in any window size. The MOTD stays put above the messages, and a room opens at its newest messages.</li>
       <li><b>2.85</b> Windows app 1.8.4: Jabber room MOTDs stay. They now work with servers that send the MOTD with an extra "has set the subject" line (that line no longer shows as chat), a remembered MOTD isn't wiped when a server sends an empty one while you join, and a room that doesn't send its MOTD shows its topic or description from the room's details.</li>
       <li><b>2.84</b> Windows app 1.8.3: checks for a new version as soon as it starts (an update found then installs straight away), and Alerts and settings has an <b>OnGrid for Windows</b> section with the app's version, what the update check found, and <b>Check for updates</b>.</li>
       <li><b>2.83</b> Intel channels no longer show their MOTD; MOTDs are only shown in Jabber rooms.</li>
@@ -2701,20 +2710,25 @@ function jabMsgHtml(m, prev) {
 }
 function renderJabMain(scroll = true) {
   if (!jabShowing()) return;
-  const box = $("#jabMsgs"), near = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+  const box = $("#jabMsgs");
+  if (scroll) J.stick = true; // a conversation opens at its newest messages, and stays there unless you scroll up
+  J.rendering = true;
   if (J.cur === "pings") {
     $("#jabHead").innerHTML = `📣 Pings <span class="note">${J.pings.length ? "newest first" : ""}</span>${J.pings.length ? `<button type="button" class="mini" id="jabClearPings">Clear</button>` : ""}`;
     box.innerHTML = J.pings.length ? J.pings.slice().reverse().map(p => `<div class="ping${p.old ? " old" : ""}"><div class="ph"><b>${esc(p.from)}</b><span>${jabDay(p.t)} ${jabTime(p.t)}</span></div><div>${jabLink(p.body)}</div></div>`).join("")
       : `<div class="empty">${J.status.state === "online" ? "No pings yet. Pings show here as they come in, with an alert." : "Connect your Jabber account (Account, above) to get pings here."}</div>`;
-    box.scrollTop = 0; J.seenPings = J.pings.length; try { localStorage.setItem("jabSeenPings", String(J.pings.length ? J.pings[J.pings.length - 1].t : 0)); } catch {}
+    $("#jabMotd").innerHTML = ""; box.scrollTop = 0; J.seenPings = J.pings.length; try { localStorage.setItem("jabSeenPings", String(J.pings.length ? J.pings[J.pings.length - 1].t : 0)); } catch {}
   } else {
     const c = J.convs.get(J.cur);
     $("#jabHead").innerHTML = c ? `${c.kind === "room" ? "#" : ""}${esc(c.title)} <span class="note">${esc(c.id)}${c.kind === "room" && !c.joined ? " · not joined" : ""}</span><button type="button" class="mini" id="jabLeave">${c.kind === "room" ? "Leave" : "Close"}</button>` : "";
     const motd = c?.kind === "room" && c.subject ? `<div class="motd"><b>MOTD${c.subjectBy ? ` <span class="note">${c.subjectBy === "room description" ? "from the room's description" : "set by " + esc(c.subjectBy)}</span>` : ""}</b><div>${jabLink(c.subject)}</div></div>` : "";
-    box.innerHTML = motd + (J.msgs.length ? J.msgs.map((m, i) => jabMsgHtml(m, J.msgs[i - 1])).join("") : `<div class="empty">No messages yet.</div>`);
-    if (scroll || near) box.scrollTop = box.scrollHeight;
+    $("#jabMotd").innerHTML = motd;
+    box.innerHTML = (J.msgs.length ? J.msgs.map((m, i) => jabMsgHtml(m, J.msgs[i - 1])).join("") : `<div class="empty">No messages yet.</div>`);
+    if (J.stick !== false) box.scrollTop = box.scrollHeight;
   }
   renderJabStatus();
+  for (const el of [$("#jabberPanel"), document.getElementById("boxHost")]) if (el && el.scrollTop) el.scrollTop = 0; // the box itself never stays scrolled
+  requestAnimationFrame(() => { J.rendering = false; });
 }
 function renderJabAcct() {
   const c = J.cfg;
@@ -2728,7 +2742,7 @@ async function jabOpen(id) {
   J.cur = id; J.msgs = id === "pings" ? [] : (await jabApi.history(id)) || [];
   if (id !== "pings") jabApi.read(id);
   jabMarkFocus(); renderJabSide(); renderJabMain(true);
-  if (id !== "pings") $("#jabText")?.focus();
+  if (id !== "pings") $("#jabText")?.focus({ preventScroll: true }); // never scroll the box itself
 }
 if (jabApi) {
   jabApi.state().then(st => {
@@ -2769,6 +2783,7 @@ if (jabApi) {
     renderJabAcct(); renderJabStatus();
   });
   $("#jabOff").addEventListener("click", () => jabApi.disconnect());
+  $("#jabMsgs").addEventListener("scroll", () => { if (J.rendering || J.cur === "pings") return; const b = $("#jabMsgs"); J.stick = b.scrollHeight - b.scrollTop - b.clientHeight < 60; });
   $("#jabForget").addEventListener("click", async () => { if (!confirm("Forget the saved Jabber password and disconnect?")) return; J.cfg = await jabApi.forget() || J.cfg; renderJabAcct(); });
   $("#jabSide").addEventListener("click", e => { const b = e.target.closest("[data-cv]"); if (b) jabOpen(b.dataset.cv); });
   $("#jabSide").addEventListener("submit", async e => {
@@ -3305,7 +3320,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.85";
+const APP_VERSION = "2.86";
 // a window left open (an app box window, a pinned tab) would keep running an old copy of the page after an update:
 // every 10 minutes, look at the live page's version; if it's newer, reload while the window isn't being looked at,
 // or show a small bar with a Reload button
