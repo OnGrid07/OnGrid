@@ -28,6 +28,8 @@ contextBridge.exposeInMainWorld("ongridApp", {
     clearPings: () => ipcRenderer.invoke("jab:clearPings"),
     onEvent: cb => ipcRenderer.on("jab:ev", (e, ev) => cb(ev))
   },
+  // app updates: what the app found, a Check for updates button, and Restart to update
+  updates: { state: () => ipcRenderer.invoke("upd:get"), check: () => ipcRenderer.invoke("upd:check"), install: () => ipcRenderer.invoke("upd:install"), onState: cb => ipcRenderer.on("upd:state", (e, st) => cb(st)) },
   // whether this window can be seen (hidden in the tray or minimized: the page skips drawing)
   onShown: cb => ipcRenderer.on("win:shown", (e, v) => cb(!!v))
 });

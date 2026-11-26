@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.83
+  OnGrid (formerly Local Intel), version 2.84
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -297,6 +297,7 @@ html.wco #boxHost { top: calc(env(titlebar-area-height, 32px) + 8px); }
 #board #mapPanel > svg { flex: 1 1 0; min-height: 120px; }
 #board thead th { position: sticky; top: 0; background: var(--panel); z-index: 1; }
 .fbox > .rsz { display: none; }
+#updSet .updrow { font: 12px var(--mono); margin: 4px 0; } #updSet .ok { color: var(--ok); } #updSet .err { color: var(--hot); }
 /* Jabber */
 #jabberPanel { gap: 6px; }
 .jabtop { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
@@ -817,6 +818,12 @@ footer { font: 11px var(--mono); color: var(--muted); }
         <label><input type="checkbox" id="alNotifWarn"> Also alert on fuel, low power and service warnings</label>
         <div class="note" id="ssoNote"></div>
       </fieldset>
+      <fieldset id="updSet" hidden>
+        <legend>OnGrid for Windows</legend>
+        <div class="note">The app checks for a new version every time it starts and every hour, downloads it in the background and installs it by itself.</div>
+        <div class="updrow"><span id="updText">Version …</span></div>
+        <div><button type="button" id="updCheck">Check for updates</button> <button type="button" id="updInstall" hidden>Restart to update</button></div>
+      </fieldset>
       <fieldset id="ovSet" hidden>
         <legend>Overlays over the game</legend>
         <div class="note">Windows app: see-through windows on top of EVE. Clicks pass through them to the game while they're locked.</div>
@@ -907,7 +914,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.83</span>
+    <span class="ver" id="aboutVer">Version 2.84</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -983,7 +990,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
       <li>It keeps running in the system tray, and alerts and Windows notifications keep working while it's minimized or behind the game. Closing the window hides it to the tray; quit from the tray icon.</li>
       <li>Right-click the tray icon for <b>Always on top</b>, <b>Keep running when closed</b> and <b>Start with Windows</b>.</li>
       <li>It remembers your chat logs folder, so there's no permission prompt each time.</li>
-      <li>It loads this live page, so every page update shows up in the app straight away. The app itself <b>updates itself</b> too: it checks for a new version when it starts and every hour, and downloads it in the background. Once it's downloaded, it installs by itself as soon as no OnGrid window has been in front for about a minute (for example while you're playing): OnGrid closes, updates silently and starts again in a few seconds, with the launcher and box windows you had open, without taking the focus from the game. Click the "update ready" notification, or <b>Restart to update</b> in the tray menu, to do it straight away. <b>Check for updates</b> in the tray menu tells you what it found.</li>
+      <li>It loads this live page, so every page update shows up in the app straight away. The app itself <b>updates itself</b> too: it checks for a new version as soon as it starts and every hour, and downloads it in the background. An update found while the app is starting installs straight away (OnGrid restarts in a few seconds with your windows); one found later installs by itself as soon as no OnGrid window has been in front for about a minute (for example while you're playing): OnGrid closes, updates silently and starts again in a few seconds, with the launcher and box windows you had open, without taking the focus from the game. Click the "update ready" notification, or <b>Restart to update</b> in the tray menu, to do it straight away. <b>Check for updates</b> in the tray menu, or in <b>Alerts and settings → OnGrid for Windows</b>, checks now and tells you what it found; that section also shows the app's version and <b>Restart to update</b> once an update is ready.</li>
       <li>There's also a portable <code>…-portable.exe</code> that runs without installing. It can't replace itself, so it only tells you when a new version is out and opens the download page.</li>
       <li>Your settings in the app are separate from your browser's; use Backup and other devices to copy them across.</li>
       <li>It opens your chat logs folder by itself when it starts (app 1.5.3 and later), so there's no <b>Reconnect folder</b> to press. Windows may say "Windows protected your PC" because the app isn't signed with a paid certificate: click <b>More info → Run anyway</b>.</li>
@@ -1113,6 +1120,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.84</b> Windows app 1.8.3: checks for a new version as soon as it starts (an update found then installs straight away), and Alerts and settings has an <b>OnGrid for Windows</b> section with the app's version, what the update check found, and <b>Check for updates</b>.</li>
       <li><b>2.83</b> Intel channels no longer show their MOTD; MOTDs are only shown in Jabber rooms.</li>
       <li><b>2.82</b> MOTDs are always shown, no longer folded. Windows app 1.8.2: Jabber rooms you join are saved and joined again every time you connect (Leave takes a room off the list), and each room keeps its last MOTD so it shows even before you connect.</li>
       <li><b>2.81</b> Channel MOTDs: each intel channel's message of the day shows above the intel (click to open it), and in the Windows app each Jabber room shows its MOTD at the top.</li>
@@ -2779,6 +2787,24 @@ if (jabApi) {
   addEventListener("focus", jabMarkFocus); addEventListener("blur", jabMarkFocus);
   setInterval(jabMarkFocus, 10e3);
 }
+// Windows app: update status and Check for updates, in Alerts and settings
+if (window.ongridApp?.updates) {
+  $("#updSet").hidden = false;
+  const upd = window.ongridApp.updates;
+  const show = st => {
+    if (!st) return;
+    const txt = !st.packaged ? `Version ${st.version} (a test copy: it doesn't update itself)`
+      : { checking: `Version ${st.version} · checking for updates…`, downloading: `Version ${st.version} · downloading version ${st.newVersion}…`, ready: `Version ${st.version} · version ${st.newVersion} is ready to install`,
+          portable: `Version ${st.version} · version ${st.newVersion} is out`, current: `Version ${st.version} · up to date`, error: `Version ${st.version} · couldn't check: ${st.error || "no connection"}` }[st.state] || `Version ${st.version}`;
+    $("#updText").textContent = txt; $("#updText").className = st.state === "error" ? "err" : st.state === "ready" || st.state === "portable" ? "ok" : "";
+    $("#updCheck").disabled = !st.packaged || st.state === "checking" || st.state === "downloading";
+    $("#updInstall").hidden = !(st.state === "ready" || st.state === "portable");
+    $("#updInstall").textContent = st.state === "portable" ? "Open the download page" : "Restart to update";
+  };
+  upd.state().then(show).catch(() => {}); upd.onState?.(show);
+  $("#updCheck").addEventListener("click", () => { upd.check().catch(() => {}); }); // the result comes back as an update event
+  $("#updInstall").addEventListener("click", () => upd.install());
+}
 // the overlay switches in Alerts and settings (Windows app only)
 if (window.ongridApp?.overlayState) {
   $("#ovSet").hidden = false;
@@ -3278,7 +3304,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.83";
+const APP_VERSION = "2.84";
 // a window left open (an app box window, a pinned tab) would keep running an old copy of the page after an update:
 // every 10 minutes, look at the live page's version; if it's newer, reload while the window isn't being looked at,
 // or show a small bar with a Reload button

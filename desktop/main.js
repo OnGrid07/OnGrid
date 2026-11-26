@@ -176,20 +176,28 @@ function notify(title, body, onClick) {
    Installed copy: electron-updater checks the GitHub releases, downloads a newer version in the background
    and installs it when the app restarts (or straight away from the tray menu).
    Portable copy: it can't replace itself, so it only checks and offers the download page. */
+// Updates: checked as soon as OnGrid starts, then every hour, and whenever you press Check for updates (tray menu, or
+// Alerts and settings in the page). An update found while OnGrid is starting installs straight away; one found later
+// installs once you haven't clicked in OnGrid for a minute.
+let checkUpdates = () => {}, startedAt = Date.now();
 function setupUpdates() {
   if (!app.isPackaged) return;
   if (isPortable) {
     const check = async () => {
+      update = { ...update, state: "checking", error: null }; refreshTray();
       try {
         const r = await net.fetch("https://api.github.com/repos/OnGrid07/OnGrid/releases/latest", { headers: { Accept: "application/vnd.github+json" } });
         const v = ((await r.json()).tag_name || "").replace(/^[^\d]*/, "");
-        if (v && newer(v, app.getVersion()) && update.version !== v) {
+        if (v && newer(v, app.getVersion())) {
+          const fresh = update.version !== v;
           update = { state: "portable", version: v, error: null }; refreshTray();
-          notify("OnGrid update available", `Version ${v} is out. Click to open the download page.`, () => shell.openExternal(RELEASES));
-        }
-      } catch {}
+          if (fresh || manualCheck) notify("OnGrid update available", `Version ${v} is out. Click to open the download page.`, () => shell.openExternal(RELEASES));
+        } else { update = { state: "current", version: null, error: null }; refreshTray(); if (manualCheck) notify("OnGrid is up to date", `You have the newest version, ${app.getVersion()}.`); }
+      } catch (e) { update = { ...update, state: "error", error: String(e?.message || e).slice(0, 120) }; refreshTray(); }
+      manualCheck = false;
     };
-    setTimeout(check, 15e3); setInterval(check, 6 * 36e5);
+    checkUpdates = check;
+    setTimeout(check, 2e3); setInterval(check, 6 * 36e5);
     return;
   }
   autoUpdater.autoDownload = true;
@@ -202,13 +210,21 @@ function setupUpdates() {
     notify("OnGrid update ready", `Version ${i.version} installs by itself in a minute or two, when you're not clicking in OnGrid. Click to restart now.`, installNow);
     // OnGrid usually runs in the tray and is never quit, so don't wait for a quit: install once no OnGrid window has
     // been in front for a minute, then start again (the install is silent and takes a few seconds)
+    if (Date.now() - startedAt < 3 * 60e3) { setTimeout(installNow, 3e3); return; } // found while starting up: update right away
     let idle = 0;
     clearInterval(installTimer);
     installTimer = setInterval(() => { idle = BrowserWindow.getFocusedWindow() ? 0 : idle + 1; if (idle >= 2) installNow(); }, 30e3);
   });
   autoUpdater.on("error", e => { if (manualCheck) { manualCheck = false; notify("OnGrid couldn't check for updates", String(e?.message || e).slice(0, 160)); } update.state = "error"; update.error = String(e?.message || e).slice(0, 120); refreshTray(); });
-  const check = () => autoUpdater.checkForUpdates().catch(() => {});
-  setTimeout(check, 10e3); setInterval(check, 36e5);
+  const check = async () => {
+    update = { ...update, state: "checking", error: null }; refreshTray();
+    const asked = Date.now(); checkUpdates.at = asked;
+    setTimeout(() => { if (update.state === "checking" && checkUpdates.at === asked) { update = { ...update, state: "error", error: "the update server didn't answer" }; manualCheck = false; refreshTray(); } }, 45e3); // never leave it saying "checking"
+    try { const r = await autoUpdater.checkForUpdates(); if (!r && update.state === "checking") { update = { ...update, state: "error", error: "this copy of OnGrid can't update itself" }; refreshTray(); manualCheck = false; } }
+    catch (e) { if (update.state === "checking") { update = { ...update, state: "error", error: String(e?.message || e).slice(0, 120) }; refreshTray(); } }
+  };
+  checkUpdates = check;
+  setTimeout(check, 2e3); setInterval(check, 36e5);
 }
 let installTimer = null, manualCheck = false;
 function installNow() { // silent install, then OnGrid starts again with the same box windows open
@@ -222,7 +238,7 @@ function updateItems() {
   if (update.state === "ready") return [{ label: `Restart to update to ${update.version}`, click: installNow }];
   if (update.state === "portable") return [{ label: `Download version ${update.version}…`, click: () => shell.openExternal(RELEASES) }];
   const status = { checking: "Checking for updates…", downloading: `Downloading ${update.version}…`, current: `Up to date (${v})`, error: "Update check failed" }[update.state] || `Version ${v}`;
-  return [{ label: status, enabled: false }, ...(isPortable || !app.isPackaged ? [] : [{ label: "Check for updates", click: () => { manualCheck = true; autoUpdater.checkForUpdates().catch(() => {}); } }])];
+  return [{ label: status, enabled: false }, ...(isPortable || !app.isPackaged ? [] : [{ label: "Check for updates", click: () => { manualCheck = true; checkUpdates(); } }])];
 }
 /* ---------- overlays: alert banner and intel HUD ----------
    Separate see-through windows that float above EVE (windowed or fixed-window mode). They never touch the game
@@ -360,9 +376,16 @@ if (process.env.ONGRID_TEST) global.__ongridTest = {
   unlock: v => setOverlays({ unlocked: !!v }),
   toggle: (kind, on) => setOverlays({ [kind]: !!on }),
   prefs: () => JSON.parse(JSON.stringify(prefs)),
-  launcherSize: v => setLauncherSize(v)
+  launcherSize: v => setLauncherSize(v),
+  update: () => ({ ...update, at: checkUpdates.at })
 };
-function refreshTray() { if (tray) tray.setContextMenu(trayMenu()); }
+function refreshTray() { if (tray) tray.setContextMenu(trayMenu()); sendUpdateState(); }
+// the update status for the page's Alerts and settings (Windows app section)
+const updateState = () => ({ version: app.getVersion(), state: update.state, newVersion: update.version, error: update.error, portable: isPortable, packaged: app.isPackaged });
+function sendUpdateState() { for (const w of [win, ...boxWins.values()]) if (w && !w.isDestroyed()) w.webContents.send("upd:state", updateState()); }
+ipcMain.handle("upd:get", e => fromSite(e) ? updateState() : null);
+ipcMain.handle("upd:check", e => { if (!fromSite(e) || !app.isPackaged) return null; manualCheck = true; checkUpdates(); return updateState(); });
+ipcMain.handle("upd:install", e => { if (!fromSite(e)) return; if (update.state === "ready") installNow(); else if (update.state === "portable") shell.openExternal(RELEASES); });
 
 function trayMenu() {
   return Menu.buildFromTemplate([
