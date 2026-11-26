@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.84
+  OnGrid (formerly Local Intel), version 2.85
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -914,7 +914,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.84</span>
+    <span class="ver" id="aboutVer">Version 2.85</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -1120,6 +1120,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.85</b> Windows app 1.8.4: Jabber room MOTDs stay. They now work with servers that send the MOTD with an extra "has set the subject" line (that line no longer shows as chat), a remembered MOTD isn't wiped when a server sends an empty one while you join, and a room that doesn't send its MOTD shows its topic or description from the room's details.</li>
       <li><b>2.84</b> Windows app 1.8.3: checks for a new version as soon as it starts (an update found then installs straight away), and Alerts and settings has an <b>OnGrid for Windows</b> section with the app's version, what the update check found, and <b>Check for updates</b>.</li>
       <li><b>2.83</b> Intel channels no longer show their MOTD; MOTDs are only shown in Jabber rooms.</li>
       <li><b>2.82</b> MOTDs are always shown, no longer folded. Windows app 1.8.2: Jabber rooms you join are saved and joined again every time you connect (Leave takes a room off the list), and each room keeps its last MOTD so it shows even before you connect.</li>
@@ -2709,7 +2710,7 @@ function renderJabMain(scroll = true) {
   } else {
     const c = J.convs.get(J.cur);
     $("#jabHead").innerHTML = c ? `${c.kind === "room" ? "#" : ""}${esc(c.title)} <span class="note">${esc(c.id)}${c.kind === "room" && !c.joined ? " · not joined" : ""}</span><button type="button" class="mini" id="jabLeave">${c.kind === "room" ? "Leave" : "Close"}</button>` : "";
-    const motd = c?.kind === "room" && c.subject ? `<div class="motd"><b>MOTD${c.subjectBy ? ` <span class="note">set by ${esc(c.subjectBy)}</span>` : ""}</b><div>${jabLink(c.subject)}</div></div>` : "";
+    const motd = c?.kind === "room" && c.subject ? `<div class="motd"><b>MOTD${c.subjectBy ? ` <span class="note">${c.subjectBy === "room description" ? "from the room's description" : "set by " + esc(c.subjectBy)}</span>` : ""}</b><div>${jabLink(c.subject)}</div></div>` : "";
     box.innerHTML = motd + (J.msgs.length ? J.msgs.map((m, i) => jabMsgHtml(m, J.msgs[i - 1])).join("") : `<div class="empty">No messages yet.</div>`);
     if (scroll || near) box.scrollTop = box.scrollHeight;
   }
@@ -3304,7 +3305,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.84";
+const APP_VERSION = "2.85";
 // a window left open (an app box window, a pinned tab) would keep running an old copy of the page after an update:
 // every 10 minutes, look at the live page's version; if it's newer, reload while the window isn't being looked at,
 // or show a small bar with a Reload button

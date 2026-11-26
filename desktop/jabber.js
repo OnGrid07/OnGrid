@@ -74,10 +74,12 @@ module.exports = function setupJabber({ prefs, savePrefs, userData, send }) {
       if (type === "error") { const c = convs.get(bare(from)); if (c) addMsg(c, { t: Date.now(), from: "", nick: "", body: "Couldn't send: " + (errText(st) || "the server refused the message"), sys: true }); return; }
       // a room's subject (its topic or MOTD): sent when you join, and again when someone changes it
       const subj = type === "groupchat" ? st.getChild("subject") : null;
-      if (subj && body == null) {
-        const c = conv(bare(from), "room", localOf(from) || bare(from)); c.subject = subj.text().slice(0, 8000); c.subjectBy = resOf(from);
-        const p = cfg(); p.subjects = { ...(p.subjects || {}), [c.id]: { text: c.subject, by: c.subjectBy } }; prefs.jabber = p; savePrefs(); // kept for next time
-        sendConvs(); return;
+      if (subj) {
+        const c = conv(bare(from), "room", localOf(from) || bare(from)), text = (subj.text() || "").trim().slice(0, 8000);
+        // some servers send an empty subject while you join: that doesn't wipe the MOTD we already have
+        if (text || Date.now() - (c.joinedAt || 0) > 20e3) setSubject(c, text, resOf(from));
+        // ejabberd and others add "X has set the subject to: …" as text: that isn't a chat line
+        if (body == null || !body.trim() || /has (set|changed) the (subject|topic)|subject (is|was|changed)|topic (is|was|changed)/i.test(body) || body.trim() === text) return;
       }
       if (body == null || !body.trim()) return;
       const stamp = st.getChild("delay", "urn:xmpp:delay")?.attrs?.stamp || st.getChild("x", "jabber:x:delay")?.attrs?.stamp;
@@ -107,12 +109,30 @@ module.exports = function setupJabber({ prefs, savePrefs, userData, send }) {
   }
   const errText = st => { const e = st.getChild("error"); if (!e) return ""; return e.getChildText("text") || (e.children.find(x => x.name && x.name !== "text")?.name || "").replace(/-/g, " "); };
 
+  // a room's MOTD, kept in the app's prefs so it shows again next time (even before you connect)
+  function setSubject(c, text, by) {
+    c.subject = text; c.subjectBy = text ? by : "";
+    const p = cfg(); p.subjects = { ...(p.subjects || {}) };
+    if (text) p.subjects[c.id] = { text, by: c.subjectBy }; else delete p.subjects[c.id];
+    prefs.jabber = p; savePrefs(); sendConvs();
+  }
   async function joinRoom(r) {
     const room = roomJid(r); if (!room || !xmpp || status.state !== "online") return;
-    const { xml } = lib, c = conv(room, "room", localOf(room) || room);
-    c.nick = localOf(cfg().jid) || "OnGrid";
-    await xmpp.send(xml("presence", { to: `${room}/${c.nick}` }, xml("x", { xmlns: "http://jabber.org/protocol/muc" }, xml("history", { maxstanzas: "25" }))));
-    send({ type: "convs", convs: [...convs.values()].map(convSummary) });
+    const { xml } = lib, c = conv(room, "room", localOf(room) || room), x = xmpp;
+    c.nick = localOf(cfg().jid) || "OnGrid"; c.joinedAt = Date.now();
+    await x.send(xml("presence", { to: `${room}/${c.nick}` }, xml("x", { xmlns: "http://jabber.org/protocol/muc" }, xml("history", { maxstanzas: "25" }))));
+    sendConvs();
+    // servers that don't send the subject on joining still list it (or the room's description) in the room's details
+    setTimeout(async () => {
+      if (x !== xmpp || c.subject) return;
+      try {
+        const info = await x.iqCaller.request(xml("iq", { type: "get", to: room }, xml("query", { xmlns: "http://jabber.org/protocol/disco#info" })), 15e3);
+        const fields = info?.getChild("query")?.getChild("x", "jabber:x:data")?.getChildren("field") || [];
+        const val = v => (fields.find(f => f.attrs.var === v)?.getChildText("value") || "").trim();
+        const subject = val("muc#roominfo_subject"), desc = val("muc#roominfo_description");
+        if (!c.subject && (subject || desc)) setSubject(c, (subject || desc).slice(0, 8000), subject ? "" : "room description");
+      } catch {}
+    }, 6e3);
   }
 
   function password() {
