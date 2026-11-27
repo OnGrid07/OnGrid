@@ -97,6 +97,7 @@
     root.innerHTML = `<div class="box hud">
       <div class="head">${d.title ? `<span class="ttl">${esc(d.title)}</span>` : ""}<span class="sys">${esc(d.sys || "Location unknown")}</span>${d.sec != null ? `<span class="sec" style="color:${secColor(d.sec)}">${(Math.round(d.sec * 10) / 10).toFixed(1)}</span>` : ""}<span class="lvl ${esc(d.danger)}">${d.danger === "UNKNOWN" ? "NO LOCATION" : "DANGER: " + esc(d.danger)}</span></div>
       ${row("Nearest hostile", n ? `<span class="hot">${esc(n.name)}</span> ${n.d === 0 ? "here" : n.d + "j"}${n.pilots ? " · " + n.pilots : ""} · ${ago(n.t)}` : `<span class="ok">none reported</span>`)}
+      ${n && n.via ? row("Coming via", `<span class="warm">${esc(n.via)}</span> gate · ${n.eta > 0 ? "~" + (n.eta < 60e3 ? Math.ceil(n.eta / 5e3) * 5 + "s" : Math.floor(n.eta / 60e3) + "m" + String(Math.round((n.eta % 60e3) / 1e3)).padStart(2, "0") + "s") : `<span class="hot">may be here</span>`}`) : ""}
       ${row(`Within ${d.range} jumps`, d.reports ? `<span class="intel">${d.reports} system${d.reports === 1 ? "" : "s"}</span>${d.pilots ? " · " + d.pilots + " pilots" : ""}` : `<span class="k">quiet</span>`)}
       ${d.big?.length ? row("Big ships", `<span class="warm">${esc(d.big.join(", "))}</span>`) : ""}
       ${row("Kills here, 1 h", `${d.k1 ? `<span class="hot">${d.k1}</span>` : "0"}${d.camp ? ` <span class="k">· camp</span> <span class="hot">${esc(d.camp.name)}</span>${d.camp.d ? " " + d.camp.d + "j" : ""}` : ""}`)}

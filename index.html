@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.90
+  OnGrid (formerly Local Intel), version 2.91
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -794,6 +794,8 @@ footer { font: 11px var(--mono); color: var(--muted); }
         <label><input type="checkbox" id="alDesktop"> Show desktop pop-ups</label>
         <label><input type="checkbox" id="alSpeak"> Read alerts out loud</label>
         <label><input type="checkbox" id="alKills"> Also alert on new kills and gate camps in range</label>
+        <label><input type="checkbox" id="alLocalTalk"> Alert when someone who isn't blue talks in Local where one of my characters is</label>
+        <label><input type="checkbox" id="alWh"> Alert on a new Thera or Turnur connection within my alert range (at least 2 jumps)</label>
         <label><input type="checkbox" id="alBig"> Always alert on capitals, dictors, HICs and Black Ops anywhere on the map</label>
         <label><input type="checkbox" id="alWatch"> Always alert on intel, kills, gate camps and sov fights in watched systems</label>
         <label><input type="checkbox" id="alTimers"> Alert 60 and 15 minutes before each timer</label>
@@ -924,7 +926,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.90</span>
+    <span class="ver" id="aboutVer">Version 2.91</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -990,7 +992,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
     <p><b>OnGrid for Windows</b> is this page in its own app window. Download <code>OnGrid-Setup-….exe</code> from <a href="https://github.com/OnGrid07/OnGrid/releases/latest" target="_blank" rel="noopener">the releases page</a> and run it; it installs in a few seconds and adds a Start menu shortcut.</p>
     <ul>
       <li><b>The launcher</b> (app 1.3 and later): the app opens to a round gate ring. Each symbol on the ring opens one box in its own window: Gate map, Wormholes and sov fights (Thera/Turnur connections and sov fights in range), Intel and location, Local and D-scan, Hostile tracker, Watched systems, Systems, Kills, Character notifications, Jabber, Loot tracker, Timers, Route planner, Alerts and settings, and About; the power symbol quits. Hover a symbol to see its name in the middle. A small blue dot under a symbol means its window is open; clicking the symbol again closes that window. Click the middle of the ring to open the full OnGrid window. Drag the ring from anywhere, even from a symbol, to move it (it remembers where you put it), and press <b>hide</b> (or Esc) to tuck it into the tray. Each box window remembers its size and place, and (in the app only) has <b>⋮</b> (Settings) in its title bar, next to the minimize button, that shows only the settings for that window (the Gate map's map and jump bridge settings, the Intel window's alerts, characters and phone relay, and so on); in the full window it opens Alerts and settings. When you quit the app, it remembers which windows were open (the ring, the full window and each box) and where they were, maximized or not, and puts them all back next time it starts; a window that was on a screen that's no longer connected opens on the main screen. The Gate map window shows just the map. In its title row, the small <b>2j</b>-style picker changes how many jumps the map shows, and the <b>☰</b> button shows or hides System, Jumps, Load, presets and the summary above it. Every window shows the same intel, rings, tracks and alerts: the window that reads your chat logs (or the phone relay) shares them with the others. To start with the full window instead, untick <b>Open to the launcher</b> in the tray menu. <b>Launcher size</b> in the tray menu makes the ring small, medium (the usual) or large.</li>
-      <li><b>Overlays</b> (app 1.4 and later): two see-through windows that float on top of EVE when the game runs in windowed or fixed-window mode. They are separate windows and never touch the game client. The <b>alert banner</b> flashes at the top of the screen whenever OnGrid alerts you (hostiles in range, watched systems, big ships, camps, sov, timers) and fades after about nine seconds; several at once show a +count. The <b>intel HUD</b> stays up and shows your system and its security, a danger rating (HIGH: a hostile reported within 1 jump in the last 5 minutes, or a camp next door; MEDIUM: hostiles within 3 jumps, kills where you are, camps or big ships nearby; LOW: quiet), the nearest reported hostile with jumps, pilots and minutes ago, how many systems within 3 jumps have hostiles reported, big ships, and kills where you are. The <b>travel HUD</b> appears only while a trip is on: destination and jumps left, then your system and the next five jumps with their security, kills in the last hour (✕), intel (with pilot count) and a pulsing ring on camps, plus a warning for the first camp ahead. The <b>mini map</b> is a small see-through copy of the gate map (small, medium or large), showing at most 3 jumps even when the Gate map shows more, with the intel rings, hostile tracks and your YOU ring; to stay readable it only names systems with intel, kills, you or hostile groups. The <b>home HUD</b> watches the home system you type under <b>Overlays over the game</b> and everything within 3 jumps of it, wherever you are: a danger rating, the nearest hostile reported near home, how many systems near home have hostiles, kills in your home system in the last hour, and camps. Clicks pass straight through all of them to EVE. Switch them in <b>Alerts and settings → Overlays over the game</b> (or the tray menu): turn each one on or off, <b>Move overlays</b> to drag them where you want (they get a yellow dashed outline; untick it to lock them again), <b>Overlay background</b> to make them lighter or more solid, and <b>Put overlays back in place</b>. <b>Test alert</b> in Alerts and settings shows the banner.</li>
+      <li><b>Overlays</b> (app 1.4 and later): two see-through windows that float on top of EVE when the game runs in windowed or fixed-window mode. They are separate windows and never touch the game client. The <b>alert banner</b> flashes at the top of the screen whenever OnGrid alerts you (hostiles in range, watched systems, big ships, camps, sov, timers) and fades after about nine seconds; several at once show a +count. The <b>intel HUD</b> stays up and shows your system and its security, a danger rating (HIGH: a hostile reported within 1 jump in the last 5 minutes, or a camp next door; MEDIUM: hostiles within 3 jumps, kills where you are, camps or big ships nearby; LOW: quiet), the nearest reported hostile with jumps, pilots and minutes ago, which gate they'd come in by (<b>Coming via</b>: the system next to you on their shortest way here) and the soonest they could arrive (about 25 seconds a jump for a fast ship, counted from the report; "may be here" once that time has passed), how many systems within 3 jumps have hostiles reported, big ships, and kills where you are. The <b>travel HUD</b> appears only while a trip is on: destination and jumps left, then your system and the next five jumps with their security, kills in the last hour (✕), intel (with pilot count) and a pulsing ring on camps, plus a warning for the first camp ahead. The <b>mini map</b> is a small see-through copy of the gate map (small, medium or large), showing at most 3 jumps even when the Gate map shows more, with the intel rings, hostile tracks and your YOU ring; to stay readable it only names systems with intel, kills, you or hostile groups. The <b>home HUD</b> watches the home system you type under <b>Overlays over the game</b> and everything within 3 jumps of it, wherever you are: a danger rating, the nearest hostile reported near home, how many systems near home have hostiles, kills in your home system in the last hour, and camps. Clicks pass straight through all of them to EVE. Switch them in <b>Alerts and settings → Overlays over the game</b> (or the tray menu): turn each one on or off, <b>Move overlays</b> to drag them where you want (they get a yellow dashed outline; untick it to lock them again), <b>Overlay background</b> to make them lighter or more solid, and <b>Put overlays back in place</b>. <b>Test alert</b> in Alerts and settings shows the banner.</li>
       <li><b>Jabber</b> (app 1.8 and later): the speech-bubble symbol on the ring. Press <b>Account</b> and type your Jabber ID (name@server, the one your alliance or corp auth site gave you) and password, then <b>Connect</b>. If your auth site gives a separate server name or port, type them under <b>Server</b> and <b>Port</b>; otherwise leave them empty. The password is kept encrypted by Windows on your PC, is only sent to your Jabber server over an encrypted connection, and OnGrid won't connect to a server whose certificate isn't valid. With <b>Connect when OnGrid starts</b> on, it connects by itself; <b>Disconnect</b> keeps it off until you connect again, and <b>Forget password</b> removes the saved password.
         <ul>
           <li><b>Pings</b>: broadcasts from your ping bot show under 📣 Pings, newest first, with an alert (a sonar ping sound, a Windows pop-up and the banner over the game, following your alert settings; <b>▶ Ping sound</b> under Account plays the sound). A message counts as a ping when it's a server broadcast, comes from one of the <b>Ping senders</b> (directorbot, pingbot and similar names to start with; add your alliance's bot if it has another name), says "This was a broadcast from", or is said in one of your <b>Ping rooms</b>. Pings are kept on your PC; pings you missed while offline show without an alert. <b>Clear</b> empties the list. Pings never go to the phone relay.</li>
@@ -1087,6 +1089,8 @@ footer { font: 11px var(--mono); color: var(--muted); }
       <li>Big-ship words (titan, super, dread, carrier, fax, lancer, rorq, dictor, hic, blops, caps, cyno) and ship names like "Sabre" get tagged.</li>
       <li>ESS words (ess, linking, main bank, reserve bank, bank) get an ESS tag.</li>
       <li><b>Show</b> lists all intel, or only messages about systems on the map or watched.</li>
+      <li><b>Reds talking in Local</b>: when someone who isn't blue says anything in Local where one of your characters is, you get an alert with what they said. EVE's Local log only records what's said, not who comes and goes, so a pilot who stays quiet isn't seen. Your own characters and pilots in your standings' friends are left out. Turn it off in Alerts and settings.</li>
+      <li><b>New Thera and Turnur connections</b>: when EVE-Scout lists a new connection within your alert range (at least 2 jumps), you get an alert with the signature, ship size and time left. Connections that were already open when OnGrid started don't alert. Turn it off in Alerts and settings.</li>
       <li>Above the intel, each of your characters is listed with where it is. Choose which ones are listed under <b>Characters in Intel and location</b> in Alerts and settings: click a name to hide it (it's crossed out) and again to show it. This only changes the list; hidden characters still count for your location, alerts and the YOU ring on the map. The choice is saved. With alts logged in, also pick your <b>Main character</b> there: only that character's location moves the map and counts for distances, alerts and "closing in" (Automatic follows whichever of your characters logged in to OnGrid moved last; a character that's only in your chat logs counts only when none of them is anywhere). Several alts in the same intel channel each log the same lines; OnGrid reads one copy and shows each report once.</li>
       <li>Your location comes from your EVE login (see below) or from your Local chat log, whichever saw your latest jump. Each source is named next to your system. With several characters, each one is shown. A character the EVE login reports as offline isn't shown.</li>
     </ul>
@@ -1130,6 +1134,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.91</b> Safer ratting. The intel HUD (Windows app 1.8.5) shows which gate the nearest hostile would come in by and the soonest they could arrive. An alert when someone who isn't blue talks in Local where one of your characters is. An alert when a new Thera or Turnur connection opens within your alert range.</li>
       <li><b>2.90</b> Fixed the HUD (and alerts) following the wrong character. A setting changed in one OnGrid window, such as <b>Main character</b>, now applies in every window straight away; before, the hidden window that drives the HUD and alerts kept the old setting until OnGrid restarted. With Main character on Automatic, characters logged in to OnGrid now come first: an alt that's only in your chat logs counts as you only when none of your logged-in characters is anywhere.</li>
       <li><b>2.89</b> Hostile tracks are easier to read: each track shows only the last 3 systems, starts over when a pilot flies back into a system already on it, and disappears once the pilot has stayed in one system for 5 minutes. Arrowheads are drawn on top, outside the pulsing intel rings, so they're always visible, and the group colors are easier to tell apart.</li>
       <li><b>2.88</b> Fixed kill alerts (and other alerts) playing several times: in the Windows app only the main OnGrid window raises alerts now, not every open box window, and with several browser tabs open each alert plays in one tab only, even when the tabs load the same kill at the same moment. The Jabber ping sound is louder and fuller: a strong sonar ping with an echo and a return ping.</li>
@@ -1896,6 +1901,12 @@ function parseLine(line, f) {
 
 function parseLocalLine(line, f) {
   const clean = line.replace(/^﻿/, "");
+  // someone talking in Local where one of your characters is: check them against your standings (new lines only)
+  const said = f.primed && f.system && clean.match(/^\s*\[\s*(\d{4})\.(\d{2})\.(\d{2}) (\d{2}):(\d{2}):(\d{2})\s*\]\s*(.+?) > (.*)$/);
+  if (said && said[7] !== "EVE System") {
+    const t = Date.UTC(+said[1], said[2] - 1, +said[3], +said[4], +said[5], +said[6]);
+    if (Date.now() - t < 3 * 60e3) { const m = { t, who: said[7].trim(), msg: said[8].trim().slice(0, 300), system: f.system, listener: f.listener || "" }; localTalk(m); intelBC?.postMessage({ type: "localTalk", m }); }
+  }
   const who = clean.match(/^\s*Listener:\s*(.+?)\s*$/);
   if (who) { f.listener = who[1]; return; }
   const m = clean.match(/^\s*\[\s*(\d{4})\.(\d{2})\.(\d{2}) (\d{2}):(\d{2}):(\d{2})\s*\]\s*EVE System > Channel changed to Local : (.+?)\s*$/);
@@ -1983,6 +1994,7 @@ function shareIntel() {
 if (intelBC) intelBC.onmessage = e => {
   const d = e.data || {};
   if (d.type === "hello") { shareIntel(); return; }
+  if (d.type === "localTalk") { if (d.m && typeof d.m.who === "string") localTalk(d.m); return; }
   if (d.type !== "intel" || hasOwnIntel()) return; // a window with its own intel source keeps using it
   const now = Date.now(), had = new Map(intel.reports.map(r => [r.t + "|" + r.who + "|" + r.msg, r])), fresh = [];
   intel.reports = (d.reports || []).map(x => { const k = x.t + "|" + x.who + "|" + x.msg; if (had.has(k)) return had.get(k); const r = { ...x, live: intel.remote && now - x.t < 3 * 60e3 }; fresh.push(r); return r; });
@@ -2220,7 +2232,7 @@ $("#intelChannels").addEventListener("change", () => { ls.set("intelChannels", $
 addEventListener("storage", e => { if (e.key === "intelChannels" && e.newValue != null) { $("#intelChannels").value = e.newValue; if (intel.reading) startIntel(); } });
 
 /* ---------- settings ---------- */
-const SETTINGS_DEFAULT = { alRange: "1", alFrom: "you", alSound: true, alDesktop: false, alSpeak: false, alKills: false, alBig: true, follow: false, locEsi: true, killCap: "1000", intelFilter: "all", showRats: true, showSov: true, alSov: true, watch: "", alWatch: true, alTimers: true, relaySend: false, relayRecv: false, relayEvery: "60", relayAll: false, relayPush: false, relayCode: "", ssoClient: "", stdEsi: true, shipAware: true, routeFlag: "shortest", avCamps: true, avKills: true, avIntel: true, alNotif: true, alNotifWarn: true, showWh: true, friends: "", enemies: "", hideFriendly: false, youHide: [], mapLayout: "eve", useBridges: false, mainChar: "", homeSys: "" };
+const SETTINGS_DEFAULT = { alRange: "1", alFrom: "you", alSound: true, alDesktop: false, alSpeak: false, alKills: false, alBig: true, follow: false, locEsi: true, killCap: "1000", intelFilter: "all", showRats: true, showSov: true, alSov: true, watch: "", alWatch: true, alTimers: true, relaySend: false, relayRecv: false, relayEvery: "60", relayAll: false, relayPush: false, relayCode: "", ssoClient: "", stdEsi: true, shipAware: true, routeFlag: "shortest", avCamps: true, avKills: true, avIntel: true, alNotif: true, alNotifWarn: true, showWh: true, friends: "", enemies: "", hideFriendly: false, youHide: [], mapLayout: "eve", useBridges: false, mainChar: "", homeSys: "", alLocalTalk: true, alWh: true };
 let cfg;
 try { cfg = { ...SETTINGS_DEFAULT, ...JSON.parse(ls.get("settings", "{}")) }; } catch { cfg = { ...SETTINGS_DEFAULT }; }
 if (ls.get("settings", null) == null && ls.get("intelAlert", null) != null) cfg.alRange = ls.get("intelAlert"); // older version's setting
@@ -2496,7 +2508,15 @@ function hudSummary() {
     if (now - r.t > 15 * 60e3 || isClear(r.msg)) continue;
     const ids = matchSystems(r.msg), n = ids.length === 1 ? parseCount(r.msg) : null;
     for (const id of ids) { const d = distFromYou(id); if (d == null) continue;
-      if (!out.nearest || d < out.nearest.d || (d === out.nearest.d && r.t > out.nearest.t)) out.nearest = { name: nm(id) || state.systems.get(id)?.name, d, t: r.t, pilots: n }; }
+      if (!out.nearest || d < out.nearest.d || (d === out.nearest.d && r.t > out.nearest.t)) out.nearest = { id, name: nm(id) || state.systems.get(id)?.name, d, t: r.t, pilots: n }; }
+  }
+  // which gate they'd come in by (the system next to you on their shortest way here), and the soonest they could arrive:
+  // about 25 seconds a jump for a fast ship, counted from when they were reported
+  const n0 = out.nearest;
+  if (n0 && n0.d >= 1) {
+    const path = gatePath(n0.id, here.id, Math.min(15, n0.d + 2));
+    if (path && path.length >= 2) n0.via = state.systems.get(path[path.length - 2])?.name || null;
+    n0.eta = Math.max(0, n0.d * 25e3 - (now - n0.t));
   }
   const big = new Set();
   for (const s of state.systems.values()) {
@@ -3082,8 +3102,45 @@ async function loadWormholes() {
   try {
     const list = await getJSON("https://api.eve-scout.com/v2/public/signatures", {}, 2);
     state.wh = Array.isArray(list) ? list : [];
+    if (state.systems.size) whAlerts();
     note.textContent = `${state.wh.length} Thera and Turnur connections known. Updated ${new Date().toLocaleTimeString()}.`; note.className = "note";
   } catch { note.textContent = "Couldn't reach EVE-Scout for wormhole connections."; note.className = "note err"; }
+}
+
+// Reds talking in Local: EVE's Local log shows what people say there (not who comes and goes), so when someone who
+// isn't blue says anything in a system where one of your characters is, that's an alert. Your own characters, and
+// pilots in your standings' friends, are left out.
+const localWho = new Map(); // name -> { friendly, at }
+async function localTalk(m) {
+  if (!cfg.alLocalTalk) return;
+  const name = m.who, k = name.toLowerCase();
+  let mine = new Set(); try { mine = new Set([...chars.map(c => c.name.toLowerCase()), ...[...intel.locals.values()].map(f => (f.listener || "").toLowerCase())]); } catch {}
+  if (mine.has(k)) return;
+  let w = localWho.get(k);
+  if (!w || Date.now() - w.at > 36e5) {
+    try {
+      const r = await getJSON(`${ESI}/universe/ids/?${DS}`, POSTJSON([name]), 2), id = r.characters?.[0]?.id;
+      if (!id) w = { friendly: false, at: Date.now() };
+      else { const info = await getJSON(`${ESI}/characters/${id}/?${DS}`, {}, 2);
+        w = { id, friendly: [id, info.corporation_id, info.alliance_id].some(x => x && state.friends.has(x)), at: Date.now() }; }
+    } catch { w = { friendly: false, at: Date.now() }; }
+    localWho.set(k, w);
+  }
+  if (w.friendly) return;
+  fireAlert("lt" + m.t + k, `Red in Local: ${name} in ${m.system}`, `"${m.msg}"${m.listener ? ` (seen by ${m.listener})` : ""}`, `Red in local, ${say(m.system)}`);
+}
+// a new Thera or Turnur connection close to you (EVE-Scout): someone can come through it
+function whAlerts() {
+  const fresh = !state.whSeen; state.whSeen ||= new Set();
+  for (const w of state.wh || []) {
+    const key = String(w.id ?? `${w.in_system_id}:${w.out_system_name}:${w.in_signature}`);
+    if (state.whSeen.has(key)) continue; state.whSeen.add(key);
+    if (fresh || !cfg.alWh || !state.systems.has(w.in_system_id)) continue; // the first load only notes what's already open
+    const lim = Math.max(1, +cfg.alRange || 0), d = distFromYou(w.in_system_id) ?? state.systems.get(w.in_system_id).dist;
+    if (d == null || d > Math.max(lim, 2)) continue;
+    const s = state.systems.get(w.in_system_id), ship = w.max_ship_size ? ` · up to ${w.max_ship_size} ships` : "", left = w.remaining_hours != null ? ` · ${w.remaining_hours}h left` : "";
+    fireAlert("wh" + key, `New ${w.out_system_name} connection ${d === 0 ? "in your system" : d + " jump" + (d === 1 ? "" : "s") + fromYouTxt()}: ${s.name}`, `Signature ${w.in_signature || "?"}${ship}${left}`, `New ${w.out_system_name} connection, ${say(s.name)}`);
+  }
 }
 function whMap() {
   const m = new Map();
@@ -3395,7 +3452,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.90";
+const APP_VERSION = "2.91";
 // a window left open (an app box window, a pinned tab) would keep running an old copy of the page after an update:
 // every 10 minutes, look at the live page's version; if it's newer, reload while the window isn't being looked at,
 // or show a small bar with a Reload button
