@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  OnGrid (formerly Local Intel), version 2.89
+  OnGrid (formerly Local Intel), version 2.90
   MAINTAINERS: with every change, bump APP_VERSION in the script and update the About window
   (#about: the instructions and the version history) so it describes the page as it now is.
 -->
@@ -853,8 +853,8 @@ footer { font: 11px var(--mono); color: var(--muted); }
         <legend>Characters in Intel and location</legend>
         <div class="note">Which of your characters are listed above the intel reports. Click a name to hide it (crossed out), again to show it. Hidden characters still count for your location, alerts and the map.</div>
         <div class="youpick" id="youPick"><span class="note">Your characters show here once the page knows where they are (EVE login or chat logs).</span></div>
-        <label>Main character <select id="mainChar"><option value="">Automatic (whoever moved last)</option></select></label>
-        <div class="note">With alts logged in, only the main character's location moves the map and counts for distances, alerts and "closing in".</div>
+        <label>Main character <select id="mainChar"><option value="">Automatic (logged-in character that moved last)</option></select></label>
+        <div class="note">With alts logged in, only the main character's location moves the map and the HUD, and counts for distances, alerts and "closing in". Automatic picks the character logged in to OnGrid (EVE login) that moved last.</div>
       </fieldset>
       <fieldset>
         <legend>Phone relay</legend>
@@ -924,7 +924,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 <dialog class="about" id="about" aria-labelledby="aboutTitle">
   <div class="abouthead">
     <h2 id="aboutTitle">OnGrid</h2>
-    <span class="ver" id="aboutVer">Version 2.89</span>
+    <span class="ver" id="aboutVer">Version 2.90</span>
     <button type="button" id="aboutClose">Close</button>
   </div>
   <div class="aboutbody">
@@ -1087,7 +1087,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
       <li>Big-ship words (titan, super, dread, carrier, fax, lancer, rorq, dictor, hic, blops, caps, cyno) and ship names like "Sabre" get tagged.</li>
       <li>ESS words (ess, linking, main bank, reserve bank, bank) get an ESS tag.</li>
       <li><b>Show</b> lists all intel, or only messages about systems on the map or watched.</li>
-      <li>Above the intel, each of your characters is listed with where it is. Choose which ones are listed under <b>Characters in Intel and location</b> in Alerts and settings: click a name to hide it (it's crossed out) and again to show it. This only changes the list; hidden characters still count for your location, alerts and the YOU ring on the map. The choice is saved. With alts logged in, also pick your <b>Main character</b> there: only that character's location moves the map and counts for distances, alerts and "closing in" (Automatic follows whoever moved last). Several alts in the same intel channel each log the same lines; OnGrid reads one copy and shows each report once.</li>
+      <li>Above the intel, each of your characters is listed with where it is. Choose which ones are listed under <b>Characters in Intel and location</b> in Alerts and settings: click a name to hide it (it's crossed out) and again to show it. This only changes the list; hidden characters still count for your location, alerts and the YOU ring on the map. The choice is saved. With alts logged in, also pick your <b>Main character</b> there: only that character's location moves the map and counts for distances, alerts and "closing in" (Automatic follows whichever of your characters logged in to OnGrid moved last; a character that's only in your chat logs counts only when none of them is anywhere). Several alts in the same intel channel each log the same lines; OnGrid reads one copy and shows each report once.</li>
       <li>Your location comes from your EVE login (see below) or from your Local chat log, whichever saw your latest jump. Each source is named next to your system. With several characters, each one is shown. A character the EVE login reports as offline isn't shown.</li>
     </ul>
 
@@ -1130,6 +1130,7 @@ footer { font: 11px var(--mono); color: var(--muted); }
 
     <h3>Version history</h3>
     <ul class="hist">
+      <li><b>2.90</b> Fixed the HUD (and alerts) following the wrong character. A setting changed in one OnGrid window, such as <b>Main character</b>, now applies in every window straight away; before, the hidden window that drives the HUD and alerts kept the old setting until OnGrid restarted. With Main character on Automatic, characters logged in to OnGrid now come first: an alt that's only in your chat logs counts as you only when none of your logged-in characters is anywhere.</li>
       <li><b>2.89</b> Hostile tracks are easier to read: each track shows only the last 3 systems, starts over when a pilot flies back into a system already on it, and disappears once the pilot has stayed in one system for 5 minutes. Arrowheads are drawn on top, outside the pulsing intel rings, so they're always visible, and the group colors are easier to tell apart.</li>
       <li><b>2.88</b> Fixed kill alerts (and other alerts) playing several times: in the Windows app only the main OnGrid window raises alerts now, not every open box window, and with several browser tabs open each alert plays in one tab only, even when the tabs load the same kill at the same moment. The Jabber ping sound is louder and fuller: a strong sonar ping with an echo and a return ping.</li>
       <li><b>2.87</b> A new Jabber ping plays a sonar ping sound instead of the usual beep (with Sound on in Alerts). <b>▶ Ping sound</b> under Account plays it.</li>
@@ -2054,7 +2055,7 @@ function renderYou() {
   for (const e of (state.esiLoc || new Map()).values()) all.set(e.name.toLowerCase(), e.name);
   const mc = $("#mainChar"), mcNames = [...all.values()].sort((a, b) => a.localeCompare(b));
   if (cfg.mainChar && !mcNames.some(n => n.toLowerCase() === cfg.mainChar.toLowerCase())) mcNames.push(cfg.mainChar);
-  if (mc.dataset.list !== mcNames.join("|")) { mc.dataset.list = mcNames.join("|"); mc.innerHTML = `<option value="">Automatic (whoever moved last)</option>` + mcNames.map(n => `<option>${esc(n)}</option>`).join(""); mc.value = cfg.mainChar || ""; }
+  if (mc.dataset.list !== mcNames.join("|")) { mc.dataset.list = mcNames.join("|"); mc.innerHTML = `<option value="">Automatic (logged-in character that moved last)</option>` + mcNames.map(n => `<option>${esc(n)}</option>`).join(""); mc.value = cfg.mainChar || ""; }
   $("#youPick").innerHTML = all.size ? `${[...all.values()].sort((a, b) => a.localeCompare(b)).map(n =>
     `<button type="button" class="youchip${shown(n) ? " on" : ""}" data-you="${esc(n)}" aria-pressed="${shown(n)}" title="${shown(n) ? "Hide" : "Show"} ${esc(n)} here">${esc(n)}</button>`).join("")}` : `<span class="note">Your characters show here once the page knows where they are (EVE login or chat logs).</span>`;
   const rows = presences().filter(p => shown(p.name)).map(p => {
@@ -2237,6 +2238,21 @@ for (const k of Object.keys(SETTINGS_DEFAULT)) {
   // typed boxes save as you type, so closing the tab before clicking away loses nothing
   if (el.tagName === "INPUT" && el.type !== "checkbox") { let t; el.addEventListener("input", () => { clearTimeout(t); t = setTimeout(() => { cfg[k] = el.value.trim(); saveCfg(); }, 400); }); }
 }
+// a setting changed in another OnGrid window (in the Windows app each box is its own window, and the hidden full window
+// drives the alerts and HUDs): take it over here too, as if it had been changed in this window
+addEventListener("storage", e => {
+  if (e.key !== "settings" || !e.newValue) return;
+  let next; try { next = { ...SETTINGS_DEFAULT, ...JSON.parse(e.newValue) }; } catch { return; }
+  const changed = Object.keys(SETTINGS_DEFAULT).filter(k => JSON.stringify(cfg[k]) !== JSON.stringify(next[k]));
+  if (!changed.length) return;
+  Object.assign(cfg, next);
+  for (const k of changed) {
+    const el = document.getElementById(k);
+    if (el && el !== document.activeElement) { if (el.type === "checkbox") el.checked = !!cfg[k]; else el.value = cfg[k] ?? ""; }
+    if (k === "alDesktop") continue; // asking for pop-up permission is done by the window you clicked in
+    try { onSetting(k); } catch {}
+  }
+});
 function onSetting(k) {
   unlockAudio();
   if (k === "alDesktop" && cfg.alDesktop) enableDesktop();
@@ -2442,8 +2458,12 @@ function youNow() {
   const ps = presences();
   // with alts logged in: the main character chosen in Alerts and settings is "you" (map, distances, alerts, closing in)
   if (cfg.mainChar) { const m = ps.find(p => p.name.toLowerCase() === cfg.mainChar.toLowerCase()); if (m) return m; }
+  // otherwise the characters logged in to OnGrid (EVE login) come first: an alt only seen in the chat logs is "you" only
+  // when none of them is anywhere. Among them, the one that moved last.
+  let mine = new Set(); try { mine = new Set(chars.map(c => c.name.toLowerCase())); } catch {}
+  const pool = ps.some(p => mine.has(p.name.toLowerCase())) ? ps.filter(p => mine.has(p.name.toLowerCase())) : ps;
   let best = null;
-  for (const p of ps) if (!best || p.since > best.since) best = p;
+  for (const p of pool) if (!best || p.since > best.since) best = p;
   return best;
 }
 const bfsMemo = { key: null, d: null };
@@ -3375,7 +3395,7 @@ function killStruct(k) { const g = groupInfo[typeGroup[k.ship]]; return g && [65
 $("#sovLegend").hidden = !cfg.showSov;
 
 /* ---------- watched systems (anywhere, on or off the map) ---------- */
-const APP_VERSION = "2.89";
+const APP_VERSION = "2.90";
 // a window left open (an app box window, a pinned tab) would keep running an old copy of the page after an update:
 // every 10 minutes, look at the live page's version; if it's newer, reload while the window isn't being looked at,
 // or show a small bar with a Reload button

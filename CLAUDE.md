@@ -69,7 +69,8 @@ OnGrid is an intel tool for EVE Online. Everything ships from this repo.
 - **Jump bridges** (`bridges` in localStorage, pasted in settings):
   - They're the alliance's private data: never send them anywhere except as `connections` on ESI route requests.
   - ESI takes at most 100 one-way connections per route, so `bridgeConnections()` sends the 50 bridges nearest the start-to-destination line, both ways.
-- **Alts:** when several characters are logged in, `cfg.mainChar` (or the most recently active one) alone sets your location; intel lines are deduped, and each channel reads one log copy.
+- **Alts:** when several characters are logged in, `cfg.mainChar` alone sets your location; on Automatic, `youNow()` takes the most recently moved character logged in to OnGrid (EVE login), and chat-log-only characters only when none of those is anywhere. Intel lines are deduped, and each channel reads one log copy.
+- **Settings reach every window:** a `storage` listener on `settings` copies changes into `cfg` in the other windows and runs `onSetting()` there (the hidden full window drives alerts and HUDs).
 - **Jabber box** (`#jabberPanel`, app only, a `NO_MAP` window): pings raise `fireAlert` with keys `jp…`, direct messages and mentions with `jm…` (shown as info); neither is sent to the phone relay.
 - **Loot tracker** (`#lootPanel`, app only): bounties come from EVE's game logs (Gamelogs folder, IndexedDB `gamedir`), read by one window at a time (Web Lock `ongrid-gamelogs`) into localStorage `lootBounty`; the session and pasted loot are in `loot`, pilots' corp tax in `lootTax`, ESS payouts (wallet journal `ess_escrow_transfer`, one window via Web Lock `ongrid-ess`) in `lootEss`, finished sessions in `lootHistory` (backed up). Loot is priced with ESI `markets/prices` average price.
 - **Keep it light on CPU and memory** (it runs next to EVE):
